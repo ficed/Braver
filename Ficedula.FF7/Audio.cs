@@ -277,8 +277,6 @@ namespace Ficedula.FF7 {
         public void Export(int soundID, Stream dest) {
             var entry = _entries[soundID];
 
-            _dat.Position = entry.Offset;
-
             dest.WriteAscii("RIFF");
             dest.WriteI32(entry.Size + 36);
             dest.WriteAscii("WAVEfmt ");
@@ -287,17 +285,20 @@ namespace Ficedula.FF7 {
             dest.WriteAscii("data");
             dest.WriteI32(entry.Size);
             byte[] buffer = new byte[entry.Size];
-            _dat.Read(buffer, 0, buffer.Length);
+			lock (_dat) {
+				_dat.Position = entry.Offset;
+				_dat.Read(buffer, 0, buffer.Length);
+			}
             dest.Write(buffer, 0, buffer.Length);
-
         }
 
 		public byte[] ExportPCM(int soundID, out int frequency, out int channels) {
 			var entry = _entries[soundID];
-
-			_dat.Position = entry.Offset;
 			byte[] buffer = new byte[entry.Size];
-			_dat.Read(buffer, 0, buffer.Length);
+			lock (_dat) {
+				_dat.Position = entry.Offset;
+				_dat.Read(buffer, 0, buffer.Length);
+			}
 
 			short nChannels = BitConverter.ToInt16(entry.WAVFORMATEX, 2),
 				nBlockAlign = BitConverter.ToInt16(entry.WAVFORMATEX, 12);

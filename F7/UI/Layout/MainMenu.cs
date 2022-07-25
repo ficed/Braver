@@ -41,12 +41,15 @@ namespace F7.UI.Layout {
         }
 
         public void SelectChar(Group selected) {
+            var groups = new List<Group> { Char0, Char1, Char2 };
             if (FlashFocus == null) {
                 FlashFocus = selected;
             } else if (FlashFocus == selected) {
+                Character chr = _game.SaveData.Party[groups.IndexOf(selected)];
+                chr.Flags ^= CharFlags.BackRow;
                 FlashFocus = null;
+                _screen.Reload();
             } else {
-                var groups = new List<Group> { Char0, Char1, Char2 };
                 int from = groups.IndexOf(FlashFocus as Group), to = groups.IndexOf(selected);
                 Character cFrom = _game.SaveData.Party[from],
                     cTo = _game.SaveData.Party[to];

@@ -205,8 +205,18 @@ namespace F7.UI.Layout {
             _focus.Peek().FocusID = focus.ID;
         }
 
-        public virtual void Step() { }
+        /// <summary>
+        /// Process input before the default UI handling takes place
+        /// </summary>
+        /// <param name="input">Current input state</param>
+        /// <returns>true if the input has been handled and default handling should not take place;
+        /// false otherwise.</returns>
+        public virtual bool ProcessInput(InputState input) {
+            return false;
+        }
 
+
+        public virtual void Step() { }
         protected virtual void OnInit() { }
 
         public void Init(FGame g, Layout layout, LayoutScreen screen) {
@@ -355,6 +365,8 @@ namespace F7.UI.Layout {
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
             if (!_model.InputEnabled)
+                return;
+            if (_model.ProcessInput(input))
                 return;
 
             if (_model.Focus != null) {

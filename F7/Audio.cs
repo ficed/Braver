@@ -58,12 +58,22 @@ namespace F7 {
         }
 
         private Dictionary<int, WeakReference<SoundEffect>> _sfx = new();
-        private HashSet<SoundEffect> _recent0 = new(), _recent1 = new();
+        private HashSet<SoundEffect> _recent0 = new(), _pinned = new(), _recent1;
         private DateTime _lastPromote = DateTime.MinValue;
 
+        public void Precache(Sfx which, bool pin) {
+            byte[] raw = _sfxSource.ExportPCM((int)which, out int freq, out int channels);
+            var fx = new SoundEffect(raw, freq, channels == 1 ? AudioChannels.Mono : AudioChannels.Stereo);
+            _sfx[(int)which] = new WeakReference<SoundEffect>(fx);
+
+            if (pin)
+                _pinned.Add(fx);
+        }
+
         public void PlaySfx(Sfx which, float volume, float pan) => PlaySfx((int)which, volume, pan);
-        public void PlaySfx(int which, float volume, float pan) { 
+        public void PlaySfx(int which, float volume, float pan) {
             SoundEffect fx;
+
             if (_sfx.TryGetValue(which, out var wr) && wr.TryGetTarget(out fx)) {
                 //
             } else {
@@ -71,14 +81,14 @@ namespace F7 {
                 fx = new SoundEffect(raw, freq, channels == 1 ? AudioChannels.Mono : AudioChannels.Stereo);
                 _sfx[which] = new WeakReference<SoundEffect>(fx);
             }
-            _recent0.Add(fx);
+
             fx.Play(volume, 0, pan);
             if (_lastPromote < DateTime.Now.AddMinutes(-1)) {
                 _recent1 = _recent0;
                 _recent0 = new();
             }
+            _recent0.Add(fx);
         }
-
 
         public void Quit() {
             _channel.Writer.TryWrite(null);

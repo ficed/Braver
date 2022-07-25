@@ -2,7 +2,7 @@
 <Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720">
 
-		<Component xsi:type="Box" X="50" Y="50" W="1025" H="600" ID="Chars">
+		<Component xsi:type="Box" X="50" Y="80" W="1025" H="600" ID="Chars">
 			@foreach(int i in Enumerable.Range(0, @Model.SaveData.Party.Length)) {
 				<Component xsi:type="Group" X="25" Y="@(15 + 190 * i)" W="970" H="180" ID='@("Char" + i)' Click='SelectChar'>
 					<Component xsi:type="Image" X="@(Model.SaveData.Party[i].IsBackRow ? 40 : 0)" Y="10" Scale="1.5">@("portrait_" + @Model.SaveData.Party[i].ID)</Component>
@@ -61,7 +61,7 @@
 			<Component xsi:type="Label" X="220" Y="55" Font="bats" Alignment="Right">@Model.SaveData.Gil</Component>
 		</Component>
 
-		<Component xsi:type="Box" X="700" Y="660" W="500" H="50">
+		<Component xsi:type="Box" X="780" Y="660" W="500" H="50">
 			<Component xsi:type="Label" X="20" Y="15">@Model.SaveData.Location</Component>
 		</Component>
 	</Root>

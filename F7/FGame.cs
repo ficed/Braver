@@ -73,6 +73,10 @@ namespace F7 {
             }
 
             Audio = new Audio(data);
+
+            Audio.Precache(Sfx.Cursor, true);
+            Audio.Precache(Sfx.Cancel, true);
+            Audio.Precache(Sfx.Invalid, true);
         }
 
         public T Singleton<T>(Func<T> create) {
