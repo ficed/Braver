@@ -16,6 +16,16 @@ if (args[0].Equals("LGP", StringComparison.OrdinalIgnoreCase)) {
     }
 }
 
+if (args[0].Equals("Sounds", StringComparison.OrdinalIgnoreCase)) {
+    using (var audio = new Ficedula.FF7.Audio(Path.Combine(args[1], "audio.dat"), Path.Combine(args[1], "audio.fmt"))) {
+        Console.WriteLine($"Audio file with {audio.EntryCount} entries");
+        var ms = new MemoryStream();
+        audio.Export(10, ms);
+        File.WriteAllBytes(@"C:\temp\tff.wav", ms.ToArray());
+        File.WriteAllBytes(@"C:\temp\tff.raw", audio.ExportPCM(10, out int freq, out int chans));
+    }
+}
+
 if (args[0].Equals("Field", StringComparison.InvariantCultureIgnoreCase)) {
     using(var lgp = new Ficedula.FF7.LGPFile(args[1])) {
         using(var ffile = lgp.Open(args[2])) {

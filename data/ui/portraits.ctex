@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<CompositeTexture xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Width>512</Width>
+	<Height>512</Height>
+	<Images>
+		<SourceImage>
+			<Texture>menu\bins.tex</Texture>
+			<X>0</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_vincent</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\cido.tex</Texture>
+			<X>128</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_cid</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\barre.tex</Texture>
+			<X>256</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_barret</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\cloud.tex</Texture>
+			<X>384</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_cloud</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\earith.tex</Texture>
+			<X>0</X>
+			<Y>128</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_aeris</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\ketc.tex</Texture>
+			<X>128</X>
+			<Y>128</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_cait</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\red.tex</Texture>
+			<X>256</X>
+			<Y>128</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_red</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\tifa.tex</Texture>
+			<X>384</X>
+			<Y>128</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_tifa</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\yufi.tex</Texture>
+			<X>0</X>
+			<Y>256</Y>
+			<Chunk X="0" Y="0" W="84" H="96">portrait_yuffie</Chunk>
+		</SourceImage>
+	</Images>
+</CompositeTexture>

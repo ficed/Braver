@@ -23,7 +23,6 @@ namespace F7 {
             base.Initialize();
         }
 
-        private Screen _screen;
         private FGame _g;
 
         protected override void LoadContent() {
@@ -32,7 +31,10 @@ namespace F7 {
             _g = new FGame(@"C:\games\ff7\data", @"C:\Users\ficed\Projects\F7\data");
             _g.NewGame();
             //_screen = new TestScreen(_g, GraphicsDevice);
-            _screen = new Field.FieldScreen("mrkt2", _g, GraphicsDevice);
+            //_screen = new Field.FieldScreen("mrkt2", _g, GraphicsDevice);
+            //_screen = new UI.UIScreen(_g, GraphicsDevice);
+            //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "Quit"));
+            _g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
         }
 
         private static Dictionary<Keys, InputKey> _keyMap = new Dictionary<Keys, InputKey> {
@@ -44,9 +46,14 @@ namespace F7 {
             [Keys.Space] = InputKey.Cancel,
             [Keys.F1] = InputKey.Start,
             [Keys.F2] = InputKey.Select,
+
+            [Keys.F5] = InputKey.Debug1,
+            [Keys.F6] = InputKey.Debug2,
         };
 
         private InputState _input = new();
+
+        private int _lastSeconds;
 
         protected override void Update(GameTime gameTime) {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -69,13 +76,18 @@ namespace F7 {
                 }
             }
 
-            _screen.ProcessInput(_input);
+            _g.Screen.ProcessInput(_input);
 
             // TODO: Add your update logic here
 
             base.Update(gameTime);
 
-            _screen.Step(gameTime);
+            if ((int)gameTime.TotalGameTime.TotalSeconds != _lastSeconds) {
+                _lastSeconds = (int)gameTime.TotalGameTime.TotalSeconds;
+                _g.SaveData.GameTimeSeconds++;
+            }
+
+            _g.Screen.Step(gameTime);
         }
 
         protected override void Draw(GameTime gameTime) {
@@ -83,7 +95,7 @@ namespace F7 {
 
             base.Draw(gameTime);
 
-            _screen.Render();
+            _g.Screen.Render();
         }
     }
 }

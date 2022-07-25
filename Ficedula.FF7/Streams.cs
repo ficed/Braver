@@ -54,10 +54,21 @@ namespace Ficedula.FF7 {
             return Encoding.ASCII.GetString(data).Trim();
         }
 
+        public static byte[] ReadBytes(this Stream s, int count) {
+            byte[] data = new byte[count];
+            s.Read(data, 0, count);
+            return data;
+        }
+
         public static void WriteS(this Stream s, string str) {
             byte[] data = Encoding.Unicode.GetBytes(str);
             s.WriteI32(data.Length);
             s.Write(data, 0, data.Length);
+        }
+
+        public static void WriteAscii(this Stream s, string str) {
+            byte[] data = Encoding.ASCII.GetBytes(str);
+            s.Write(data, 0, data.Length);            
         }
 
         public static void WriteF(this Stream s, double f) {

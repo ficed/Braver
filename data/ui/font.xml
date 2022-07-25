@@ -1,0 +1,178 @@
+<?xml version="1.0"?>
+<FontData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Fonts>
+		<FontSet>
+			<Name>main</Name>
+			<DefaultSize>2</DefaultSize>
+			<Glyphs>
+				<Glyph X="8" Y="0" W="10" H="24" Layer="0">43</Glyph>
+				<Glyph X="32" Y="0" W="5" H="24" Layer="0">44</Glyph>
+				<Glyph X="56" Y="0" W="6" H="24" Layer="0">45</Glyph>
+				<Glyph X="80" Y="0" W="4" H="24" Layer="0">46</Glyph>
+				<Glyph X="104" Y="0" W="8" H="24" Layer="0">47</Glyph>
+				<Glyph X="128" Y="0" W="12" H="24" Layer="0">48</Glyph>
+				<Glyph X="152" Y="0" W="8" H="24" Layer="0">49</Glyph>
+				<Glyph X="176" Y="0" W="12" H="24" Layer="0">50</Glyph>
+				<Glyph X="200" Y="0" W="12" H="24" Layer="0">51</Glyph>
+				<Glyph X="224" Y="0" W="13" H="24" Layer="0">52</Glyph>
+				<Glyph X="8" Y="24" W="16" H="24" Layer="0">64</Glyph>
+				<Glyph X="32" Y="24" W="13" H="24" Layer="0">65</Glyph>
+				<Glyph X="56" Y="24" W="10" H="24" Layer="0">66</Glyph>
+				<Glyph X="80" Y="24" W="11" H="24" Layer="0">67</Glyph>
+				<Glyph X="104" Y="24" W="12" H="24" Layer="0">68</Glyph>
+				<Glyph X="128" Y="24" W="11" H="24" Layer="0">69</Glyph>
+				<Glyph X="152" Y="24" W="11" H="24" Layer="0">70</Glyph>
+				<Glyph X="176" Y="24" W="12" H="24" Layer="0">71</Glyph>
+				<Glyph X="200" Y="24" W="12" H="24" Layer="0">72</Glyph>
+				<Glyph X="224" Y="24" W="4" H="24" Layer="0">73</Glyph>
+				<Glyph X="8" Y="48" W="12" H="24" Layer="0">85</Glyph>
+				<Glyph X="32" Y="48" W="13" H="24" Layer="0">86</Glyph>
+				<Glyph X="56" Y="48" W="16" H="24" Layer="0">87</Glyph>
+				<Glyph X="80" Y="48" W="12" H="24" Layer="0">88</Glyph>
+				<Glyph X="104" Y="48" W="12" H="24" Layer="0">89</Glyph>
+				<Glyph X="128" Y="48" W="10" H="24" Layer="0">90</Glyph>
+				<Glyph X="152" Y="48" W="6" H="24" Layer="0">91</Glyph>
+				<Glyph X="176" Y="48" W="9" H="24" Layer="0">92</Glyph>
+				<Glyph X="200" Y="48" W="5" H="24" Layer="0">93</Glyph>
+				<Glyph X="224" Y="48" W="11" H="24" Layer="0">94</Glyph>
+				<Glyph X="8" Y="72" W="5" H="24" Layer="0">106</Glyph>
+				<Glyph X="32" Y="72" W="9" H="24" Layer="0">107</Glyph>
+				<Glyph X="56" Y="72" W="4" H="24" Layer="0">108</Glyph>
+				<Glyph X="80" Y="72" W="16" H="24" Layer="0">109</Glyph>
+				<Glyph X="104" Y="72" W="10" H="24" Layer="0">110</Glyph>
+				<Glyph X="128" Y="72" W="11" H="24" Layer="0">111</Glyph>
+				<Glyph X="152" Y="72" W="11" H="24" Layer="0">112</Glyph>
+				<Glyph X="176" Y="72" W="11" H="24" Layer="0">113</Glyph>
+				<Glyph X="200" Y="72" W="7" H="24" Layer="0">114</Glyph>
+				<Glyph X="224" Y="72" W="9" H="24" Layer="0">115</Glyph>
+				<Glyph X="32" Y="96" W="13" H="24" Layer="0">196</Glyph>
+				<Glyph X="56" Y="96" W="13" H="24" Layer="0">193</Glyph>
+				<Glyph X="80" Y="96" W="11" H="24" Layer="0">199</Glyph>
+				<Glyph X="104" Y="96" W="10" H="24" Layer="0">201</Glyph>
+				<Glyph X="128" Y="96" W="12" H="24" Layer="0">209</Glyph>
+				<Glyph X="152" Y="96" W="14" H="24" Layer="0">214</Glyph>
+				<Glyph X="176" Y="96" W="12" H="24" Layer="0">220</Glyph>
+				<Glyph X="200" Y="96" W="10" H="24" Layer="0">225</Glyph>
+				<Glyph X="224" Y="96" W="10" H="24" Layer="0">224</Glyph>
+				<Glyph X="8" Y="120" W="6" H="24" Layer="0">238</Glyph>
+				<Glyph X="32" Y="120" W="7" H="24" Layer="0">239</Glyph>
+				<Glyph X="56" Y="120" W="10" H="24" Layer="0">241</Glyph>
+				<Glyph X="80" Y="120" W="11" H="24" Layer="0">243</Glyph>
+				<Glyph X="104" Y="120" W="11" H="24" Layer="0">242</Glyph>
+				<Glyph X="128" Y="120" W="11" H="24" Layer="0">244</Glyph>
+				<Glyph X="152" Y="120" W="11" H="24" Layer="0">246</Glyph>
+				<Glyph X="176" Y="120" W="11" H="24" Layer="0">245</Glyph>
+				<Glyph X="200" Y="120" W="10" H="24" Layer="0">250</Glyph>
+				<Glyph X="224" Y="120" W="10" H="24" Layer="0">249</Glyph>
+				<Glyph X="8" Y="144" W="13" H="24" Layer="0">169</Glyph>
+				<Glyph X="24" Y="0" W="3" H="24" Layer="1">33</Glyph>
+				<Glyph X="48" Y="0" W="7" H="24" Layer="1">34</Glyph>
+				<Glyph X="72" Y="0" W="16" H="24" Layer="1">35</Glyph>
+				<Glyph X="96" Y="0" W="11" H="24" Layer="1">36</Glyph>
+				<Glyph X="120" Y="0" W="15" H="24" Layer="1">37</Glyph>
+				<Glyph X="144" Y="0" W="14" H="24" Layer="1">38</Glyph>
+				<Glyph X="168" Y="0" W="4" H="24" Layer="1">39</Glyph>
+				<Glyph X="192" Y="0" W="7" H="24" Layer="1">40</Glyph>
+				<Glyph X="216" Y="0" W="7" H="24" Layer="1">41</Glyph>
+				<Glyph X="240" Y="0" W="10" H="24" Layer="1">42</Glyph>
+				<Glyph X="0" Y="24" W="12" H="24" Layer="1">53</Glyph>
+				<Glyph X="24" Y="24" W="12" H="24" Layer="1">54</Glyph>
+				<Glyph X="48" Y="24" W="12" H="24" Layer="1">55</Glyph>
+				<Glyph X="72" Y="24" W="12" H="24" Layer="1">56</Glyph>
+				<Glyph X="96" Y="24" W="12" H="24" Layer="1">57</Glyph>
+				<Glyph X="120" Y="24" W="4" H="24" Layer="1">58</Glyph>
+				<Glyph X="144" Y="24" W="5" H="24" Layer="1">59</Glyph>
+				<Glyph X="168" Y="24" W="11" H="24" Layer="1">60</Glyph>
+				<Glyph X="192" Y="24" W="11" H="24" Layer="1">61</Glyph>
+				<Glyph X="216" Y="24" W="12" H="24" Layer="1">62</Glyph>
+				<Glyph X="240" Y="24" W="9" H="24" Layer="1">63</Glyph>
+				<Glyph X="0" Y="48" W="9" H="24" Layer="1">74</Glyph>
+				<Glyph X="24" Y="48" W="11" H="24" Layer="1">75</Glyph>
+				<Glyph X="48" Y="48" W="10" H="24" Layer="1">76</Glyph>
+				<Glyph X="72" Y="48" W="17" H="24" Layer="1">77</Glyph>
+				<Glyph X="96" Y="48" W="12" H="24" Layer="1">78</Glyph>
+				<Glyph X="120" Y="48" W="13" H="24" Layer="1">79</Glyph>
+				<Glyph X="144" Y="48" W="10" H="24" Layer="1">80</Glyph>
+				<Glyph X="168" Y="48" W="13" H="24" Layer="1">81</Glyph>
+				<Glyph X="192" Y="48" W="10" H="24" Layer="1">82</Glyph>
+				<Glyph X="216" Y="48" W="10" H="24" Layer="1">83</Glyph>
+				<Glyph X="240" Y="48" W="10" H="24" Layer="1">84</Glyph>
+				<Glyph X="0" Y="72" W="12" H="24" Layer="1">95</Glyph>
+				<Glyph X="24" Y="72" W="5" H="24" Layer="1">96</Glyph>
+				<Glyph X="48" Y="72" W="10" H="24" Layer="1">97</Glyph>
+				<Glyph X="72" Y="72" W="10" H="24" Layer="1">98</Glyph>
+				<Glyph X="96" Y="72" W="9" H="24" Layer="1">99</Glyph>
+				<Glyph X="120" Y="72" W="10" H="24" Layer="1">100</Glyph>
+				<Glyph X="144" Y="72" W="10" H="24" Layer="1">101</Glyph>
+				<Glyph X="168" Y="72" W="8" H="24" Layer="1">102</Glyph>
+				<Glyph X="192" Y="72" W="10" H="24" Layer="1">103</Glyph>
+				<Glyph X="216" Y="72" W="10" H="24" Layer="1">104</Glyph>
+				<Glyph X="240" Y="72" W="4" H="24" Layer="1">105</Glyph>
+				<Glyph X="0" Y="96" W="8" H="24" Layer="1">116</Glyph>
+				<Glyph X="24" Y="96" W="10" H="24" Layer="1">117</Glyph>
+				<Glyph X="48" Y="96" W="10" H="24" Layer="1">118</Glyph>
+				<Glyph X="72" Y="96" W="17" H="24" Layer="1">119</Glyph>
+				<Glyph X="96" Y="96" W="11" H="24" Layer="1">120</Glyph>
+				<Glyph X="120" Y="96" W="11" H="24" Layer="1">121</Glyph>
+				<Glyph X="144" Y="96" W="8" H="24" Layer="1">122</Glyph>
+				<Glyph X="168" Y="96" W="7" H="24" Layer="1">123</Glyph>
+				<Glyph X="192" Y="96" W="4" H="24" Layer="1">124</Glyph>
+				<Glyph X="216" Y="96" W="7" H="24" Layer="1">125</Glyph>
+				<Glyph X="240" Y="96" W="12" H="24" Layer="1">126</Glyph>
+			</Glyphs>
+		</FontSet>
+		<FontSet>
+			<Name>bats</Name>
+			<DefaultSize>2</DefaultSize>
+			<Glyphs>
+				<Glyph X="48" Y="48" W="16" H="16" Layer="2">48</Glyph>
+				<Glyph X="64" Y="48" W="16" H="16" Layer="2">49</Glyph>
+				<Glyph X="80" Y="48" W="16" H="16" Layer="2">50</Glyph>
+				<Glyph X="96" Y="48" W="16" H="16" Layer="2">51</Glyph>
+				<Glyph X="112" Y="48" W="16" H="16" Layer="2">52</Glyph>
+				<Glyph X="128" Y="48" W="16" H="16" Layer="2">53</Glyph>
+				<Glyph X="144" Y="48" W="16" H="16" Layer="2">54</Glyph>
+				<Glyph X="160" Y="48" W="16" H="16" Layer="2">55</Glyph>
+				<Glyph X="176" Y="48" W="16" H="16" Layer="2">56</Glyph>
+				<Glyph X="192" Y="48" W="16" H="16" Layer="2">57</Glyph>
+
+				<Glyph X="64" Y="176" W="16" H="16" Layer="2">65</Glyph>
+				<Glyph X="80" Y="176" W="16" H="16" Layer="2">66</Glyph>
+				<Glyph X="96" Y="176" W="16" H="16" Layer="2">67</Glyph>
+				<Glyph X="112" Y="176" W="16" H="16" Layer="2">68</Glyph>
+				<Glyph X="128" Y="176" W="16" H="16" Layer="2">69</Glyph>
+				<Glyph X="144" Y="176" W="16" H="16" Layer="2">70</Glyph>
+				<Glyph X="160" Y="176" W="16" H="16" Layer="2">71</Glyph>
+				<Glyph X="176" Y="176" W="16" H="16" Layer="2">72</Glyph>
+				<Glyph X="192" Y="176" W="16" H="16" Layer="2">73</Glyph>
+				<Glyph X="208" Y="176" W="16" H="16" Layer="2">74</Glyph>
+				<Glyph X="224" Y="176" W="16" H="16" Layer="2">75</Glyph>
+				<Glyph X="240" Y="176" W="16" H="16" Layer="2">76</Glyph>
+				<Glyph X="0" Y="192" W="16" H="16" Layer="2">77</Glyph>
+				<Glyph X="16" Y="192" W="16" H="16" Layer="2">78</Glyph>
+				<Glyph X="32" Y="192" W="16" H="16" Layer="2">79</Glyph>
+				<Glyph X="48" Y="192" W="16" H="16" Layer="2">80</Glyph>
+				<Glyph X="64" Y="192" W="16" H="16" Layer="2">81</Glyph>
+				<Glyph X="80" Y="192" W="16" H="16" Layer="2">82</Glyph>
+				<Glyph X="96" Y="192" W="16" H="16" Layer="2">83</Glyph>
+				<Glyph X="112" Y="192" W="16" H="16" Layer="2">84</Glyph>
+				<Glyph X="128" Y="192" W="16" H="16" Layer="2">85</Glyph>
+				<Glyph X="144" Y="192" W="16" H="16" Layer="2">86</Glyph>
+				<Glyph X="160" Y="192" W="16" H="16" Layer="2">87</Glyph>
+				<Glyph X="176" Y="192" W="16" H="16" Layer="2">88</Glyph>
+				<Glyph X="192" Y="192" W="16" H="16" Layer="2">89</Glyph>
+				<Glyph X="208" Y="192" W="16" H="16" Layer="2">90</Glyph>
+
+				<Glyph X="48" Y="208" W="16" H="16" Layer="2">37</Glyph>
+				<Glyph X="64" Y="208" W="16" H="16" Layer="2">47</Glyph>
+				<Glyph X="80" Y="208" W="16" H="16" Layer="2">58</Glyph>
+				<Glyph X="96" Y="208" W="16" H="16" Layer="2">38</Glyph>
+				<Glyph X="112" Y="208" W="16" H="16" Layer="2">91</Glyph>
+				<Glyph X="128" Y="208" W="16" H="16" Layer="2">93</Glyph>
+			</Glyphs>
+		</FontSet>
+	</Fonts>
+	<Texture>menu\usfont_b_h.tex,0</Texture>
+	<Texture>menu\usfont_a_h.tex,0</Texture>
+	<Texture>menu\btl_win_d_h.tex,0</Texture>
+</FontData>

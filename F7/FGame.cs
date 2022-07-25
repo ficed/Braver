@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ namespace F7 {
 
     public abstract class DataSource {
         public abstract Stream TryOpen(string file);
+        public abstract IEnumerable<string> Scan();
     }
 
     public class FGame {
@@ -19,6 +21,8 @@ namespace F7 {
             public LGPDataSource(Ficedula.FF7.LGPFile lgp) {
                 _lgp = lgp;
             }
+
+            public override IEnumerable<string> Scan() => _lgp.Filenames;
             public override Stream TryOpen(string file) => _lgp.TryOpen(file);
         }
 
@@ -28,6 +32,12 @@ namespace F7 {
             public FileDataSource(string root) {
                 _root = root;
             }
+
+            public override IEnumerable<string> Scan() {
+                //TODO subdirectories
+                return Directory.GetFiles(_root).Select(s => Path.GetFileName(s));
+            }
+
             public override Stream TryOpen(string file) {
                 string fn = Path.Combine(_root, file);
                 if (File.Exists(fn))
@@ -36,22 +46,43 @@ namespace F7 {
             }
         }
 
-        public VMM Memory { get; } = new();
-        public SaveData SaveData { get; private set; }
+        private Stack<Screen> _screens = new();
 
+        public VMM Memory { get; } = new();
+
+        public Audio Audio { get; }
+        public Screen Screen => _screens.Peek();
+
+        public SaveData SaveData { get; private set; }
         private Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
+        private Dictionary<Type, object> _singletons = new Dictionary<Type, object>();
 
         public FGame(string data, string bdata) {
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "char.lgp"))),
             };
-            foreach(string dir in Directory.GetDirectories(bdata)) {
+            _data["menu"] = new List<DataSource> {
+                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "menu", "menu_us.lgp"))),
+            };
+            foreach (string dir in Directory.GetDirectories(bdata)) {
                 string category = Path.GetFileName(dir);
                 if (!_data.TryGetValue(category, out var L))
                     L = _data[category] = new();
                 L.Add(new FileDataSource(dir));
             }
+
+            Audio = new Audio(data);
+        }
+
+        public T Singleton<T>(Func<T> create) {
+            if (_singletons.TryGetValue(typeof(T), out object obj))
+                return (T)obj;
+            else {
+                T t = create();
+                _singletons[typeof(T)] = t;
+                return t;
+            }                
         }
 
         public void NewGame() {
@@ -68,5 +99,35 @@ namespace F7 {
             }
             throw new F7Exception($"Could not open {category}/{file}");
         }
+        public string OpenString(string category, string file) {
+            using(var s = Open(category, file)) {
+                using (var sr = new StreamReader(s))
+                    return sr.ReadToEnd();
+            }
+        }
+
+        public IEnumerable<string> ScanData(string category) {
+            if (_data.TryGetValue(category, out var sources))
+                return sources.SelectMany(s => s.Scan());
+            else
+                return Enumerable.Empty<string>();
+        }
+
+        public void PushScreen(Screen s) {
+            _screens.Push(s);
+        }
+
+        public void PopScreen(Screen current) {
+            Debug.Assert(_screens.Pop() == current);
+            Screen.Reactivated();
+        }
+
+        public void ChangeScreen(Screen from, Screen to) {
+            _screens.TryPeek(out var current);
+            Debug.Assert(from == current);
+            if (current != null) _screens.Pop();
+            _screens.Push(to);
+        }
+        
     }
 }

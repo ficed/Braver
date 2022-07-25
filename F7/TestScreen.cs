@@ -26,11 +26,11 @@ namespace F7 {
             };
         }
 
-        public override void Render() {
+        protected override void DoRender() {
             _model.Render(_viewer);
         }
 
-        public override void Step(GameTime elapsed) {
+        protected override void DoStep(GameTime elapsed) {
             _model.FrameStep();
         }
     }

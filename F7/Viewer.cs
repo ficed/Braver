@@ -44,7 +44,7 @@ namespace F7 {
         public float Height { get; set; }
 
         public override Matrix Projection => Matrix.CreateOrthographicOffCenter(
-            -Width/2, Width/2, -Height/2, Height/2, ZNear, ZFar
+            -Width / 2, Width / 2, -Height / 2, Height / 2, ZNear, ZFar
         );
     }
 

@@ -15,6 +15,9 @@ namespace F7 {
         Cancel,
         Start,
         Select,
+
+        Debug1,
+        Debug2,
     }
 
     public class InputState {

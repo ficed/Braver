@@ -71,7 +71,7 @@ namespace F7.Field {
             return _nextModelIndex++;
         }
 
-        public override void Render() {
+        protected override void DoRender() {
             Background.Render(_view2D);
             _debug.Render(_view3D);
             foreach (var entity in Entities)
@@ -79,7 +79,7 @@ namespace F7.Field {
         }
 
         int frame = 0;
-        public override void Step(GameTime elapsed) {
+        protected override void DoStep(GameTime elapsed) {
             if ((frame++ % 4) == 0) {
                 foreach (var entity in Entities) {
                     entity.Run();

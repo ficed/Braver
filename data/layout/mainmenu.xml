@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720">
+
+		<Component xsi:type="Box" X="50" Y="50" W="1025" H="600" ID="Chars">
+			@foreach(int i in Enumerable.Range(0, @Model.SaveData.Party.Length)) {
+				<Component xsi:type="Group" X="25" Y="@(15 + 190 * i)" W="970" H="180" ID='@("Char" + i)' Click='SelectChar'>
+					<Component xsi:type="Image" X="@(Model.SaveData.Party[i].IsBackRow ? 40 : 0)" Y="10" Scale="1.5">@("portrait_" + @Model.SaveData.Party[i].ID)</Component>
+
+					<Component xsi:type="Label" X="250" Y="0">@Model.SaveData.Party[i].Name</Component>
+
+					<Component xsi:type="Label" X="250" Y="40" Font="bats" Color="Aqua">LV</Component>
+					<Component xsi:type="Label" X="350" Y="40" Font="bats" Alignment="Right">@Model.SaveData.Party[i].Level</Component>
+
+					<Component xsi:type="Label" X="250" Y="80" Font="bats" Color="Aqua">HP</Component>
+					<Component xsi:type="Label" X="370" Y="80" Font="bats" Alignment="Right">@Model.SaveData.Party[i].CurrentHP</Component>
+					<Component xsi:type="Label" X="400" Y="80" Font="bats" Alignment="Right" Color="Gray">/</Component>
+					<Component xsi:type="Label" X="480" Y="80" Font="bats" Alignment="Right">@Model.SaveData.Party[i].MaxHP</Component>
+					<Component xsi:type="Gauge" X="250" Y="100" W="250" H="4" Style="HP" Current="@Model.SaveData.Party[i].CurrentHP" Max="@Model.SaveData.Party[i].MaxHP" />
+					
+					<Component xsi:type="Label" X="250" Y="120" Font="bats" Color="Aqua">MP</Component>
+					<Component xsi:type="Label" X="370" Y="120" Font="bats" Alignment="Right">@Model.SaveData.Party[i].CurrentMP</Component>
+					<Component xsi:type="Label" X="400" Y="120" Font="bats" Alignment="Right" Color="Gray">/</Component>
+					<Component xsi:type="Label" X="480" Y="120" Font="bats" Alignment="Right">@Model.SaveData.Party[i].MaxMP</Component>
+					<Component xsi:type="Gauge" X="250" Y="140" W="250" H="4" Style="MP" Current="@Model.SaveData.Party[i].CurrentMP" Max="@Model.SaveData.Party[i].MaxMP" />
+
+					<Component xsi:type="Label" X="600" Y="40">next level</Component>
+					<Component xsi:type="Gauge" X="650" Y="70" W="250" H="24" Style="Limit" Current="@Model.SaveData.Party[i].LevelProgress" Max="1" />
+
+					<Component xsi:type="Label" X="600" Y="100">Limit level</Component>
+					<Component xsi:type="Label" X="800" Y="105" Font="bats">@Model.SaveData.Party[i].LimitLevel</Component>
+					<Component xsi:type="Gauge" X="650" Y="130" W="250" H="24" Style="Limit" Current="@Model.SaveData.Party[i].LimitBar" Max="255" />
+				</Component>			
+			}
+		</Component>
+
+		<Component xsi:type="Box" X="1050" Y="0" W="230" H="480" ID="Menu">
+			<Component xsi:type="Label" Click="MenuSelected" Y="30" X="50" ID="lItem">Item</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="70" X="50" ID="lMagic">Magic</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="110" X="50" ID="lMateria">Materia</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="150" X="50" ID="lEquip">Equip</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="190" X="50" ID="lStatus">Status</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="230" X="50" ID="lOrder">Order</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="270" X="50" ID="lLimit">Limit</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="310" X="50" ID="lConfig">Config</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="350" X="50" ID="lPHS">PHS</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="390" X="50" ID="lSave">Save</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="430" X="50" ID="lQuit">Quit</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="1050" Y="540" W="230" H="90">
+			<Component xsi:type="Label" X="10" Y="15">Time</Component>
+
+			<Component xsi:type="Label" X="120" Y="20" Font="bats" Alignment="Right" ID="lTimeHrs" />
+			<Component xsi:type="Label" X="135" Y="20" Font="bats" Alignment="Right" ID="lTimeC1">:</Component>
+			<Component xsi:type="Label" X="170" Y="20" Font="bats" Alignment="Right" ID="lTimeMins" />
+			<Component xsi:type="Label" X="185" Y="20" Font="bats" Alignment="Right" ID="lTimeC2">:</Component>
+			<Component xsi:type="Label" X="220" Y="20" Font="bats" Alignment="Right" ID="lTimeSecs" />
+
+			<Component xsi:type="Label" X="10" Y="50">Gil</Component>
+			<Component xsi:type="Label" X="220" Y="55" Font="bats" Alignment="Right">@Model.SaveData.Gil</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="700" Y="660" W="500" H="50">
+			<Component xsi:type="Label" X="20" Y="15">@Model.SaveData.Location</Component>
+		</Component>
+	</Root>
+</Layout>

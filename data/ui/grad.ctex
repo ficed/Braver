@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<CompositeTexture xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Width>256</Width>
+	<Height>256</Height>
+	<Images>
+		<SourceImage>
+			<Texture>ui\grad.png</Texture>
+			<X>0</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="256" H="8">grad_hp</Chunk>
+			<Chunk X="0" Y="8" W="256" H="8">grad_mp</Chunk>
+			<Chunk X="0" Y="16" W="256" H="8">white</Chunk>
+			<Chunk X="0" Y="24" W="256" H="16">grad_limit</Chunk>
+			<Chunk X="0" Y="40" W="6" H="16">border_limit_l</Chunk>
+			<Chunk X="6" Y="40" W="242" H="16">border_limit_c</Chunk>
+			<Chunk X="248" Y="40" W="8" H="16">border_limit_r</Chunk>
+		</SourceImage>
+	</Images>
+</CompositeTexture>

@@ -37,6 +37,7 @@ namespace F7 {
 
     public class Character {
         public int CharIndex { get; set; }
+        public string ID { get; set; }
         public int Level { get; set; }
         public int Strength { get; set; }
         public int Vitality { get; set; }
@@ -100,6 +101,8 @@ namespace F7 {
         public List<Character> Characters { get; set; }
 
         public string Location { get; set; }
+        public int Gil { get; set; }
+        public int GameTimeSeconds { get; set; }
 
         [XmlIgnore]
         public Character[] Party => CharactersInParty().ToArray(); //Array so we can interop with Lua

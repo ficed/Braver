@@ -51,6 +51,9 @@ namespace F7 {
         public static T Deserialise<T>(System.IO.Stream s) {
             return (T)(new System.Xml.Serialization.XmlSerializer(typeof(T)).Deserialize(s));
         }
+        public static T Deserialise<T>(string s) {
+            return (T)(new System.Xml.Serialization.XmlSerializer(typeof(T)).Deserialize(new System.IO.StringReader(s)));
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

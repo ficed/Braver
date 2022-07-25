@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<CompositeTexture xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Width>512</Width>
+	<Height>512</Height>
+	<Images>
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,0</Texture>
+			<X>0</X>
+			<Y>0</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,1</Texture>
+			<X>256</X>
+			<Y>0</Y>
+			<Chunk X="144" Y="16" W="48" H="32">pointer_left</Chunk>
+			<Chunk X="144" Y="16" W="48" H="32" Flip="true">pointer</Chunk>
+		</SourceImage>
+	</Images>
+</CompositeTexture>
