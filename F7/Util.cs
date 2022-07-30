@@ -16,11 +16,19 @@ namespace F7 {
             return n;
         }
 
-        public static Texture2D LoadTex(this GraphicsDevice graphics, Ficedula.FF7.TexFile tex, int palette) {
+        public delegate void TexFilter(ref uint pixel);
+
+        public static Texture2D LoadTex(this GraphicsDevice graphics, Ficedula.FF7.TexFile tex, int palette, TexFilter filter = null) {
             var texture = new Texture2D(graphics, tex.Width, tex.Height, false, SurfaceFormat.Color); //TODO MIPMAPS!
             texture.SetData(
                 tex.ApplyPalette(palette)
-                .SelectMany(row => row)
+                .SelectMany(row => {
+                    if (filter != null) {
+                        foreach (int i in Enumerable.Range(0, row.Length))
+                            filter(ref row[i]);
+                    }
+                    return row;
+                })
                 .ToArray()
             );
             return texture;

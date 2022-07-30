@@ -56,6 +56,9 @@ namespace F7 {
 
         public FGame Game { get; }
         public GraphicsDevice Graphics { get; private set; }
+        public bool InputEnabled { get; protected set; } = true;
+
+        public abstract Color ClearColor { get; }
 
         protected SpriteBatch _fxBatch;
         
@@ -72,6 +75,7 @@ namespace F7 {
         protected abstract void DoRender();
 
         public virtual void Reactivated() { }
+        public virtual void Dispose() { }
 
         public void FadeOut(Action then) {
             _transition = new FadeTransition(
@@ -93,7 +97,7 @@ namespace F7 {
             if (_transition != null) {
                 if (_transition.Step()) {
                     _transition = null;
-                    _transitionAction();
+                    _transitionAction?.Invoke();
                 }
             }
         }

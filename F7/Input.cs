@@ -13,8 +13,13 @@ namespace F7 {
         Right,
         OK,
         Cancel,
+
         Start,
         Select,
+        Menu,
+
+        PanLeft,
+        PanRight,
 
         Debug1,
         Debug2,

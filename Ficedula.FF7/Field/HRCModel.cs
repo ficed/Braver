@@ -11,6 +11,7 @@ namespace Ficedula.FF7.Field {
 
         public List<Bone> Bones { get; } = new();
         public Bone Root { get; }
+        public string Name { get; }
 
         public class BonePolygon {
             public PFile PFile { get; }
@@ -38,6 +39,7 @@ namespace Ficedula.FF7.Field {
         public HRCModel(Func<string, Stream> dataProvider, string hrcFile) {
             using (var hrc = dataProvider(hrcFile)) {
                 var lines = hrc.ReadAllLines().ToArray();
+                Name = lines[1].Split(null).Last();
                 int numBones = int.Parse(lines[2].Split(null).Last());
                 Dictionary<string, Bone> bones = new Dictionary<string, Bone>(StringComparer.InvariantCultureIgnoreCase);
                 Root = new Bone(0, -1);

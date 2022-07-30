@@ -285,6 +285,7 @@ namespace F7.UI.Layout {
             }
         }
 
+        public override Color ClearColor => Color.Black;
 
         public LayoutScreen(FGame g, GraphicsDevice graphics, string layout) : base(g, graphics) {
             _layoutFile = layout;

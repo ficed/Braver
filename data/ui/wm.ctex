@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<CompositeTexture xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Width>512</Width>
+	<Height>512</Height>
+	<Images>
+		<SourceImage>
+			<Texture>wm\midlmap.tex,0</Texture>
+			<X>0</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="216" H="168">wm_minimap</Chunk>
+		</SourceImage>
+	</Images>
+</CompositeTexture>

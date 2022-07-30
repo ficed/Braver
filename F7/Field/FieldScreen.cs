@@ -15,6 +15,8 @@ namespace F7.Field {
 
         private bool _debugMode = false;
 
+        public override Color ClearColor => Color.Black;
+
         public Background Background { get; }
         public List<Entity> Entities { get; }
         public FieldModel Player { get; set; }

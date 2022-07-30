@@ -23,6 +23,9 @@ namespace F7.Field {
         public bool Visible { get; set; } = true;
         public float GlobalAnimationSpeed { get; set; } = 1f;
         public AnimationState AnimationState { get; set; }
+        public Vector3 MinBounds { get; }
+        public Vector3 MaxBounds { get; }
+        public bool ZUp { get; set; } = true;
 
         private class RenderNode {
             public int VertOffset, IndexOffset, TriCount;
@@ -38,9 +41,9 @@ namespace F7.Field {
         private List<Ficedula.FF7.Field.FieldAnim> _animations = new();
 
         //TODO dedupe textures
-        public FieldModel(GraphicsDevice graphics, FGame g, string hrc, IEnumerable<string> animations) {
+        public FieldModel(GraphicsDevice graphics, FGame g, string hrc, IEnumerable<string> animations, string category = "field") {
             _graphics = graphics;
-            _hrcModel = new Ficedula.FF7.Field.HRCModel(s => g.Open("field", s), hrc);
+            _hrcModel = new Ficedula.FF7.Field.HRCModel(s => g.Open(category, s), hrc);
 
             List<VertexPositionNormalColorTexture> verts = new();
             List<int> indices = new();
@@ -94,7 +97,7 @@ namespace F7.Field {
             _indexBuffer.SetData(indices.ToArray());
 
             _animations = animations
-                .Select(a => new Ficedula.FF7.Field.FieldAnim(g.Open("field", a)))
+                .Select(a => new Ficedula.FF7.Field.FieldAnim(g.Open(category, a)))
                 .ToList();
 
             PlayAnimation(0, false, 1f, null);
@@ -110,12 +113,14 @@ namespace F7.Field {
                         Math.Min(minBounds.Z, transformed.Min(v => v.Z))
                     );
                     maxBounds = new Vector3(
-                        Math.Max(minBounds.X, transformed.Max(v => v.X)),
-                        Math.Max(minBounds.Y, transformed.Max(v => v.Y)),
-                        Math.Max(minBounds.Z, transformed.Max(v => v.Z))
+                        Math.Max(maxBounds.X, transformed.Max(v => v.X)),
+                        Math.Max(maxBounds.Y, transformed.Max(v => v.Y)),
+                        Math.Max(maxBounds.Z, transformed.Max(v => v.Z))
                     );
                 }
             );
+            MinBounds = minBounds;
+            MaxBounds = maxBounds;
             System.Diagnostics.Debug.WriteLine($"Model {hrc} with min bounds {minBounds}, max {maxBounds}");
         }
 
@@ -132,10 +137,10 @@ namespace F7.Field {
                 ;
             } else {
                 child =
-                      Matrix.CreateTranslation(frame.Translation.ToX()) //TODO check ordering here
-                    * Matrix.CreateRotationZ(frame.Rotation.Z * (float)Math.PI / 180)
+                      Matrix.CreateRotationZ(frame.Rotation.Z * (float)Math.PI / 180)
                     * Matrix.CreateRotationX(frame.Rotation.X * (float)Math.PI / 180)
                     * Matrix.CreateRotationY(frame.Rotation.Y * (float)Math.PI / 180)
+                    * Matrix.CreateTranslation(frame.Translation.ToX()) //TODO check ordering here
                     * child
                 ;
             }
@@ -170,7 +175,7 @@ namespace F7.Field {
                 * Matrix.CreateRotationY(Rotation.Y * (float)Math.PI / 180)
                 * Matrix.CreateScale(Scale, -Scale, Scale)
                 * Matrix.CreateTranslation(Translation)
-                * Matrix.CreateRotationX(90 * (float)Math.PI / 180)
+                * Matrix.CreateRotationX((ZUp ? 90 : 0) * (float)Math.PI / 180)
                 ,
                   (chunk, m) => {
                       _texEffect.World = _colEffect.World = m;

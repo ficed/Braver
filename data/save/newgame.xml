@@ -82,5 +82,6 @@
 		</Character>
 	</Characters>
 	<Location>Train Station</Location>
+	<WorldMapAvatar>cloud</WorldMapAvatar>
 	<Gil>1234</Gil>
 </SaveData>

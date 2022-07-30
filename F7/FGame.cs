@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -65,6 +66,10 @@ namespace F7 {
             _data["menu"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "menu", "menu_us.lgp"))),
             };
+            _data["wm"] = new List<DataSource> {
+                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "wm", "world_us.lgp"))),
+                new FileDataSource(Path.Combine(data, "wm"))
+            };
             foreach (string dir in Directory.GetDirectories(bdata)) {
                 string category = Path.GetFileName(dir);
                 if (!_data.TryGetValue(category, out var L))
@@ -95,13 +100,21 @@ namespace F7 {
             SaveData.Loaded();
         }
 
-        public Stream Open(string category, string file) {
-            foreach(var source in _data[category]) {
+        public Stream TryOpen(string category, string file) {
+            foreach (var source in _data[category]) {
                 var s = source.TryOpen(file);
                 if (s != null)
                     return s;
             }
-            throw new F7Exception($"Could not open {category}/{file}");
+            return null;
+        }
+
+        public Stream Open(string category, string file) {
+            var s = TryOpen(category, file);
+            if (s == null)
+                throw new F7Exception($"Could not open {category}/{file}");
+            else
+                return s;
         }
         public string OpenString(string category, string file) {
             using(var s = Open(category, file)) {
@@ -123,15 +136,43 @@ namespace F7 {
 
         public void PopScreen(Screen current) {
             Debug.Assert(_screens.Pop() == current);
+            current.Dispose();
             Screen.Reactivated();
         }
 
         public void ChangeScreen(Screen from, Screen to) {
             _screens.TryPeek(out var current);
             Debug.Assert(from == current);
-            if (current != null) _screens.Pop();
+            if (current != null) {
+                _screens.Pop();
+                current.Dispose();
+            }
             _screens.Push(to);
         }
-        
+
+        public void InvokeOnMainThread(Action a) {
+            _invoke.Add(a);
+        }
+
+        private List<Action> _invoke = new();
+        private int _lastSeconds;
+        public void Step(GameTime gameTime, InputState input) {
+            if (Screen.InputEnabled)
+                Screen.ProcessInput(input);
+
+            if ((int)gameTime.TotalGameTime.TotalSeconds != _lastSeconds) {
+                _lastSeconds = (int)gameTime.TotalGameTime.TotalSeconds;
+                SaveData.GameTimeSeconds++;
+            }
+
+            var actions = _invoke.ToArray();
+            _invoke.Clear();
+            foreach (var action in actions)
+                action();
+
+            Screen.Step(gameTime);
+
+        }
+
     }
 }

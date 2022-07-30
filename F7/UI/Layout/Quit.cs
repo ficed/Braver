@@ -13,8 +13,6 @@ namespace F7.UI.Layout {
         protected override void OnInit() {
             base.OnInit();
             PushFocus(Root, bYes);
-
-            _game.Audio.PlayMusic("iseki.ogg");
         }
 
         public void Yes_Click() {

@@ -1,0 +1,15 @@
+<Avatar>
+	<HRC>bbe</HRC>
+	<Scale>10</Scale>
+	<CanWalkOn>Grass Forest Swamp Wasteland Snow CorelBridge WutaiBridge Hillside Beach Jungle</CanWalkOn>
+	<Animation Name="stand" File="bid.a" />
+	<Animation Name="run" File="bie.a" />
+	<Animation Name="chocobo_slow" File="bja.a" />
+	<Animation Name="chocobo_fast" File="bjb.a" />
+	<Animation Name="mount" File="bjc.a" />
+	<Animation Name="dismount" File="bjd.a" />
+	<Animation Name="lookaround" File="bje.a" />
+	<Animation Name="shakehead" File="bka.a" />
+	<Animation Name="reachforwards" File="bkb.a" />
+	<Animation Name="gestureforwards" File="bkc.a" />
+</Avatar>

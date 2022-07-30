@@ -100,6 +100,7 @@ namespace F7 {
 
         public List<Character> Characters { get; set; }
 
+        public string WorldMapAvatar { get; set; }
         public string Location { get; set; }
         public int Gil { get; set; }
         public int GameTimeSeconds { get; set; }

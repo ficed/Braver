@@ -2,6 +2,23 @@
 using Ficedula.FF7.Exporters;
 
 Console.WriteLine("F7Cmd");
+/*
+foreach(string file in Directory.GetFiles(@"C:\temp\wm_us", "*.a")) {
+    using (var fs = File.OpenRead(file)) {
+        var anim = new Ficedula.FF7.Field.FieldAnim(fs);
+        Console.WriteLine($"{file}: {anim.BoneCount} bones, {anim.Frames.Count} frames");
+    }
+}
+foreach (string file in Directory.GetFiles(@"C:\temp\wm_us", "*.hrc")) {
+    var hrc = new Ficedula.FF7.Field.HRCModel(
+        s => File.OpenRead(Path.Combine(@"C:\temp\wm_us", s)),
+        Path.GetFileName(file)
+    );
+    Console.WriteLine($"{file}: {hrc.Name}, {hrc.Bones.Count} bones");
+}
+*/
+
+var tex = new Ficedula.FF7.TexFile(File.OpenRead(@"C:\temp\wm\wm_kumo.tex"));
 
 if (args.Length < 2) return;
 

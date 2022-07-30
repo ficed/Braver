@@ -30,11 +30,12 @@ namespace F7 {
 
             _g = new FGame(@"C:\games\ff7\data", @"C:\Users\ficed\Projects\F7\data");
             _g.NewGame();
-            //_screen = new TestScreen(_g, GraphicsDevice);
+            //_g.ChangeScreen(null, new TestScreen(_g, GraphicsDevice));
             //_screen = new Field.FieldScreen("mrkt2", _g, GraphicsDevice);
             //_screen = new UI.UIScreen(_g, GraphicsDevice);
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "Quit"));
-            _g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
+            //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
+            _g.ChangeScreen(null, new WorldMap.WMScreen(_g, GraphicsDevice, 139348, 126329));
         }
 
         private static Dictionary<Keys, InputKey> _keyMap = new Dictionary<Keys, InputKey> {
@@ -44,16 +45,19 @@ namespace F7 {
             [Keys.D] = InputKey.Right,
             [Keys.Enter] = InputKey.OK,
             [Keys.Space] = InputKey.Cancel,
+
+            [Keys.OemOpenBrackets] = InputKey.PanLeft,
+            [Keys.OemCloseBrackets] = InputKey.PanRight,
+
             [Keys.F1] = InputKey.Start,
             [Keys.F2] = InputKey.Select,
+            [Keys.F3] = InputKey.Menu,
 
             [Keys.F5] = InputKey.Debug1,
             [Keys.F6] = InputKey.Debug2,
         };
 
         private InputState _input = new();
-
-        private int _lastSeconds;
 
         protected override void Update(GameTime gameTime) {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -76,23 +80,13 @@ namespace F7 {
                 }
             }
 
-            _g.Screen.ProcessInput(_input);
-
-            // TODO: Add your update logic here
+            _g.Step(gameTime, _input);
 
             base.Update(gameTime);
-
-            if ((int)gameTime.TotalGameTime.TotalSeconds != _lastSeconds) {
-                _lastSeconds = (int)gameTime.TotalGameTime.TotalSeconds;
-                _g.SaveData.GameTimeSeconds++;
-            }
-
-            _g.Screen.Step(gameTime);
         }
 
         protected override void Draw(GameTime gameTime) {
-            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
-
+            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, _g.Screen.ClearColor, 1f, 0);
             base.Draw(gameTime);
 
             _g.Screen.Render();
