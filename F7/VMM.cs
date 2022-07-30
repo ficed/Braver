@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Ficedula.FF7;
 
 namespace F7 {
     public class VMM {
@@ -11,6 +13,34 @@ namespace F7 {
         private byte[] _scratch;
 
         public VMM() {
+            ResetAll();
+        }
+
+        public void Save(Stream s) {
+            foreach(int bank in Enumerable.Range(0, _banks.Length)) {
+                s.WriteI32(bank);
+                s.WriteI32(_banks[bank].Length);
+                s.Write(new ReadOnlySpan<byte>(_banks[bank]));
+            }
+            s.WriteI32(-1);
+            s.WriteI32(_scratch.Length);
+            s.Write(new ReadOnlySpan<byte>(_scratch));
+        }
+
+        public void Load(Stream s) {
+            ResetAll();
+            while(s.Position < s.Length) {
+                int bank = s.ReadI32();
+                byte[] data = new byte[s.ReadI32()];
+                s.Read(new Span<byte>(data));
+                if (bank < 0)
+                    _scratch = data;
+                else
+                    _banks[bank] = data;
+            }
+        }
+
+        public void ResetAll() {
             _banks = Enumerable.Range(0, 5)
                 .Select(_ => new byte[256])
                 .ToArray();

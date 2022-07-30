@@ -57,5 +57,11 @@
 			<Y>256</Y>
 			<Chunk X="0" Y="0" W="84" H="96">portrait_yuffie</Chunk>
 		</SourceImage>
+		<SourceImage>
+			<Texture>menu\buster.tex</Texture>
+			<X>256</X>
+			<Y>256</Y>
+			<Chunk X="0" Y="0" W="150" H="150">logo_buster</Chunk>
+		</SourceImage>
 	</Images>
 </CompositeTexture>

@@ -97,6 +97,22 @@ namespace F7 {
         public void NewGame() {
             using (var s = Open("save", "newgame.xml"))
                 SaveData = Serialisation.Deserialise<SaveData>(s);
+            Memory.ResetAll();
+            SaveData.Loaded();
+        }
+
+        public void Save(string path) {
+            using (var fs = File.OpenWrite(path + ".sav"))
+                Serialisation.Serialise(SaveData, fs);
+            using (var fs = File.OpenWrite(path + ".mem"))
+                Memory.Save(fs);
+        }
+
+        public void Load(string path) {
+            using (var fs = File.OpenRead(path + ".mem"))
+                Memory.Load(fs);
+            using (var fs = File.OpenRead(path + ".sav"))
+                SaveData = Serialisation.Deserialise<SaveData>(fs);
             SaveData.Loaded();
         }
 

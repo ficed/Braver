@@ -35,7 +35,8 @@ namespace F7 {
             //_screen = new UI.UIScreen(_g, GraphicsDevice);
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "Quit"));
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
-            _g.ChangeScreen(null, new WorldMap.WMScreen(_g, GraphicsDevice, 139348, 126329));
+            //_g.ChangeScreen(null, new WorldMap.WMScreen(_g, GraphicsDevice, 139348, 126329));
+            _g.ChangeScreen(null, new UI.Splash(_g, GraphicsDevice));
         }
 
         private static Dictionary<Keys, InputKey> _keyMap = new Dictionary<Keys, InputKey> {
