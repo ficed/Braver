@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace F7.UI.Layout {
+namespace Braver.UI.Layout {
     [XmlInclude(typeof(Box)), XmlInclude(typeof(Label)), XmlInclude(typeof(Gauge))]
     [XmlInclude(typeof(Group)), XmlInclude(typeof(Image))]
     public abstract class Component {

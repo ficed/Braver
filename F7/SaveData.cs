@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace F7 {
+namespace Braver {
     [Flags]
     public enum CharFlags {
         None = 0,

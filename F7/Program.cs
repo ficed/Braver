@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace F7 {
+namespace Braver {
     public static class Program {
         [STAThread]
         static void Main() {

@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Ficedula.FF7;
 
-namespace F7 {
+namespace Braver {
     public class VMM {
 
         private byte[][] _banks;

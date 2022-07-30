@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace F7 {
+namespace Braver {
 
     public abstract class Transition {
         private int _frames, _total;

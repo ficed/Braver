@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace F7.WorldMap {
+namespace Braver.WorldMap {
 
     [Flags]
     public enum WalkmapType : uint {

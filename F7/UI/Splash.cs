@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace F7.UI {
+namespace Braver.UI {
     public class Splash : Screen {
 
         private UIBatch _ui;
@@ -35,6 +35,7 @@ namespace F7.UI {
                         case 0:
                             Game.NewGame();
                             Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329)); //TODO!
+                            break;
                         case 3:
                             Environment.Exit(0);
                             break;

@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace F7 {
+namespace Braver {
     public class Audio {
 
         private string _ff7Dir;

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace F7 {
+namespace Braver {
     internal class TestScreen : Screen {
 
         public override Color ClearColor => Color.AliceBlue;

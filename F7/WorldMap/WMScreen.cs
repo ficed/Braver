@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace F7.WorldMap {
+namespace Braver.WorldMap {
 
     internal class WMScreen : Screen {
 

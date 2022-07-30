@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace F7 {
+namespace Braver {
     public enum InputKey {
         Up,
         Down,

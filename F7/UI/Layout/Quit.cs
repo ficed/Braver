@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace F7.UI.Layout {
+namespace Braver.UI.Layout {
     internal class Quit : LayoutModel {
 
         public Box Root;
