@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace Braver {
+
+    public enum Module {
+        WorldMap,
+        Field,
+    }
+
     [Flags]
     public enum CharFlags {
         None = 0,
@@ -101,6 +107,11 @@ namespace Braver {
         public List<Character> Characters { get; set; }
 
         public string WorldMapAvatar { get; set; }
+        public float WorldMapX { get; set; }
+        public float WorldMapY { get; set; }
+
+        public Module Module { get; set; }
+
         public string Location { get; set; }
         public int Gil { get; set; }
         public int GameTimeSeconds { get; set; }

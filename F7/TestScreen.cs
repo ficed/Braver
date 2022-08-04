@@ -45,7 +45,10 @@ namespace Braver {
             _model.Render(_viewer);
         }
 
+        private float _z = 5;
         protected override void DoStep(GameTime elapsed) {
+            _model.Rotation = new Vector3(0, 0, 90);
+            _model.Translation = new Vector3(0, 0, _z);
             _model.FrameStep();
         }
     }

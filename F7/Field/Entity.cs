@@ -13,11 +13,15 @@ namespace Braver.Field {
     }
 
     public class Entity {
+
+        public static bool DEBUG_OUT = true;
+
         private Ficedula.FF7.Field.Entity _entity;
         private Fiber[] _priorities;
 
         public string Name => _entity.Name;
         public FieldModel Model { get; set; }
+        public FieldLine Line { get; set; }
         public Character Character { get; set; }
         public EntityFlags Flags { get; set; }
         public float TalkDistance { get; set; }
@@ -47,7 +51,8 @@ namespace Braver.Field {
             int priority = 7;
             foreach (var fiber in _priorities.Reverse()) {
                 if (fiber.InProgress && fiber.Active) {
-                    System.Diagnostics.Debug.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
+                    if (DEBUG_OUT)
+                        System.Diagnostics.Debug.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
                     fiber.Run(isInit);
                     if (isInit) fiber.Resume();
                     break;

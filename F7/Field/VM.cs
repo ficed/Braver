@@ -622,13 +622,13 @@ namespace Braver.Field {
                 f.Resume();
                 e.Model.AnimationState = state;
             };
-            e.Model.PlayAnimation(anim, true, 1f / speed, onComplete); //TODO is this speed even vaguely correct?
+            e.Model.PlayAnimation(anim, false, 1f / speed, onComplete); //TODO is this speed even vaguely correct?
             return OpResult.Continue;
         }
         public static OpResult ANIM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
             f.Pause();
-            e.Model.PlayAnimation(anim, true, 1f / speed, f.Resume); //TODO is this speed even vaguely correct?
+            e.Model.PlayAnimation(anim, false, 1f / speed, f.Resume); //TODO is this speed even vaguely correct?
             return OpResult.Continue;
         }
         public static OpResult DFANM(Fiber f, Entity e, FieldScreen s) {
@@ -650,6 +650,44 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult TURNGEN(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), parm = f.ReadU8(),
+                rotateDir = f.ReadU8(), steps = f.ReadU8(), rotateType = f.ReadU8();
+            byte bRotation = (byte)s.Game.Memory.Read(bank, parm);
+            float rotation = 360f * bRotation / 255f; //TODO?
+            float rotationAmount = 0.1f * 360f * steps / 255f;
+
+            float ccwAmount = rotation > e.Model.Rotation.Z ? (e.Model.Rotation.Z + 360 - rotation) : e.Model.Rotation.Z - rotation,
+                cwAmount = rotation < e.Model.Rotation.Z ? (rotation + 360 - e.Model.Rotation.Z) : rotation - e.Model.Rotation.Z;
+            if (rotateDir == 2) {
+                if (cwAmount > ccwAmount)
+                    rotateDir = 1;
+                else
+                    rotateDir = 0;
+            }
+
+            float remaining;
+            if (rotateDir == 0)
+                remaining = cwAmount;
+            else
+                remaining = ccwAmount;
+
+            System.Diagnostics.Debug.WriteLine($"{e.Name} turning direction {rotateDir} to {rotation}, currently {e.Model.Rotation.Z}");
+
+            if (remaining <= rotationAmount) {
+                System.Diagnostics.Debug.WriteLine($"...and we're done");
+                e.Model.Rotation = e.Model.Rotation.WithZ(rotation);
+                return OpResult.Continue;
+            } else {
+                if (rotateDir == 0)
+                    e.Model.Rotation = e.Model.Rotation.WithZ((e.Model.Rotation.Z + rotationAmount) % 360);
+                else
+                    e.Model.Rotation = e.Model.Rotation.WithZ((e.Model.Rotation.Z + 360 - rotationAmount) % 360);
+                System.Diagnostics.Debug.WriteLine($"...is now {e.Model.Rotation.Z}");
+                return OpResult.Restart;
+            }
+        }
+
         public static OpResult TALKR(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8(), parm = f.ReadU8();
             e.TalkDistance = s.Game.Memory.Read(bank, parm);
@@ -664,6 +702,14 @@ namespace Braver.Field {
         public static OpResult SLIDR(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8(), parm = f.ReadU8();
             e.CollideDistance = s.Game.Memory.Read(bank, parm);
+            return OpResult.Continue;
+        }
+
+        public static OpResult LINE(Fiber f, Entity e, FieldScreen s) {
+            e.Line = new FieldLine {
+                P0 = new Vector3(f.ReadS16(), f.ReadS16(), f.ReadS16()),
+                P1 = new Vector3(f.ReadS16(), f.ReadS16(), f.ReadS16()),
+            };
             return OpResult.Continue;
         }
     }

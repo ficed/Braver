@@ -85,7 +85,7 @@ namespace Braver.WorldMap {
                 graphics.SetVertexBuffer(_vertices);
                 graphics.Indices = _indices;
 
-
+                //TODO implement using(...) to restore blend
                 graphics.BlendState = BlendState.Additive;
                 
                 foreach(var pass in _effect.CurrentTechnique.Passes) {
@@ -444,6 +444,9 @@ namespace Braver.WorldMap {
             if (input.IsJustDown(InputKey.Menu)) {
                 InputEnabled = false;
                 FadeOut(() => {
+                    Game.SaveData.WorldMapX = _avatarModel.Translation.X;
+                    Game.SaveData.WorldMapY = _avatarModel.Translation.Z;
+                    Game.SaveData.Module = Module.WorldMap;
                     Game.PushScreen(new UI.Layout.LayoutScreen(Game, Graphics, "MainMenu"));
                     InputEnabled = true;
                 });

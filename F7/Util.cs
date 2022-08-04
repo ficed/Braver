@@ -45,6 +45,11 @@ namespace Braver {
             c.A = alpha;
             return c;
         }
+
+        public static Vector3 WithZ(this Vector3 v, float z) {
+            v.Z = z;
+            return v;
+        }
     }
 
     public class F7Exception : Exception {

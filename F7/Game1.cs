@@ -56,6 +56,9 @@ namespace Braver {
 
             [Keys.F5] = InputKey.Debug1,
             [Keys.F6] = InputKey.Debug2,
+            [Keys.F7] = InputKey.Debug3,
+            [Keys.F8] = InputKey.Debug4,
+            [Keys.F9] = InputKey.Debug5,
         };
 
         private InputState _input = new();

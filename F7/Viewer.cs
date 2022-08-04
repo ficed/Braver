@@ -12,10 +12,10 @@ namespace Braver {
     }
 
     public class View2D : Viewer {
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public int CenterX { get; set; }
-        public int CenterY { get; set; }
+        public float Width { get; set; }
+        public float Height { get; set; }
+        public float CenterX { get; set; }
+        public float CenterY { get; set; }
 
         public override Matrix Projection => Matrix.CreateOrthographicOffCenter(
                     CenterX - Width / 2, CenterX + Width / 2,
@@ -42,10 +42,18 @@ namespace Braver {
 
         public float Width { get; set; }
         public float Height { get; set; }
+        public float CenterX { get; set; }
+        public float CenterY { get; set; }
 
         public override Matrix Projection => Matrix.CreateOrthographicOffCenter(
-            -Width / 2, Width / 2, -Height / 2, Height / 2, ZNear, ZFar
-        );
+                    CenterX - Width / 2, CenterX + Width / 2,
+                    CenterY - Height / 2, CenterY + Height / 2,
+                    ZNear, ZFar
+                );
+
+        public override string ToString() {
+            return $"Ortho Z-range {ZNear}:{ZFar} W/H {Width}/{Height} Center {CenterX}/{CenterY} Pos {CameraPosition} Fwd {CameraForwards} Up {CameraUp}";
+        }
     }
 
     public class PerspView3D : View3D {
@@ -75,6 +83,11 @@ namespace Braver {
                 CameraForwards = CameraForwards * (1 - factor) + other.CameraForwards * factor,
             };
         }
+
+        public override string ToString() {
+            return $"Persp Z-range {ZNear}:{ZFar} Pos {CameraPosition} Fwd {CameraForwards} Up {CameraUp}";
+        }
+
     }
 }
 

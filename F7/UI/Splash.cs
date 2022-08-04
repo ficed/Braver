@@ -34,7 +34,8 @@ namespace Braver.UI {
                     switch (_menu) {
                         case 0:
                             Game.NewGame();
-                            Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329)); //TODO!
+                            Game.ChangeScreen(this, new Field.FieldScreen("mrkt2", Game, Graphics));
+                            //Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329)); //TODO!
                             break;
                         case 3:
                             Environment.Exit(0);

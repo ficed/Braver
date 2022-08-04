@@ -6,12 +6,24 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace Braver {
 
     public abstract class DataSource {
         public abstract Stream TryOpen(string file);
         public abstract IEnumerable<string> Scan();
+    }
+
+    public class LocalPref {
+        [XmlAttribute]
+        public string Name { get; set; }
+        [XmlAttribute]
+        public string Value{ get; set; }
+    }
+    public class LocalPrefs {
+        [XmlElement("Pref")]
+        public List<LocalPref> Prefs { get; set; } = new();
     }
 
     public class FGame {
@@ -58,6 +70,8 @@ namespace Braver {
         private Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
         private Dictionary<Type, object> _singletons = new Dictionary<Type, object>();
 
+        private Dictionary<string, string> _prefs;
+
         public FGame(string data, string bdata) {
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
@@ -82,6 +96,34 @@ namespace Braver {
             Audio.Precache(Sfx.Cursor, true);
             Audio.Precache(Sfx.Cancel, true);
             Audio.Precache(Sfx.Invalid, true);
+
+            string prefs = GetPrefsPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(prefs));
+            if (File.Exists(prefs)) {
+                using (var fs = File.OpenRead(prefs)) {
+                    var lp = Serialisation.Deserialise<LocalPrefs>(fs);
+                    _prefs = lp.Prefs
+                        .ToDictionary(p => p.Name, p => p.Value, StringComparer.InvariantCultureIgnoreCase);
+                }
+            } else
+                _prefs = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+
+        }
+
+        private static string GetPrefsPath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "prefs.xml");
+
+        public string GetPref(string name, string def = "") {
+            _prefs.TryGetValue(name, out string v);
+            return v ?? def;
+        }
+        public void SetPref(string name, string value) {
+            _prefs[name] = value;
+            using (var fs = File.OpenWrite(GetPrefsPath())) {
+                var lp = new LocalPrefs {
+                    Prefs = _prefs.Select(kv => new LocalPref { Name = kv.Key, Value = kv.Value }).ToList()
+                };
+                Serialisation.Serialise(lp, fs);
+            }
         }
 
         public T Singleton<T>(Func<T> create) {

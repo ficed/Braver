@@ -17,6 +17,7 @@ namespace Braver.Field {
     }
 
     public class FieldModel {
+        public Vector3 Rotation2 { get; set; }
         public Vector3 Rotation { get; set; }
         public Vector3 Translation { get; set; }
         public float Scale { get; set; } = 1f;
@@ -100,7 +101,7 @@ namespace Braver.Field {
                 .Select(a => new Ficedula.FF7.Field.FieldAnim(g.Open(category, a)))
                 .ToList();
 
-            PlayAnimation(0, false, 1f, null);
+            PlayAnimation(0, true, 1f, null);
 
             Vector3 minBounds = Vector3.Zero, maxBounds = Vector3.Zero;
             Descend(_hrcModel.Root, Matrix.Identity,
@@ -170,12 +171,12 @@ namespace Braver.Field {
 
             Descend(
                 _hrcModel.Root,
-                  Matrix.CreateRotationZ(Rotation.Z * (float)Math.PI / 180)
-                * Matrix.CreateRotationX(Rotation.X * (float)Math.PI / 180)
-                * Matrix.CreateRotationY(Rotation.Y * (float)Math.PI / 180)
+                  Matrix.CreateRotationX((ZUp ? -90 : 0) * (float)Math.PI / 180)
+                * Matrix.CreateRotationZ((Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
+                * Matrix.CreateRotationX((Rotation.X + Rotation2.X) * (float)Math.PI / 180)
+                * Matrix.CreateRotationY((Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
                 * Matrix.CreateScale(Scale, -Scale, Scale)
                 * Matrix.CreateTranslation(Translation)
-                * Matrix.CreateRotationX((ZUp ? 90 : 0) * (float)Math.PI / 180)
                 ,
                   (chunk, m) => {
                       _texEffect.World = _colEffect.World = m;
@@ -195,10 +196,12 @@ namespace Braver.Field {
 
         private float _animCountdown;
         public void FrameStep() {
-            _animCountdown -= AnimationState.AnimationSpeed * GlobalAnimationSpeed * 0.25f;
+            _animCountdown -= AnimationState.AnimationSpeed * GlobalAnimationSpeed;
             if (_animCountdown <= 0) {
-                AnimationState.AnimationComplete?.Invoke();
                 _animCountdown = 1;
+                if (AnimationState.Frame == (_animations[AnimationState.Animation].Frames.Count) - 1)
+                    AnimationState.AnimationComplete?.Invoke();
+
                 if (AnimationState.AnimationLoop)
                     AnimationState.Frame = (AnimationState.Frame + 1) % _animations[AnimationState.Animation].Frames.Count;
                 else

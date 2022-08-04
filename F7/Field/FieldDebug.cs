@@ -25,12 +25,12 @@ namespace Braver.Field {
                     Color = Color.Red.WithAlpha(0x80),
                 });
                 verts.Add(new VertexPositionColor {
-                    Position = new Vector3(tri.V2.X, tri.V2.Y, tri.V2.Z),
-                    Color = Color.Green.WithAlpha(0x80),
-                });
-                verts.Add(new VertexPositionColor {
                     Position = new Vector3(tri.V1.X, tri.V1.Y, tri.V1.Z),
                     Color = Color.Blue.WithAlpha(0x80),
+                });
+                verts.Add(new VertexPositionColor {
+                    Position = new Vector3(tri.V2.X, tri.V2.Y, tri.V2.Z),
+                    Color = Color.Green.WithAlpha(0x80),
                 });
                 _walkMeshTris++;
             }

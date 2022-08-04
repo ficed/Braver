@@ -12,6 +12,9 @@ namespace Braver.Field {
         public int ScrollX { get; set; }
         public int ScrollY { get; set; }
 
+        public int Width => _bg.Width;
+        public int Height => _bg.Height;
+
         private enum BlendType {
             Blend,
             Additive,
@@ -168,7 +171,7 @@ namespace Braver.Field {
                 }
 
                 _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, L++ * 0.01f)
-                    * Matrix.CreateScale(2);
+                    * Matrix.CreateScale(3);
                 _effect.Texture = layer.Tex;
 
                 foreach (var pass in _effect.CurrentTechnique.Passes) {
@@ -176,6 +179,10 @@ namespace Braver.Field {
                     _graphics.DrawUserPrimitives(PrimitiveType.TriangleList, layer.Verts, 0, layer.Verts.Length / 3);
                 }
             }
+
+            _graphics.BlendState = BlendState.AlphaBlend; //TODO!!!
+            _graphics.DepthStencilState = DepthStencilState.Default;
+
         }
     }
 }
