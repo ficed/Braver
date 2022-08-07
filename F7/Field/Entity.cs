@@ -35,7 +35,7 @@ namespace Braver.Field {
                 .Select(_ => new Fiber(this, screen, screen.Dialog.ScriptBytecode))
                 .ToArray();
             Flags = EntityFlags.CanTalk | EntityFlags.CanCollide;
-            MoveSpeed = 512;
+            MoveSpeed = 1f;
         }
 
         public bool Call(int priority, int script, Action onComplete) {
@@ -60,6 +60,8 @@ namespace Braver.Field {
                 priority--;
             }
         }
+
+        public override string ToString() => $"Entity {Name}";
 
     }
 }

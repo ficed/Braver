@@ -23,19 +23,33 @@ namespace Ficedula.FF7.Field {
         public override string ToString() => $"Left: {Left} Top: {Top} Right: {Right} Bottom: {Bottom}";
     }
 
+    public class FieldDestination {
+        public short X { get; set; }
+        public short Y { get; set; }
+        public ushort Triangle { get; set; }
+        public short DestinationFieldID { get; set; }
+        public byte Orientation { get; set; }
+
+        public FieldDestination() { }
+        public FieldDestination(Stream s) {
+            X = s.ReadI16();
+            Y = s.ReadI16();
+            Triangle = s.ReadU16();
+            DestinationFieldID = s.ReadI16();
+            Orientation = (byte)(s.ReadI32() & 0xff);
+        }
+    }
+
     public class Gateway {
         public FieldVertex V0 { get; private set; }
         public FieldVertex V1 { get; private set; }
-        public FieldVertex DestinationVertex { get; private set; }
-        public short DestinationFieldID { get; private set; }
+        public FieldDestination Destination { get; private set; }
         public bool ShowArrow { get; set; }
 
         public Gateway(Stream s) {
             V0 = new FieldVertex(s, false);
             V1 = new FieldVertex(s, false);
-            DestinationVertex = new FieldVertex(s, false);
-            DestinationFieldID = s.ReadI16();
-            s.ReadI32();
+            Destination = new FieldDestination(s);
         }
     }
 

@@ -368,6 +368,7 @@ namespace Braver.Field {
             Register(typeof(BackgroundPal));
             Register(typeof(Audio));
             Register(typeof(WindowMenu));
+            Register(typeof(PartyInventory));
             Register(typeof(FieldModels));
             Register(typeof(Maths));
         }
@@ -452,7 +453,7 @@ namespace Braver.Field {
                     throw new F7Exception($"Unrecognised comparison {comparison}");
             }
 
-            if (match)
+            if (!match)
                 f.Jump(newIP);
             return OpResult.Continue;
         }
@@ -548,7 +549,7 @@ namespace Braver.Field {
     internal static class FieldModels {
         public static OpResult CC(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
-            s.Player = s.Entities[parm].Model; //TODO: also center screen etc.
+            s.SetPlayer(parm);
             return OpResult.Continue;
         }
 
@@ -558,6 +559,8 @@ namespace Braver.Field {
             if (parm != modelIndex)
                 System.Diagnostics.Debug.WriteLine($"CHAR opcode - parameter {parm} did not match auto-assign ID {modelIndex}");
             e.Model = s.FieldModels[modelIndex];
+            if (s.Player == e)
+                s.CheckPendingPlayerSetup();
             return OpResult.Continue;
         }
 
@@ -587,6 +590,48 @@ namespace Braver.Field {
             e.Model.Translation = new Vector3(x, y, z);
             System.Diagnostics.Debug.WriteLine($"VM:XYZI moving {e.Name} to {e.Model.Translation} wmtri {tri}");
 
+            return OpResult.Continue;
+        }
+
+        public static OpResult MOVE(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8();
+            short sx = f.ReadS16(), sy = f.ReadS16();
+            int x = s.Game.Memory.Read(banks >> 4, sx),
+                y = s.Game.Memory.Read(banks & 0xf, sy);
+
+            var remaining = new Vector2(x, y) - e.Model.Translation.XY();
+
+            e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(-remaining.X, -remaining.Y) * 180f / Math.PI));
+
+            if (remaining.Length() <= e.MoveSpeed) {
+                s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z));
+                return OpResult.Continue;
+                //TODO: Do we need to stop animating?
+            } else {
+                remaining.Normalize();
+                remaining *= e.MoveSpeed;
+                s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0));
+                if (e.Model.AnimationState.Animation != 1)
+                    e.Model.PlayAnimation(1, true, 1f, null);
+                return OpResult.Restart;
+            }
+        }
+
+        public static OpResult LINON(Fiber f, Entity e, FieldScreen s) {
+            byte parm = f.ReadU8();
+            if (parm != 0)
+                s.Options |= FieldOptions.LinesActive;
+            else
+                s.Options &= ~FieldOptions.LinesActive;
+            return OpResult.Continue;
+        }
+
+        public static OpResult UC(Fiber f, Entity e, FieldScreen s) {
+            byte parm = f.ReadU8();
+            if (parm == 0)
+                s.Options |= FieldOptions.PlayerControls;
+            else
+                s.Options &= ~FieldOptions.PlayerControls;
             return OpResult.Continue;
         }
 
@@ -646,7 +691,7 @@ namespace Braver.Field {
         public static OpResult MSPED(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8();
             ushort parm = f.ReadU16();
-            e.MoveSpeed = s.Game.Memory.Read(bank, parm);
+            e.MoveSpeed = s.Game.Memory.Read(bank, parm) / 256f;
             return OpResult.Continue;
         }
 
@@ -672,10 +717,7 @@ namespace Braver.Field {
             else
                 remaining = ccwAmount;
 
-            System.Diagnostics.Debug.WriteLine($"{e.Name} turning direction {rotateDir} to {rotation}, currently {e.Model.Rotation.Z}");
-
             if (remaining <= rotationAmount) {
-                System.Diagnostics.Debug.WriteLine($"...and we're done");
                 e.Model.Rotation = e.Model.Rotation.WithZ(rotation);
                 return OpResult.Continue;
             } else {
@@ -683,7 +725,6 @@ namespace Braver.Field {
                     e.Model.Rotation = e.Model.Rotation.WithZ((e.Model.Rotation.Z + rotationAmount) % 360);
                 else
                     e.Model.Rotation = e.Model.Rotation.WithZ((e.Model.Rotation.Z + 360 - rotationAmount) % 360);
-                System.Diagnostics.Debug.WriteLine($"...is now {e.Model.Rotation.Z}");
                 return OpResult.Restart;
             }
         }
@@ -714,11 +755,41 @@ namespace Braver.Field {
         }
     }
 
+    internal static class PartyInventory {
+        public static OpResult PRTYE(Fiber f, Entity e, FieldScreen s) {
+            foreach (var chr in s.Game.SaveData.Characters)
+                if (chr != null)
+                    chr.Flags &= ~CharFlags.ANY_PARTY_SLOT;
+
+            void DoSet(byte which, CharFlags slot) {
+                //Actually should be checking for 0xfe, but this is equivalent...
+                if (which < s.Game.SaveData.Characters.Count)
+                    s.Game.SaveData.Characters[which].Flags |= slot;
+            }
+
+            DoSet(f.ReadU8(), CharFlags.Party1);
+            DoSet(f.ReadU8(), CharFlags.Party2);
+            DoSet(f.ReadU8(), CharFlags.Party3);
+
+            return OpResult.Continue;
+        }
+
+    }
+
     internal static class WindowMenu {
         public static OpResult MPNAM(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
             string name = s.Dialog.Dialogs[parm];
             s.Game.SaveData.Location = name;
+            return OpResult.Continue;
+        }
+
+        public static OpResult MENU2(Fiber f, Entity e, FieldScreen s) {
+            byte parm = f.ReadU8();
+            if (parm == 0)
+                s.Options |= FieldOptions.MenuEnabled;
+            else
+                s.Options &= ~FieldOptions.MenuEnabled;
             return OpResult.Continue;
         }
 

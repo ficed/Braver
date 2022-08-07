@@ -143,46 +143,44 @@ namespace Braver.Field {
         }
 
         public void Render(Viewer viewer) {
-            _graphics.BlendState = BlendState.AlphaBlend; //TODO!!!
-            _graphics.DepthStencilState = DepthStencilState.None; //TODO!!!
 
-            _effect.Projection = viewer.Projection;
-            _effect.View = viewer.View;
+            using (var state = new GraphicsState(_graphics, BlendState.AlphaBlend, DepthStencilState.None)) {
 
-            int L = 0;
+                _effect.Projection = viewer.Projection;
+                _effect.View = viewer.View;
 
-            _graphics.SamplerStates[0] = SamplerState.PointClamp;
+                int L = 0;
 
-            foreach (var layer in _layers) {
-                if ((layer.Mask != 0) && (_parameters[layer.Parameter] & layer.Mask) == 0)
-                    continue;
+                _graphics.SamplerStates[0] = SamplerState.PointClamp;
 
-                switch (layer.Blend) {
-                    case BlendType.None:
-                    case BlendType.Blend:
-                        _graphics.BlendState = BlendState.AlphaBlend;
-                        break;
-                    case BlendType.Additive:
-                        _graphics.BlendState = BlendState.Additive;
-                        break;
-                    default: //TODO NO
-                        _graphics.BlendState = BlendState.Opaque;
-                        break;
+                foreach (var layer in _layers) {
+                    if ((layer.Mask != 0) && (_parameters[layer.Parameter] & layer.Mask) == 0)
+                        continue;
+
+                    switch (layer.Blend) {
+                        case BlendType.None:
+                        case BlendType.Blend:
+                            _graphics.BlendState = BlendState.AlphaBlend;
+                            break;
+                        case BlendType.Additive:
+                            _graphics.BlendState = BlendState.Additive;
+                            break;
+                        default: //TODO NO
+                            _graphics.BlendState = BlendState.Opaque;
+                            break;
+                    }
+
+                    _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, L++ * 0.01f)
+                        * Matrix.CreateScale(3);
+                    _effect.Texture = layer.Tex;
+
+                    foreach (var pass in _effect.CurrentTechnique.Passes) {
+                        pass.Apply();
+                        _graphics.DrawUserPrimitives(PrimitiveType.TriangleList, layer.Verts, 0, layer.Verts.Length / 3);
+                    }
                 }
 
-                _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, L++ * 0.01f)
-                    * Matrix.CreateScale(3);
-                _effect.Texture = layer.Tex;
-
-                foreach (var pass in _effect.CurrentTechnique.Passes) {
-                    pass.Apply();
-                    _graphics.DrawUserPrimitives(PrimitiveType.TriangleList, layer.Verts, 0, layer.Verts.Length / 3);
-                }
             }
-
-            _graphics.BlendState = BlendState.AlphaBlend; //TODO!!!
-            _graphics.DepthStencilState = DepthStencilState.Default;
-
         }
     }
 }

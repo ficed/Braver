@@ -16,11 +16,13 @@ namespace Braver {
         public float Height { get; set; }
         public float CenterX { get; set; }
         public float CenterY { get; set; }
+        public float ZNear { get; set; } = -1;
+        public float ZFar { get; set; } = 1;
 
         public override Matrix Projection => Matrix.CreateOrthographicOffCenter(
                     CenterX - Width / 2, CenterX + Width / 2,
                     CenterY - Height / 2, CenterY + Height / 2,
-                    -1, 1
+                    ZNear, ZFar
                 );
         public override Matrix View => Matrix.Identity;
     }

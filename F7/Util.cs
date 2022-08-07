@@ -8,7 +8,30 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Braver {
+
+    public class GraphicsState : IDisposable {
+        private GraphicsDevice _graphics;
+        private BlendState _blend;
+        private DepthStencilState _depthStencilState;
+
+        public GraphicsState(GraphicsDevice graphics, BlendState blend, DepthStencilState depthStencilState = null) {
+            _graphics = graphics;
+            _blend = graphics.BlendState;
+            _depthStencilState = graphics.DepthStencilState;
+            if (blend != null)
+                graphics.BlendState = blend;
+            if (depthStencilState != null)
+                graphics.DepthStencilState = depthStencilState;
+        }
+
+        public void Dispose() {
+            _graphics.BlendState = _blend;
+            _graphics.DepthStencilState = _depthStencilState;
+        }
+    }
+
     public static class Util {
+
         public static int MakePowerOfTwo(int i) {
             int n = 1;
             while (n < i)
@@ -41,6 +64,10 @@ namespace Braver {
             return new Vector3(v.X, v.Y, v.Z);
         }
 
+        public static Vector3 ToX(this Ficedula.FF7.Field.FieldVertex v) {
+            return new Vector3(v.X, v.Y, v.Z);
+        }
+
         public static Color WithAlpha(this Color c, byte alpha) {
             c.A = alpha;
             return c;
@@ -49,6 +76,10 @@ namespace Braver {
         public static Vector3 WithZ(this Vector3 v, float z) {
             v.Z = z;
             return v;
+        }
+
+        public static Vector2 XY(this Vector3 v) {
+            return new Vector2(v.X, v.Y);
         }
     }
 

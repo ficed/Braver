@@ -34,7 +34,14 @@ namespace Braver.UI {
                     switch (_menu) {
                         case 0:
                             Game.NewGame();
-                            Game.ChangeScreen(this, new Field.FieldScreen("mrkt2", Game, Graphics));
+                            Game.ChangeScreen(this, new Field.FieldScreen(
+                                new Ficedula.FF7.Field.FieldDestination {
+                                    X = -225, Y = -830, Triangle = 152,
+                                    Orientation = 116,
+                                    DestinationFieldID = 195,
+                                },
+                                Game, Graphics
+                            ));
                             //Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329)); //TODO!
                             break;
                         case 3:

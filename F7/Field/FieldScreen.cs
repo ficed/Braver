@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Ficedula.FF7.Field;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -29,6 +30,16 @@ namespace Braver.Field {
         public Vector3 P1 { get; set; }
     }
 
+    [Flags]
+    public enum FieldOptions {
+        None = 0,
+        PlayerControls = 0x1,
+        LinesActive = 0x2,
+        MenuEnabled = 0x4, //TODO actually implement that
+
+        DEFAULT = PlayerControls | LinesActive | MenuEnabled, 
+    }
+
     public class FieldScreen : Screen {
 
         private OrthoView3D _view3D; 
@@ -39,19 +50,29 @@ namespace Braver.Field {
 
         private bool _debugMode = false;
         private bool _renderBG = true, _renderDebug = true, _renderModels = true;
+        private float _controlRotation;
+
+        private List<WalkmeshTriangle> _walkmesh;
+
+        private FieldDestination _avatarDestination;
 
         public override Color ClearColor => Color.Black;
 
         public Background Background { get; }
         public List<Entity> Entities { get; }
-        public FieldModel Player { get; set; }
+        public Entity Player { get; private set; }
         public List<FieldModel> FieldModels { get; }
-        public Ficedula.FF7.Field.DialogEvent Dialog { get; }
+        public DialogEvent Dialog { get; }
+        public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
 
 
-        public FieldScreen(string file, FGame g, GraphicsDevice graphics) : base(g, graphics) {
+        public FieldScreen(FieldDestination destination, FGame g, GraphicsDevice graphics) : base(g, graphics) {
+
+            var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
+            string file = mapList.Items[destination.DestinationFieldID];
+
             using (var s = g.Open("field", file)) {
-                var field = new Ficedula.FF7.Field.FieldFile(s);
+                var field = new FieldFile(s);
                 Background = new Background(graphics, field.GetBackground());
                 Dialog = field.GetDialogEvent();
 
@@ -61,14 +82,27 @@ namespace Braver.Field {
 
                 FieldModels = field.GetModels()
                     .Models
-                    .Select(m => new FieldModel(
-                        graphics, g, m.HRC, 
-                        m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
-                    ) {
-                        Scale = float.Parse(m.Scale) / 128f,
-                        Rotation2 = new Vector3(0, 0, 180),
+                    .Select(m => {
+                        var model = new FieldModel(
+                            graphics, g, m.HRC,
+                            m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
+                        ) {
+                            Scale = float.Parse(m.Scale) / 128f,
+                            Rotation2 = new Vector3(0, 0, 180),
+                        };
+                        model.Translation2 = new Vector3(
+                            0, 
+                            0,
+                            model.Scale * model.MaxBounds.Y
+                        );
+                        return model;
                     })
                     .ToList();
+
+                var tg = field.GetTriggersAndGateways();
+                _controlRotation = 360f * tg.ControlDirection / 256f;
+
+                _walkmesh = field.GetWalkmesh().Triangles;
 
                 using (var sinfo = g.TryOpen("field", file + ".xml")) {
                     if (sinfo != null) {
@@ -94,16 +128,15 @@ namespace Braver.Field {
                         Height = 720,
                     };
                     var vp = testCam.View * testCam.Projection;
-                    var tris = field.GetWalkmesh().Triangles;
 
-                    Vector3 Project(Ficedula.FF7.Field.FieldVertex v) {
+                    Vector3 Project(FieldVertex v) {
                         return Vector3.Transform(new Vector3(v.X, v.Y, v.Z), vp);
                     }
 
                     Vector3 vMin, vMax;
-                    vMin = vMax = Project(tris[0].V0);
+                    vMin = vMax = Project(_walkmesh[0].V0);
 
-                    foreach(var wTri in tris) {
+                    foreach(var wTri in _walkmesh) {
                         Vector3 v0 = Vector3.Transform(new Vector3(wTri.V0.X, wTri.V0.Y, wTri.V0.Z), vp),
                             v1 = Vector3.Transform(new Vector3(wTri.V1.X, wTri.V1.Y, wTri.V1.Z), vp),
                             v2 = Vector3.Transform(new Vector3(wTri.V2.X, wTri.V2.Y, wTri.V2.Z), vp);
@@ -119,7 +152,7 @@ namespace Braver.Field {
                         );
                     }
 
-                    var allW = tris.SelectMany(t => new[] { t.V0, t.V1, t.V2 });
+                    var allW = _walkmesh.SelectMany(t => new[] { t.V0, t.V1, t.V2 });
                     Vector3 wMin = new Vector3(allW.Min(v => v.X), allW.Min(v => v.Y), allW.Min(v => v.Z)),
                         wMax = new Vector3(allW.Max(v => v.X), allW.Max(v => v.Y), allW.Max(v => v.Z)); 
 
@@ -160,6 +193,8 @@ namespace Braver.Field {
                 _debug = new FieldDebug(graphics, field);
             }
 
+            _avatarDestination = destination;
+
             g.Memory.ResetScratch();
 
             foreach (var entity in Entities) {
@@ -169,7 +204,9 @@ namespace Braver.Field {
 
             _view2D = new View2D {
                 Width = 1280,
-                Height = 720
+                Height = 720,
+                ZNear = 0,
+                ZFar = -1,
             };
 
             Entity.DEBUG_OUT = false;
@@ -181,6 +218,8 @@ namespace Braver.Field {
         }
 
         protected override void DoRender() {
+            Graphics.DepthStencilState = DepthStencilState.Default;
+            Graphics.BlendState = BlendState.AlphaBlend;
             if (_renderBG)
                 Background.Render(_view2D);
 
@@ -189,7 +228,8 @@ namespace Braver.Field {
 
             if (_renderModels)
                 foreach (var entity in Entities)
-                    entity.Model?.Render(_view3D);
+                    if ((entity.Model != null) && entity.Model.Visible)
+                        entity.Model.Render(_view3D);
         }
 
         int frame = 0;
@@ -289,7 +329,169 @@ namespace Braver.Field {
                     System.Diagnostics.Debug.WriteLine($"View2D Center: {_view2D.CenterX}/{_view2D.CenterY}");
                     System.Diagnostics.Debug.WriteLine($"View3D: {_view3D}");
                 }
+            } else {
+                //Normal controls
+                if (Player != null) {
+                    int desiredAnim = 0;
+                    float animSpeed = 1f;
+                    if (input.IsAnyDirectionDown() && Options.HasFlag(FieldOptions.PlayerControls)) {
+                        //TODO actual use controldirection
+                        var forwards = _view3D.CameraForwards.WithZ(0);
+                        forwards.Normalize();
+                        var right = Vector3.Transform(forwards, Matrix.CreateRotationZ(90f * (float)Math.PI / 180f));
+                        var move = Vector2.Zero;
+
+                        if (input.IsDown(InputKey.Up))
+                            move += new Vector2(forwards.X, forwards.Y);
+                        else if (input.IsDown(InputKey.Down))
+                            move -= new Vector2(forwards.X, forwards.Y);
+
+                        if (input.IsDown(InputKey.Left))
+                            move += new Vector2(right.X, right.Y);
+                        else if (input.IsDown(InputKey.Right))
+                            move -= new Vector2(right.X, right.Y);
+
+                        if (move != Vector2.Zero) {
+                            move.Normalize();
+                            if (input.IsDown(InputKey.Cancel)) {
+                                animSpeed = 5f;
+                                move *= 5f;
+                                desiredAnim = 2;
+                            } else
+                                desiredAnim = 1;
+
+                            TryWalk(Player, Player.Model.Translation + new Vector3(move.X, move.Y, 0));
+                            Player.Model.Rotation = Player.Model.Rotation.WithZ((float)(Math.Atan2(-move.X, -move.Y) * 180f / Math.PI));
+                        } else {
+                            //
+                        }
+                    }
+
+                    if ((Player.Model.AnimationState.Animation != desiredAnim) || (Player.Model.AnimationState.AnimationSpeed != animSpeed))
+                        Player.Model.PlayAnimation(desiredAnim, true, animSpeed, null);
+                }
             }
         }
+
+        private static bool LineIntersect(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1, out float aDist) {
+            float denominator = ((a1.X - a0.X) * (b1.Y - b0.Y)) - ((a1.Y - a0.Y) * (b1.X - b0.X));
+            float numerator1 = ((a0.Y - b0.Y) * (b1.X - b0.X)) - ((a0.X - b0.X) * (b1.Y - b0.Y));
+            float numerator2 = ((a0.Y - b0.Y) * (a1.X - a0.X)) - ((a0.X - b0.X) * (a1.Y - a0.Y));
+
+
+            if (denominator == 0) {
+                aDist = 0; 
+                return numerator1 == 0 && numerator2 == 0;
+            }
+
+            aDist = numerator1 / denominator;
+            float s = numerator2 / denominator;
+
+            return (aDist >= 0 && aDist <= 1) && (s >= 0 && s <= 1);
+        }
+
+        public bool TryWalk(Entity e, Vector3 newPosition) {
+            //TODO: Collision detection against other models!
+
+            var currentTri = _walkmesh[e.WalkmeshTri];
+            var newHeight = HeightInTriangle(currentTri.V0.ToX(), currentTri.V1.ToX(), currentTri.V2.ToX(), newPosition.X, newPosition.Y);
+            if (newHeight != null) {
+                //We're staying in the same tri, so just update height
+                e.Model.Translation = newPosition.WithZ(newHeight.Value);
+                return true;
+            } else {
+                short? newTri;
+                if (LineIntersect(
+                    currentTri.V0.ToX().XY(),
+                    currentTri.V1.ToX().XY(),
+                    e.Model.Translation.XY(),
+                    newPosition.XY(),
+                    out float dist
+                    )) {
+                    newTri = currentTri.V01Tri;
+                } else if (LineIntersect(
+                    currentTri.V1.ToX().XY(),
+                    currentTri.V2.ToX().XY(),
+                    e.Model.Translation.XY(),
+                    newPosition.XY(),
+                    out dist
+                    )) {
+                    newTri = currentTri.V12Tri;
+                } else if (LineIntersect(
+                    currentTri.V2.ToX().XY(),
+                    currentTri.V0.ToX().XY(),
+                    e.Model.Translation.XY(),
+                    newPosition.XY(),
+                    out dist
+                    )) {
+                    newTri = currentTri.V20Tri;
+                } else {
+                    System.Diagnostics.Debug.WriteLine($"Moving from {e.Model.Translation} to {newPosition}");
+                    System.Diagnostics.Debug.WriteLine($"V0 {currentTri.V0}, V1 {currentTri.V1}, V2 {currentTri.V2}");
+                    throw new Exception($"Reality failure: Can't find route out of triangle");
+                }
+
+                if (newTri == null) {
+                    //Just can't leave by this side, oh well
+                    return false;
+                } else {
+                    var movingToTri = _walkmesh[newTri.Value];
+                    newHeight = HeightInTriangle(
+                        movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
+                        newPosition.X, newPosition.Y
+                    );
+                    if (newHeight == null) {
+                        //Argh, we've moved straight through a triangle? TODO: HANDLE THIS!
+                        throw new Exception($"This needs handling");
+                    } else {
+                        e.WalkmeshTri = newTri.Value;
+                        e.Model.Translation = newPosition.WithZ(newHeight.Value);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        private static float? HeightInTriangle(Vector3 p0, Vector3 p1, Vector3 p2, float x, float y) {
+            var denominator = (p1.Y - p2.Y) * (p0.X - p2.X) + (p2.X - p1.X) * (p0.Y - p2.Y);
+            var a = ((p1.Y - p2.Y) * (x - p2.X) + (p2.X - p1.X) * (y - p2.Y)) / denominator;
+            var b = ((p2.Y - p0.Y) * (x - p2.X) + (p0.X - p2.X) * (y - p2.Y)) / denominator;
+            var c = 1 - a - b;
+
+            if (a < 0) return null;
+            if (b < 0) return null;
+            if (c < 0) return null;
+            if (a > 1) return null;
+            if (b > 1) return null;
+            if (c > 1) return null;
+
+            return p0.Z * a + p1.Z * b + p2.Z * c;
+        }
+
+        public void DropToWalkmesh(Entity e, Vector2 position, int walkmeshTri) {
+            var tri = _walkmesh[walkmeshTri];
+
+            e.Model.Translation = new Vector3(
+                position.X,
+                position.Y,
+                HeightInTriangle(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), position.X, position.Y).Value
+            );
+            e.WalkmeshTri = walkmeshTri;
+        }
+
+        public void CheckPendingPlayerSetup() {
+            if ((_avatarDestination != null) && (Player.Model != null)) {
+                DropToWalkmesh(Player, new Vector2(_avatarDestination.X, _avatarDestination.Y), _avatarDestination.Triangle);
+                Player.Model.Rotation = new Vector3(0, 0, 360f * _avatarDestination.Orientation / 255f);
+                _avatarDestination = null;
+            }
+        }
+
+        public void SetPlayer(int whichEntity) {
+            Player = Entities[whichEntity]; //TODO: also center screen etc.
+            CheckPendingPlayerSetup();
+        }
+
+
     }
 }

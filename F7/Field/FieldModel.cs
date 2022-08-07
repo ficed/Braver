@@ -20,6 +20,7 @@ namespace Braver.Field {
         public Vector3 Rotation2 { get; set; }
         public Vector3 Rotation { get; set; }
         public Vector3 Translation { get; set; }
+        public Vector3 Translation2 { get; set; }
         public float Scale { get; set; } = 1f;
         public bool Visible { get; set; } = true;
         public float GlobalAnimationSpeed { get; set; } = 1f;
@@ -176,7 +177,7 @@ namespace Braver.Field {
                 * Matrix.CreateRotationX((Rotation.X + Rotation2.X) * (float)Math.PI / 180)
                 * Matrix.CreateRotationY((Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
                 * Matrix.CreateScale(Scale, -Scale, Scale)
-                * Matrix.CreateTranslation(Translation)
+                * Matrix.CreateTranslation(Translation + Translation2)
                 ,
                   (chunk, m) => {
                       _texEffect.World = _colEffect.World = m;
