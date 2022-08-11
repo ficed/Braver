@@ -32,7 +32,7 @@ namespace Braver.Field {
         public Entity(Ficedula.FF7.Field.Entity entity, FieldScreen screen) {
             _entity = entity;
             _priorities = Enumerable.Range(0, 8)
-                .Select(_ => new Fiber(this, screen, screen.Dialog.ScriptBytecode))
+                .Select(_ => new Fiber(this, screen, screen.FieldDialog.ScriptBytecode))
                 .ToArray();
             Flags = EntityFlags.CanTalk | EntityFlags.CanCollide;
             MoveSpeed = 1f;

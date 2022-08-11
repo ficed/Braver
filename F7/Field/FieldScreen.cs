@@ -36,8 +36,10 @@ namespace Braver.Field {
         PlayerControls = 0x1,
         LinesActive = 0x2,
         MenuEnabled = 0x4, //TODO actually implement that
+        CameraTracksPlayer = 0x8,
+        CameraIsAsyncScrolling = 0x10,
 
-        DEFAULT = PlayerControls | LinesActive | MenuEnabled, 
+        DEFAULT = PlayerControls | LinesActive | MenuEnabled | CameraTracksPlayer,  
     }
 
     public class FieldScreen : Screen {
@@ -62,9 +64,9 @@ namespace Braver.Field {
         public List<Entity> Entities { get; }
         public Entity Player { get; private set; }
         public List<FieldModel> FieldModels { get; }
-        public DialogEvent Dialog { get; }
+        public DialogEvent FieldDialog { get; }
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
-
+        public Dialog Dialog { get; }
 
         public FieldScreen(FieldDestination destination, FGame g, GraphicsDevice graphics) : base(g, graphics) {
 
@@ -74,9 +76,9 @@ namespace Braver.Field {
             using (var s = g.Open("field", file)) {
                 var field = new FieldFile(s);
                 Background = new Background(graphics, field.GetBackground());
-                Dialog = field.GetDialogEvent();
+                FieldDialog = field.GetDialogEvent();
 
-                Entities = Dialog.Entities
+                Entities = FieldDialog.Entities
                     .Select(e => new Entity(e, this))
                     .ToList();
 
@@ -193,6 +195,8 @@ namespace Braver.Field {
                 _debug = new FieldDebug(graphics, field);
             }
 
+            Dialog = new Dialog(g, graphics);
+
             _avatarDestination = destination;
 
             g.Memory.ResetScratch();
@@ -230,6 +234,19 @@ namespace Braver.Field {
                 foreach (var entity in Entities)
                     if ((entity.Model != null) && entity.Model.Visible)
                         entity.Model.Render(_view3D);
+
+            Dialog.Render();
+        }
+
+        private class FrameProcess {
+            public int Frames;
+            public Func<int, bool> Process;
+        }
+
+        private List<FrameProcess> _processes = new();
+
+        public void StartProcess(Func<int, bool> process) {
+            _processes.Add(new FrameProcess { Process = process });
         }
 
         int frame = 0;
@@ -240,7 +257,71 @@ namespace Braver.Field {
                     entity.Model?.FrameStep();
                 }
             }
+
+            for (int i = _processes.Count - 1; i >= 0; i--) {
+                var process = _processes[i];
+                if (process.Process(process.Frames++))
+                    _processes.RemoveAt(i);
+            }
+
+            Dialog.Step();
             Background.Step();
+        }
+
+        public (int x, int y) GetBGScroll() {
+            return (
+                (int)(_view2D.CenterX / 3),
+                (int)(_view2D.CenterY / 3)
+            );
+        }
+        public void BGScroll(float x, float y) {
+            BGScrollOffset(x - (_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
+        }
+        public void BGScrollOffset(float ox, float oy) {
+            var _3dScrollAmount = new Vector2(_view3D.Width / 427f, _view3D.Height / 240f);
+            _view2D.CenterX += 3 * ox;
+            _view3D.CenterX += _3dScrollAmount.X * ox;
+            _view2D.CenterY += 3 * oy;
+            _view3D.CenterY += _3dScrollAmount.Y * oy;
+        }
+
+        private void ReportAllModelPositions() {
+            foreach(var entity in Entities.Where(e => e.Model != null)) {
+                System.Diagnostics.Debug.WriteLine($"Entity {entity.Name} at pos {entity.Model.Translation}, 2D background pos {ModelToBGPosition(entity.Model.Translation)}");
+            }
+        }
+
+        public Vector2 ClampBGScrollToViewport(Vector2 bgScroll) {
+            int minX, maxX, minY, maxY;
+
+            if (Background.Width < (1280f / 3))
+                minX = maxX = 0;
+            else {
+                minX = Background.MinX + (1280 / 3) / 2;
+                maxX = (Background.MinX + Background.Width) - (1280 / 3) / 2;
+            }
+
+            if (Background.Height < (720f / 3))
+                minY = maxY = 0;
+            else {
+                minY = Background.MinY + (720 / 3) / 2;
+                maxY = (Background.MinY + Background.Height) - (730 / 3) / 2;
+            }
+
+            return new Vector2(
+                Math.Min(Math.Max(minX, bgScroll.X), maxX),
+                Math.Min(Math.Max(minY, bgScroll.Y), maxY)
+            );
+        }
+
+        public Vector2 ModelToBGPosition(Vector3 modelPosition) {
+            var vp = _view3D.View * _view3D.Projection;
+            var screenPos = Vector3.Transform(modelPosition, vp);
+
+            float tx = (_view2D.CenterX / 3) + screenPos.X * 0.5f * (1280f / 3),
+                  ty = (_view2D.CenterY / 3) + screenPos.Y * 0.5f * (720f / 3);
+
+            return new Vector2(tx, ty);
         }
 
         public override void ProcessInput(InputState input) {
@@ -252,8 +333,10 @@ namespace Braver.Field {
                 _renderBG = !_renderBG;
             if (input.IsJustDown(InputKey.Debug2))
                 _renderDebug = !_renderDebug;
-            if (input.IsJustDown(InputKey.Debug3))
+            if (input.IsJustDown(InputKey.Debug3)) {
                 _renderModels = !_renderModels;
+                ReportAllModelPositions();
+            }
 
             if (input.IsJustDown(InputKey.Debug5))
                 Entity.DEBUG_OUT = !Entity.DEBUG_OUT;
@@ -331,7 +414,7 @@ namespace Braver.Field {
                 }
             } else {
                 //Normal controls
-                if (Player != null) {
+                if ((Player != null) && Options.HasFlag(FieldOptions.PlayerControls)) {
                     int desiredAnim = 0;
                     float animSpeed = 1f;
                     if (input.IsAnyDirectionDown() && Options.HasFlag(FieldOptions.PlayerControls)) {

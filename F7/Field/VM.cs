@@ -366,7 +366,7 @@ namespace Braver.Field {
         static VM() {
             Register(typeof(Flow));
             Register(typeof(BackgroundPal));
-            Register(typeof(Audio));
+            Register(typeof(CameraAudioVideo));
             Register(typeof(WindowMenu));
             Register(typeof(PartyInventory));
             Register(typeof(FieldModels));
@@ -379,7 +379,7 @@ namespace Braver.Field {
                     throw new F7Exception($"Cannot execute opcode {op}");
                 f.Stop();
                 f.Jump(f.IP - 1); //So if we retry, the opcode is actually retried [and will fail again] rather than trying the next operand byte as an opcode
-                System.Diagnostics.Debug.WriteLine($"Aborting script due to unrecognised opcode {op}");
+                System.Diagnostics.Debug.WriteLine($"Aborting script on {e.Name} due to unrecognised opcode {op}");
                 return OpResult.Continue;
             } else
                 return _executors[(int)op](f, e, s);
@@ -570,6 +570,16 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult PDIRA(Fiber f, Entity e, FieldScreen s) {
+            byte chr = f.ReadU8();
+            var target = s.Entities
+                .Where(e => e.Character != null)
+                .FirstOrDefault(e => e.Character.CharIndex == chr) 
+                ?? s.Player;
+            float r = (float)Math.Atan2(target.Model.Translation.Y - e.Model.Translation.Y, target.Model.Translation.X - e.Model.Translation.X);
+            e.Model.Rotation = new Vector3(0, 0, r * (float)Math.PI / 180f);
+            return OpResult.Continue;
+        }
         public static OpResult DIR(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8(), parm = f.ReadU8();
             float rotation = 360f * s.Game.Memory.Read(bank, parm) / 255f;
@@ -676,6 +686,12 @@ namespace Braver.Field {
             e.Model.PlayAnimation(anim, false, 1f / speed, f.Resume); //TODO is this speed even vaguely correct?
             return OpResult.Continue;
         }
+        public static OpResult CANM_2(Fiber f, Entity e, FieldScreen s) {
+            byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
+            f.Pause();
+            e.Model.PlayAnimation(anim, false, 1f / speed, f.Resume, fstart, fend); 
+            return OpResult.Continue;
+        }
         public static OpResult DFANM(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
             e.Model.PlayAnimation(anim, true, 1f / speed, null); //TODO is this speed even vaguely correct?
@@ -779,8 +795,25 @@ namespace Braver.Field {
     internal static class WindowMenu {
         public static OpResult MPNAM(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
-            string name = s.Dialog.Dialogs[parm];
+            string name = s.FieldDialog.Dialogs[parm];
             s.Game.SaveData.Location = name;
+            return OpResult.Continue;
+        }
+
+        public static OpResult WSIZW(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8();
+            ushort x = f.ReadU16(), y = f.ReadU16(),
+                w = f.ReadU16(), h = f.ReadU16();
+
+            s.Dialog.SetupWindow(id, x, y, w, h);
+
+            return OpResult.Continue;
+        }
+        public static OpResult MESSAGE(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8(), dlg = f.ReadU8();
+            f.Pause();
+            s.Dialog.Show(id, s.FieldDialog.Dialogs[dlg], f.Resume);
+
             return OpResult.Continue;
         }
 
@@ -795,7 +828,7 @@ namespace Braver.Field {
 
     }
 
-    internal static class Audio {
+    internal static class CameraAudioVideo {
 
         //TODO store in external file?
         private static readonly string[] _trackNames = new[] {
@@ -818,6 +851,94 @@ namespace Braver.Field {
             byte track = f.ReadU8();
             //TODO!!!!
             //s.Game.Audio.PlayMusic(_trackNames[s.Script.MusicIDs.ElementAt(track)], false);
+            return OpResult.Continue;
+        }
+
+        public static OpResult SCRLW(Fiber f, Entity e, FieldScreen s) {
+            if (s.Options.HasFlag(FieldOptions.CameraIsAsyncScrolling))
+                return OpResult.Restart;
+            else
+                return OpResult.Continue;
+        }
+
+        public static OpResult SCR2D(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8();
+            short sx = f.ReadS16(), sy = f.ReadS16();
+            int x = s.Game.Memory.Read(banks & 0xf, sx),
+                y = s.Game.Memory.Read(banks >> 4, sy);
+
+            s.BGScroll(x, y);
+            return OpResult.Continue;
+        }
+
+        public static OpResult SCRLC(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8();
+            byte sspeed = f.ReadU8();
+            byte unknown = f.ReadU8(), type = f.ReadU8();
+            int speed = s.Game.Memory.Read(bank, sspeed);
+
+            Easing easing;
+            switch (type) {
+                case 2:
+                    easing = Easings.Linear;
+                    break;
+                case 3:
+                    easing = Easings.QuadraticInOut;
+                    break;
+                default:
+                    easing = null;
+                    break;
+            }
+
+            if (easing != null) {
+                (int curX, int curY) = s.GetBGScroll();
+                s.Options &= ~FieldOptions.CameraTracksPlayer;
+                s.Options |= FieldOptions.CameraIsAsyncScrolling;
+                s.StartProcess(frame => {
+                    float progress = easing(1f * frame / speed);
+                    var target = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
+
+                    if (progress >= 1f) {
+                        s.BGScroll(target.X, target.Y);
+                        s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
+                        return true;
+                    } else {
+                        s.BGScroll(
+                            curX + (target.X - curX) * progress,
+                            curY + (target.Y - curY) * progress
+                        );
+                        return false;
+                    }
+                });
+            }
+
+            return OpResult.Continue;
+        }
+
+        public static OpResult SCR2DL(Fiber f, Entity e, FieldScreen s) {
+            byte banks1 = f.ReadU8(), banks2 = f.ReadU8();
+            short sx = f.ReadS16(), sy = f.ReadS16();
+            ushort sspeed = f.ReadU16();
+            int x = s.Game.Memory.Read(banks1 & 0xf, sx),
+                y = s.Game.Memory.Read(banks1 >> 4, sy),
+                speed = s.Game.Memory.Read(banks2 >> 4, sspeed);
+
+            (int curX, int curY) = s.GetBGScroll();
+
+            int numFrames = sspeed * 60 / 32;
+
+            f.Pause();
+            s.StartProcess(frame => {
+                float progress = 1f * frame / numFrames;
+                s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress);
+
+                if (progress >= 1) {
+                    f.Resume();
+                    return true;
+                } else
+                    return false;
+            });
+
             return OpResult.Continue;
         }
     }

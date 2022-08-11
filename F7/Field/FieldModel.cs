@@ -14,6 +14,8 @@ namespace Braver.Field {
         public int Frame { get; set; }
         public Action AnimationComplete { get; set; }
         public bool AnimationLoop { get; set; }
+        public int StartFrame { get; set; }
+        public int EndFrame { get; set; }
     }
 
     public class FieldModel {
@@ -200,22 +202,26 @@ namespace Braver.Field {
             _animCountdown -= AnimationState.AnimationSpeed * GlobalAnimationSpeed;
             if (_animCountdown <= 0) {
                 _animCountdown = 1;
-                if (AnimationState.Frame == (_animations[AnimationState.Animation].Frames.Count) - 1)
+                if (AnimationState.Frame == AnimationState.EndFrame) {
                     AnimationState.AnimationComplete?.Invoke();
-
-                if (AnimationState.AnimationLoop)
-                    AnimationState.Frame = (AnimationState.Frame + 1) % _animations[AnimationState.Animation].Frames.Count;
-                else
-                    AnimationState.Frame = Math.Min(AnimationState.Frame + 1, _animations[AnimationState.Animation].Frames.Count - 1);
+                    AnimationState.AnimationComplete = null;
+                    if (AnimationState.AnimationLoop)
+                        AnimationState.Frame = AnimationState.StartFrame;
+                } else {
+                    AnimationState.Frame++;
+                }
             }
         }
 
-        public void PlayAnimation(int animation, bool loop, float speed, Action onComplete) {
+        public void PlayAnimation(int animation, bool loop, float speed, Action onComplete, int startFrame = 0, int endFrame = -1) {
             AnimationState = new AnimationState {
                 Animation = animation,
                 AnimationLoop = loop,
                 AnimationSpeed = speed,
                 AnimationComplete = onComplete,
+                StartFrame = startFrame,
+                Frame = startFrame,
+                EndFrame = endFrame < 0 ? _animations[animation].Frames.Count - 1 : endFrame,
             }; 
             _animCountdown = 1;
         }

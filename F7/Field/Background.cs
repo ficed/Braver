@@ -14,6 +14,8 @@ namespace Braver.Field {
 
         public int Width => _bg.Width;
         public int Height => _bg.Height;
+        public int MinX { get; private set; }
+        public int MinY { get; private set; }
 
         private enum BlendType {
             Blend,
@@ -66,7 +68,11 @@ namespace Braver.Field {
                 FogEnabled = false,
             };
 
+            MinX = bg.AllSprites.Min(s => s.DestX);
+            MinY = bg.AllSprites.Min(s => s.DestY);
+
             foreach (var layer in bg.Layers.Where(L => L.Any())) {
+
                 var groups = layer
                     .GroupBy(s => s.SortKey)
                     .OrderByDescending(group => group.Key);
