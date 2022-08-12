@@ -299,10 +299,10 @@ namespace Braver.UI {
             foreach (char c in text) {
                 switch (c) {
                     case ' ':
-                        dx += f.GlyphsDict['n'].W * 1;
+                        dx += f.GlyphsDict['i'].W * 1;
                         break;
                     case '\t':
-                        dx += f.GlyphsDict['n'].W * 3;
+                        dx += f.GlyphsDict['i'].W * 3;
                         break;
                     default:
                         var glyph = f.GlyphsDict[c];
@@ -359,10 +359,10 @@ namespace Braver.UI {
                 foreach (char c in item.text) {
                     switch (c) {
                         case ' ':
-                            dx += f.GlyphsDict['n'].W * 1;
+                            dx += f.GlyphsDict['i'].W * 1;
                             break;
                         case '\t':
-                            dx += f.GlyphsDict['n'].W * 3;
+                            dx += f.GlyphsDict['i'].W * 3;
                             break;
                         default:
                             var glyph = f.GlyphsDict[c];

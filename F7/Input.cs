@@ -26,6 +26,8 @@ namespace Braver {
         Debug3,
         Debug4,
         Debug5,
+
+        DebugSpeed,
     }
 
     public class InputState {

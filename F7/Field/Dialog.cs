@@ -23,9 +23,9 @@ namespace Braver.Field {
 
         private class Window {
             public int X, Y, Width, Height;
-            public string Text;
+            public string[] Text;
             public WindowState State = WindowState.Hidden;
-            public int FrameProgress;
+            public int FrameProgress, ScreenProgress;
             public Action OnClosed;
         }
 
@@ -54,13 +54,13 @@ namespace Braver.Field {
 
         public void Show(int window, string text, Action onClosed) {
 
-            string s = Ficedula.FF7.Text.Expand(text,
-                _game.SaveData.Characters.Select(c => c?.Name).ToArray(),
-                _game.SaveData.Party.Select(c => c?.Name).ToArray()
-            );
+            var chars = _game.SaveData.Characters.Select(c => c?.Name).ToArray();
+            var party = _game.SaveData.Party.Select(c => c?.Name).ToArray();
 
-            _windows[window].Text = s;
-            _windows[window].FrameProgress = 0;
+            _windows[window].Text = text.Split('\xC')
+                .Select(line => Ficedula.FF7.Text.Expand(line, chars, party))
+                .ToArray();
+            _windows[window].FrameProgress = _windows[window].ScreenProgress = 0;
             _windows[window].State = WindowState.Expanding;
             _windows[window].OnClosed = onClosed;
         }
@@ -70,8 +70,14 @@ namespace Braver.Field {
                 if (window.State == WindowState.Wait) {
                     if (input.IsJustDown(InputKey.OK)) {
                         _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
-                        window.State = WindowState.Hiding;
-                        window.FrameProgress = 0;
+                        if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
+                            window.ScreenProgress++;
+                            window.FrameProgress = 0;
+                            window.State = WindowState.Displaying;
+                        } else { //we're done
+                            window.State = WindowState.Hiding;
+                            window.FrameProgress = 0;
+                        }
                     }
                 }
             }
@@ -109,7 +115,7 @@ namespace Braver.Field {
             void DrawText(Window w, ref int count) {
                 int y = w.Y + 10;
                 float tz = NextZ();
-                foreach (string line in w.Text.Split('\r')) {
+                foreach (string line in w.Text[w.ScreenProgress].Split('\r')) {
                     string s = count < line.Length ? line.Substring(0, count) : line;
                     _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);
                     count -= s.Length;

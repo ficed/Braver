@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -497,6 +498,18 @@ namespace Braver.Field {
             return IfImpl(f, s, banks, sVal1, sVal2, comparison, newIP);
         }
 
+        public static OpResult IFPRTYQ(Fiber f, Entity e, FieldScreen s) {
+            byte chr = f.ReadU8(), jump = f.ReadU8();
+
+            if (s.Game.SaveData.Party.Any(c => c.CharIndex == chr)) {
+                //
+            } else {
+                f.Jump(f.IP + jump - 1);
+            }
+            return OpResult.Continue;
+        }
+
+
         public static OpResult NOP(Fiber f, Entity e, FieldScreen s) {
             return OpResult.Continue;
         }
@@ -614,13 +627,15 @@ namespace Braver.Field {
             e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(-remaining.X, -remaining.Y) * 180f / Math.PI));
 
             if (remaining.Length() <= e.MoveSpeed) {
-                s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z));
-                return OpResult.Continue;
+                if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), true))
+                    return OpResult.Continue;
+                else
+                    return OpResult.Restart;
                 //TODO: Do we need to stop animating?
             } else {
                 remaining.Normalize();
                 remaining *= e.MoveSpeed;
-                s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0));
+                s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0), true);
                 if (e.Model.AnimationState.Animation != 1)
                     e.Model.PlayAnimation(1, true, 1f, null);
                 return OpResult.Restart;
@@ -629,17 +644,14 @@ namespace Braver.Field {
 
         public static OpResult LINON(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
-            if (parm != 0)
-                s.Options |= FieldOptions.LinesActive;
-            else
-                s.Options &= ~FieldOptions.LinesActive;
+            e.Line.Active = parm != 0;
             return OpResult.Continue;
         }
 
         public static OpResult UC(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
             if (parm == 0)
-                s.Options |= FieldOptions.PlayerControls;
+                s.Options |= FieldOptions.PlayerControls | FieldOptions.CameraTracksPlayer; //Seems like cameratracksplayer MUST be turned on now or things break...?
             else
                 s.Options &= ~FieldOptions.PlayerControls;
             return OpResult.Continue;
@@ -647,7 +659,7 @@ namespace Braver.Field {
 
         public static OpResult TLKON(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
-            if (parm != 0)
+            if (parm != 1)
                 e.Flags |= EntityFlags.CanTalk;
             else
                 e.Flags &= ~EntityFlags.CanTalk;
@@ -656,7 +668,7 @@ namespace Braver.Field {
 
         public static OpResult SOLID(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
-            if (parm != 0)
+            if (parm != 1)
                 e.Flags |= EntityFlags.CanCollide;
             else
                 e.Flags &= ~EntityFlags.CanCollide;
@@ -856,6 +868,16 @@ namespace Braver.Field {
             byte track = f.ReadU8();
             //TODO!!!!
             //s.Game.Audio.PlayMusic(_trackNames[s.Script.MusicIDs.ElementAt(track)], false);
+            return OpResult.Continue;
+        }
+
+        public static OpResult SOUND(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8();
+            ushort ssound = f.ReadU16();
+            byte span = f.ReadU8();
+            int sound = s.Game.Memory.Read(banks & 0xf, ssound);
+            int pan = s.Game.Memory.Read(banks >> 4, span);
+            s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64);
             return OpResult.Continue;
         }
 

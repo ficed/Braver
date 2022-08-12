@@ -29,6 +29,9 @@ namespace Braver.Field {
         public float MoveSpeed { get; set; }
         public int WalkmeshTri { get; set; }
 
+        public HashSet<Entity> CollidingWith { get; } = new();
+        public HashSet<Entity> LinesCollidingWith { get; } = new();
+
         public Entity(Ficedula.FF7.Field.Entity entity, FieldScreen screen) {
             _entity = entity;
             _priorities = Enumerable.Range(0, 8)

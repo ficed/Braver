@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Braver {
     public class Game1 : Game {
@@ -59,6 +60,8 @@ namespace Braver {
             [Keys.F7] = InputKey.Debug3,
             [Keys.F8] = InputKey.Debug4,
             [Keys.F9] = InputKey.Debug5,
+            
+            [Keys.F12] = InputKey.DebugSpeed,
         };
 
         private InputState _input = new();
@@ -84,7 +87,12 @@ namespace Braver {
                 }
             }
 
-            _g.Step(gameTime, _input);
+            if (_input.IsDown(InputKey.DebugSpeed)) {
+                foreach (int _ in Enumerable.Range(0, 4))
+                    _g.Step(gameTime, _input);
+            } else {
+                _g.Step(gameTime, _input);
+            }
 
             base.Update(gameTime);
         }

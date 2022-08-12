@@ -28,18 +28,30 @@ namespace Braver.Field {
     public class FieldLine {
         public Vector3 P0 { get; set; }
         public Vector3 P1 { get; set; }
+        public bool Active { get; set; } = true;
+
+        public bool IntersectsWith(Vector3 entity, float entityRadius) {
+            if (!Active)
+                return false;
+
+            var dist =
+                ((P1.X - P0.X) * (P0.Y - entity.Y) - (P0.X - entity.X) * (P1.Y - P0.Y))
+                /
+                (P1.XY() - P0.XY()).Length();
+            return dist < entityRadius;
+        }
     }
 
     [Flags]
     public enum FieldOptions {
         None = 0,
         PlayerControls = 0x1,
-        LinesActive = 0x2,
+        //LinesActive = 0x2,
         MenuEnabled = 0x4, //TODO actually implement that
         CameraTracksPlayer = 0x8,
         CameraIsAsyncScrolling = 0x10,
 
-        DEFAULT = PlayerControls | LinesActive | MenuEnabled | CameraTracksPlayer,  
+        DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer,  
     }
 
     public class FieldScreen : Screen {
@@ -421,6 +433,17 @@ namespace Braver.Field {
 
                 //Normal controls
                 if ((Player != null) && Options.HasFlag(FieldOptions.PlayerControls)) {
+
+                    if (input.IsJustDown(InputKey.OK) && (Player != null)) {
+                        var talkTo = Player.CollidingWith
+                            .Where(e => e.Flags.HasFlag(EntityFlags.CanTalk))
+                            .FirstOrDefault();
+                        if (talkTo != null) {
+                            if (!talkTo.Call(7, 1, null))
+                                System.Diagnostics.Debug.WriteLine($"Could not start talk script for entity {talkTo}");
+                        }
+                    }
+
                     int desiredAnim = 0;
                     float animSpeed = 1f;
                     if (input.IsAnyDirectionDown() && Options.HasFlag(FieldOptions.PlayerControls)) {
@@ -449,8 +472,42 @@ namespace Braver.Field {
                             } else
                                 desiredAnim = 1;
 
-                            TryWalk(Player, Player.Model.Translation + new Vector3(move.X, move.Y, 0));
+                            TryWalk(Player, Player.Model.Translation + new Vector3(move.X, move.Y, 0), true);
                             Player.Model.Rotation = Player.Model.Rotation.WithZ((float)(Math.Atan2(-move.X, -move.Y) * 180f / Math.PI));
+
+                            var oldLines = Player.LinesCollidingWith.ToArray();
+                            Player.LinesCollidingWith.Clear();
+                            foreach (var lineEnt in Entities.Where(e => e.Line != null)) {
+                                if (lineEnt.Line.IntersectsWith(Player.Model.Translation, Player.CollideDistance))
+                                    Player.LinesCollidingWith.Add(lineEnt);
+                            }
+
+                            foreach(var entered in Player.LinesCollidingWith.Except(oldLines)) {
+                                System.Diagnostics.Debug.WriteLine($"Player has entered line {entered}");
+                                entered.Call(3, 5, null); //TODO PRIORITY!?!
+                            }
+                            foreach (var left in oldLines.Except(Player.LinesCollidingWith)) {
+                                System.Diagnostics.Debug.WriteLine($"Player has left line {left}");
+                                left.Call(3, 6, null); //TODO PRIORITY!?!
+                            }
+
+                            if (Options.HasFlag(FieldOptions.CameraTracksPlayer)) {
+                                var posOnBG = ModelToBGPosition(Player.Model.Translation);
+                                var scroll = GetBGScroll();
+                                var newScroll = scroll;
+                                if (posOnBG.X > (scroll.x + 150))
+                                    newScroll.x = (int)posOnBG.X - 150;
+                                else if (posOnBG.X < (scroll.x - 150))
+                                    newScroll.x = (int)posOnBG.X + 150;
+
+                                if (posOnBG.Y > (scroll.y + 100))
+                                    newScroll.y = (int)posOnBG.Y - 100;
+                                else if (posOnBG.Y < (scroll.y - 110))
+                                    newScroll.y = (int)posOnBG.Y + 110;
+
+                                if (newScroll != scroll)
+                                    BGScroll(newScroll.x, newScroll.y);
+                            }
                         } else {
                             //
                         }
@@ -479,21 +536,43 @@ namespace Braver.Field {
             return (aDist >= 0 && aDist <= 1) && (s >= 0 && s <= 1);
         }
 
-        public bool TryWalk(Entity e, Vector3 newPosition) {
+        public bool TryWalk(Entity eMove, Vector3 newPosition, bool doCollide) {
             //TODO: Collision detection against other models!
 
-            var currentTri = _walkmesh[e.WalkmeshTri];
+            if (doCollide) {
+                eMove.CollidingWith.Clear();
+
+                var toCheck = Entities
+                    .Where(e => e.Flags.HasFlag(EntityFlags.CanCollide))
+                    .Where(e => e.Model != null)
+                    .Where(e => e != eMove);
+
+                foreach (var entity in toCheck) {
+                    if (entity.Model != null) {
+                        var dist = (entity.Model.Translation.XY() - newPosition.XY()).Length();
+                        var collision = eMove.CollideDistance + entity.CollideDistance;
+                        if (dist <= collision) {
+                            System.Diagnostics.Debug.WriteLine($"Entity {eMove} is now colliding with {entity}");
+                            eMove.CollidingWith.Add(entity);
+                        }
+                    }
+                }
+                if (eMove.CollidingWith.Any())
+                    return false;
+            }
+
+            var currentTri = _walkmesh[eMove.WalkmeshTri];
             var newHeight = HeightInTriangle(currentTri.V0.ToX(), currentTri.V1.ToX(), currentTri.V2.ToX(), newPosition.X, newPosition.Y);
             if (newHeight != null) {
                 //We're staying in the same tri, so just update height
-                e.Model.Translation = newPosition.WithZ(newHeight.Value);
+                eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
                 return true;
             } else {
                 short? newTri;
                 if (LineIntersect(
                     currentTri.V0.ToX().XY(),
                     currentTri.V1.ToX().XY(),
-                    e.Model.Translation.XY(),
+                    eMove.Model.Translation.XY(),
                     newPosition.XY(),
                     out float dist
                     )) {
@@ -501,7 +580,7 @@ namespace Braver.Field {
                 } else if (LineIntersect(
                     currentTri.V1.ToX().XY(),
                     currentTri.V2.ToX().XY(),
-                    e.Model.Translation.XY(),
+                    eMove.Model.Translation.XY(),
                     newPosition.XY(),
                     out dist
                     )) {
@@ -509,13 +588,13 @@ namespace Braver.Field {
                 } else if (LineIntersect(
                     currentTri.V2.ToX().XY(),
                     currentTri.V0.ToX().XY(),
-                    e.Model.Translation.XY(),
+                    eMove.Model.Translation.XY(),
                     newPosition.XY(),
                     out dist
                     )) {
                     newTri = currentTri.V20Tri;
                 } else {
-                    System.Diagnostics.Debug.WriteLine($"Moving from {e.Model.Translation} to {newPosition}");
+                    System.Diagnostics.Debug.WriteLine($"Moving from {eMove.Model.Translation} to {newPosition}");
                     System.Diagnostics.Debug.WriteLine($"V0 {currentTri.V0}, V1 {currentTri.V1}, V2 {currentTri.V2}");
                     throw new Exception($"Reality failure: Can't find route out of triangle");
                 }
@@ -533,8 +612,8 @@ namespace Braver.Field {
                         //Argh, we've moved straight through a triangle? TODO: HANDLE THIS!
                         throw new Exception($"This needs handling");
                     } else {
-                        e.WalkmeshTri = newTri.Value;
-                        e.Model.Translation = newPosition.WithZ(newHeight.Value);
+                        eMove.WalkmeshTri = newTri.Value;
+                        eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
                         return true;
                     }
                 }

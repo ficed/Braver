@@ -121,6 +121,7 @@
 				<Glyph X="216" Y="96" W="7" H="24" Layer="1">125</Glyph>
 				<Glyph X="240" Y="96" W="12" H="24" Layer="1">126</Glyph>
 				<Glyph X="240" Y="192" W="8" H="24" Layer="1">8220</Glyph>
+				<Glyph X="24" Y="192" W="24" H="24" Layer="1">8230</Glyph>
 			</Glyphs>
 		</FontSet>
 		<FontSet>
