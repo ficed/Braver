@@ -413,6 +413,12 @@ namespace Braver.Field {
                     System.Diagnostics.Debug.WriteLine($"View3D: {_view3D}");
                 }
             } else {
+
+                if (Dialog.IsActive) {
+                    Dialog.ProcessInput(input);
+                    return;
+                }
+
                 //Normal controls
                 if ((Player != null) && Options.HasFlag(FieldOptions.PlayerControls)) {
                     int desiredAnim = 0;

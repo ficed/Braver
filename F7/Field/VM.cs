@@ -800,6 +800,11 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult WREST(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8();
+            s.Dialog.ResetWindow(id);
+            return OpResult.Continue;
+        }
         public static OpResult WSIZW(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
             ushort x = f.ReadU16(), y = f.ReadU16(),
@@ -948,6 +953,13 @@ namespace Braver.Field {
             byte banks = f.ReadU8(), dest = f.ReadU8(), src = f.ReadU8();
             int value = s.Game.Memory.Read(banks & 0xf, src);
             s.Game.Memory.Write(banks >> 4, dest, (byte)value);
+            return OpResult.Continue;
+        }
+        public static OpResult SETWORD(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8();
+            ushort src = f.ReadU16();
+            int value = s.Game.Memory.Read(banks & 0xf, src);
+            s.Game.Memory.Write(banks >> 4, dest, (ushort)value);
             return OpResult.Continue;
         }
     }

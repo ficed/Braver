@@ -51,6 +51,58 @@ namespace Braver {
             _scratch = new byte[256];
         }
 
+        public void Write(int bank, int offset, ushort value) {
+            switch (bank) {
+                case 0:
+                    throw new F7Exception("Can't write to literal bank 0");
+                case 1:
+                    _banks[0][offset] = (byte)value;
+                    break;
+                case 2:
+                    _banks[0][offset * 2] = (byte)value;
+                    _banks[0][offset * 2 + 1] = (byte)(value >> 8);
+                    break;
+                case 3:
+                    _banks[1][offset] = (byte)value;
+                    break;
+                case 4:
+                    _banks[1][offset * 2] = (byte)value;
+                    _banks[1][offset * 2 + 1] = (byte)(value >> 8);
+                    break;
+                case 0xB:
+                    _banks[2][offset] = (byte)value;
+                    break;
+                case 0xC:
+                    _banks[2][offset * 2] = (byte)value;
+                    _banks[2][offset * 2 + 1] = (byte)(value >> 8);
+                    break;
+                case 0xD:
+                    _banks[3][offset] = (byte)value;
+                    break;
+                case 0xE:
+                    _banks[3][offset * 2] = (byte)value;
+                    _banks[3][offset * 2 + 1] = (byte)(value >> 8);
+                    break;
+                case 0xF:
+                    _banks[4][offset] = (byte)value;
+                    break;
+                case 7:
+                    _banks[4][offset * 2] = (byte)value;
+                    _banks[4][offset * 2 + 1] = (byte)(value >> 8);
+                    break;
+
+                case 5:
+                    _scratch[offset] = (byte)value;
+                    break;
+                case 6:
+                    _scratch[offset * 2] = (byte)value;
+                    _scratch[offset * 2 + 1] = (byte)(value >> 8);
+                    break;
+
+                default:
+                    throw new F7Exception($"Unknown memory bank {bank}/{offset}");
+            }
+        }
         public void Write(int bank, int offset, byte value) {
             switch (bank) {
                 case 0:

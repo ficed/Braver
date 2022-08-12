@@ -41,6 +41,10 @@ namespace Braver.Field {
         }
 
 
+        public void ResetWindow(int window) {
+            SetupWindow(window, 5, 5, 0x130, 0x45);
+            _windows[window].State = WindowState.Hidden;
+        }
         public void SetupWindow(int window, int x, int y, int width, int height) {
             _windows[window].X = x * 3 / 2;
             _windows[window].Y = y * 3 / 2;
@@ -59,6 +63,18 @@ namespace Braver.Field {
             _windows[window].FrameProgress = 0;
             _windows[window].State = WindowState.Expanding;
             _windows[window].OnClosed = onClosed;
+        }
+
+        public void ProcessInput(InputState input) { 
+            foreach(var window in _windows) {
+                if (window.State == WindowState.Wait) {
+                    if (input.IsJustDown(InputKey.OK)) {
+                        _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                        window.State = WindowState.Hiding;
+                        window.FrameProgress = 0;
+                    }
+                }
+            }
         }
 
         public void Step() {
