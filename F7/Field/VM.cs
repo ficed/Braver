@@ -650,10 +650,7 @@ namespace Braver.Field {
 
         public static OpResult UC(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
-            if (parm == 0)
-                s.Options |= FieldOptions.PlayerControls | FieldOptions.CameraTracksPlayer; //Seems like cameratracksplayer MUST be turned on now or things break...?
-            else
-                s.Options &= ~FieldOptions.PlayerControls;
+            s.SetPlayerControls(parm == 0);
             return OpResult.Continue;
         }
 
@@ -982,6 +979,21 @@ namespace Braver.Field {
             ushort src = f.ReadU16();
             int value = s.Game.Memory.Read(banks & 0xf, src);
             s.Game.Memory.Write(banks >> 4, dest, (ushort)value);
+            return OpResult.Continue;
+        }
+        public static OpResult BITON(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), src = f.ReadU8();
+            int bit = s.Game.Memory.Read(banks & 0xf, src);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)(current | (1 << bit)));
+            return OpResult.Continue;
+        }
+        public static OpResult AND2(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8();
+            ushort src = f.ReadU16();
+            int value = s.Game.Memory.Read(banks & 0xf, src);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (ushort)(current & value));
             return OpResult.Continue;
         }
     }

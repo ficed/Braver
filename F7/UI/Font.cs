@@ -262,6 +262,11 @@ namespace Braver.UI {
         private List<(Rectangle, float)> _boxItems = new();
         private List<ImageItem> _imageItems = new();
 
+        private static Color[] _colours = new[] {
+            Color.Gray, Color.Blue, Color.Red, Color.HotPink, Color.Green,
+            Color.Cyan, Color.Yellow, Color.White, //TODO: Blink, Multicolor
+        };
+
         public void DrawImage(string image, int x, int y, float z, Alignment alignment = Alignment.Left, 
             float scale = 1f, Color? color = null) {
             _imageItems.Add(new ImageItem {
@@ -306,7 +311,7 @@ namespace Braver.UI {
                         break;
                     default:
                         var glyph = f.GlyphsDict[c];
-                        dx += glyph.W + 2;
+                        dx += glyph.W + 1;
                         break;
                 }
             }
@@ -356,8 +361,25 @@ namespace Braver.UI {
                         dx -= TextWidth(item.fontSet, item.text);
                         break;
                 }
+                Color colour = item.colour;
                 foreach (char c in item.text) {
                     switch (c) {
+                        case '\xE012':
+                            //Colour change opcode ... ignore and just pay attention to the actual colour code
+                            break;
+                        case '\xE020':
+                        case '\xE021':
+                        case '\xE022':
+                        case '\xE023':
+                        case '\xE024':
+                        case '\xE025':
+                        case '\xE026':
+                        case '\xE027':
+                        case '\xE028':
+                        case '\xE029':
+                            colour = _colours[c - 0xE020];
+                            break;
+
                         case ' ':
                             dx += f.GlyphsDict['i'].W * 1;
                             break;
@@ -369,13 +391,13 @@ namespace Braver.UI {
                             _spriteBatch.Draw(_font.Texture,
                                 new Rectangle(dx, item.y, glyph.W, glyph.H),
                                 new Rectangle(glyph.X, glyph.Y + 256 * glyph.Layer, glyph.W, glyph.H),
-                                item.colour,
+                                colour,
                                 0,
                                 Vector2.Zero,
                                 SpriteEffects.None,
                                 item.z
                             );
-                            dx += glyph.W + 2;
+                            dx += glyph.W + 1;
                             break;
                     }
                 }

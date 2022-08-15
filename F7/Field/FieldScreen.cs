@@ -660,6 +660,16 @@ namespace Braver.Field {
             CheckPendingPlayerSetup();
         }
 
-
+        public void SetPlayerControls(bool enabled) {
+            if (enabled)
+                Options |= FieldOptions.PlayerControls | FieldOptions.CameraTracksPlayer; //Seems like cameratracksplayer MUST be turned on now or things break...?
+            else {
+                Options &= ~FieldOptions.PlayerControls;
+                if (Player?.Model != null)
+                    Player.Model.PlayAnimation(0, true, 1f, null);
+                //TODO - is this reasonable? Disable current (walking) animation when we take control away from the player? 
+                //(We don't want e.g. walk animation to be continuing after our control is disabled and we're not moving any more!)
+            }
+        }
     }
 }
