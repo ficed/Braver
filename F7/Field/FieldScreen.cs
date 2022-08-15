@@ -47,7 +47,7 @@ namespace Braver.Field {
         None = 0,
         PlayerControls = 0x1,
         //LinesActive = 0x2,
-        MenuEnabled = 0x4, //TODO actually implement that
+        MenuEnabled = 0x4, 
         CameraTracksPlayer = 0x8,
         CameraIsAsyncScrolling = 0x10,
 
@@ -428,6 +428,11 @@ namespace Braver.Field {
 
                 if (Dialog.IsActive) {
                     Dialog.ProcessInput(input);
+                    return;
+                }
+
+                if (input.IsJustDown(InputKey.Menu) && Options.HasFlag(FieldOptions.MenuEnabled)) {
+                    Game.PushScreen(new UI.Layout.LayoutScreen(Game, Graphics, "MainMenu"));
                     return;
                 }
 

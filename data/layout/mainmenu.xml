@@ -35,7 +35,9 @@
 		</Component>
 
 		<Component xsi:type="Box" X="1050" Y="0" W="230" H="480" ID="Menu">
-			<Component xsi:type="Label" Click="MenuSelected" Y="30" X="50" ID="lItem">Item</Component>
+			@if(!Model.SaveMap.MenuHidden.HasFlag(Braver.MenuMask.Item)) {
+				<Component xsi:type="Label" Click="MenuSelected" Y="30" X="50" ID="lItem">Item</Component>
+			}
 			<Component xsi:type="Label" Click="MenuSelected" Y="70" X="50" ID="lMagic">Magic</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="110" X="50" ID="lMateria">Materia</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="150" X="50" ID="lEquip">Equip</Component>
@@ -43,8 +45,12 @@
 			<Component xsi:type="Label" Click="MenuSelected" Y="230" X="50" ID="lOrder">Order</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="270" X="50" ID="lLimit">Limit</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="310" X="50" ID="lConfig">Config</Component>
-			<Component xsi:type="Label" Click="MenuSelected" Y="350" X="50" ID="lPHS">PHS</Component>
-			<Component xsi:type="Label" Click="MenuSelected" Y="390" X="50" ID="lSave">Save</Component>
+			@if(!Model.SaveMap.MenuHidden.HasFlag(Braver.MenuMask.PHS)) {
+				<Component xsi:type="Label" Click="MenuSelected" Y="350" X="50" ID="lPHS" Enabled="@Bool(!Model.SaveMap.MenuLocked.HasFlag(Braver.MenuMask.PHS))">PHS</Component>
+			}
+			@if(!Model.SaveMap.MenuHidden.HasFlag(Braver.MenuMask.Save)) {
+				<Component xsi:type="Label" Click="MenuSelected" Y="390" X="50" ID="lSave" Enabled="@Bool(!Model.SaveMap.MenuLocked.HasFlag(Braver.MenuMask.Save))">Save</Component>
+			}
 			<Component xsi:type="Label" Click="MenuSelected" Y="430" X="50" ID="lQuit">Quit</Component>
 		</Component>
 

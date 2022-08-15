@@ -32,6 +32,15 @@ namespace Braver.UI.Layout {
             lTimeC2.Color = lTimeSecs.Text == "00" ? Color.Gray : Color.White;
         }
 
+        public override void CancelPressed() {
+            if (FocusGroup == Menu) {
+                _game.Audio.PlaySfx(Sfx.Cancel, 1f, 0f);
+                InputEnabled = false;
+                _screen.FadeOut(() => _game.PopScreen(_screen));
+            } else
+                base.CancelPressed();
+        }
+
         public void MenuSelected(Label selected) {
             if (selected == lOrder) {
                 PushFocus(Chars, Char0);

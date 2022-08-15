@@ -1,0 +1,10 @@
+﻿#Entries in here are transformed into a class for easy access to/from the save memory data
+
+#Address	Name	Size(u8/u16/u32/s8/s16/s32)		Type(optional-enum)
+
+BA4		PPV					u16
+
+BBC		NumBattlesFought	u16
+BBE		NumEscapes			u16
+BC0		MenuHidden			u16		MenuMask
+BC2		MenuLocked			u16		MenuMask

@@ -41,7 +41,7 @@ namespace Braver.UI.Layout {
         [XmlAttribute]
         public string Click { get; set; }
         [XmlIgnore]
-        public Action OnClick { get; set; }
+        public virtual Action OnClick { get; set; }
 
         [XmlIgnore]
         public Container Parent { get; internal set; }
@@ -101,9 +101,18 @@ namespace Braver.UI.Layout {
         private Color? _color;
         [XmlIgnore]
         public Color Color {
-            get => GetColor(ColorString, ref _color);
+            get => Enabled ? GetColor(ColorString, ref _color) : Color.Gray;
             set => _color = value;
         }
+
+        [XmlIgnore]
+        public override Action OnClick {
+            get => Enabled ? base.OnClick : null; 
+            set => base.OnClick = value; 
+        }
+
+        [XmlAttribute]
+        public bool Enabled { get; set; } = true;
 
         public override void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             if (!string.IsNullOrWhiteSpace(Text))
@@ -189,6 +198,11 @@ namespace Braver.UI.Layout {
 
         private Stack<FocusEntry> _focus = new();
 
+        public virtual void CancelPressed() {
+            _game.Audio.PlaySfx(Sfx.Cancel, 1f, 0f);
+            PopFocus(); 
+        }
+
         public void PushFocus(Container group, Component focus) {
             _focus.Push(new FocusEntry {
                 GroupID = group.ID,
@@ -260,14 +274,28 @@ namespace Braver.UI.Layout {
         }
     }
 
+
+    public class BraverTemplate : RazorEngineTemplateBase {
+        public new FGame Model { get; set; }
+
+        public string Bool(bool b) {
+            return b.ToString().ToLower();
+        }
+    }
     public class LayoutScreen : Screen {
         private Layout _layout;
         private LayoutModel _model;
         private UIBatch _ui;
         private string _layoutFile;
 
+        private static Task _backgroundLoad;
+        public static void BeginBackgroundLoad(FGame g, string layout) {
+            var cache = g.Singleton(() => new RazorLayoutCache(g));
+            _backgroundLoad = Task.Run(() => cache.Compile(layout, true));
+        }
+
         private class RazorLayoutCache {
-            private Dictionary<string, IRazorEngineCompiledTemplate> _templates = new Dictionary<string, IRazorEngineCompiledTemplate>(StringComparer.InvariantCultureIgnoreCase);
+            private Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>> _templates = new Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>>(StringComparer.InvariantCultureIgnoreCase);
             private IRazorEngine _razorEngine = new RazorEngine();
             private FGame _game;
 
@@ -275,12 +303,20 @@ namespace Braver.UI.Layout {
                 _game = game;
             }
 
-            public Layout Apply(string layout, bool forceReload) {
+            public IRazorEngineCompiledTemplate<BraverTemplate> Compile(string layout, bool forceReload) {
                 if (forceReload || !_templates.TryGetValue(layout, out var razor)) {
                     string template = _game.OpenString("layout", layout + ".xml");
-                    _templates[layout] = razor = _razorEngine.Compile(template);
+                    _templates[layout] = razor = _razorEngine.Compile<BraverTemplate>(template, builder => {
+                        builder.AddAssemblyReference(System.Reflection.Assembly.GetExecutingAssembly());
+                    });
                 }
-                string xml = razor.Run(_game);
+                return razor;
+            }
+
+            public Layout Apply(string layout, bool forceReload) {
+                string xml = Compile(layout, forceReload).Run(template => {
+                    template.Model = _game;
+                });
                 return Serialisation.Deserialise<Layout>(xml);
             }
         }
@@ -289,8 +325,12 @@ namespace Braver.UI.Layout {
 
         public LayoutScreen(FGame g, GraphicsDevice graphics, string layout) : base(g, graphics) {
             _layoutFile = layout;
+            if (_backgroundLoad != null) {
+                _backgroundLoad.Wait();
+                _backgroundLoad = null;
+            }
             _layout = g.Singleton(() => new RazorLayoutCache(g)).Apply(layout, false);
-            _model = Activator.CreateInstance(Type.GetType("F7.UI.Layout." + layout)) as LayoutModel;
+            _model = Activator.CreateInstance(Type.GetType("Braver.UI.Layout." + layout)) as LayoutModel;
             _model.Init(g, _layout, this);
             _ui = new UIBatch(graphics, g);
         }
@@ -392,8 +432,7 @@ namespace Braver.UI.Layout {
                     } else {
 
                         if (input.IsJustDown(InputKey.Cancel)) {
-                            Game.Audio.PlaySfx(Sfx.Cancel, 1f, 0f);
-                            _model.PopFocus(); //TODO override to allow exiting screen etc.
+                            _model.CancelPressed();
                         }
                     }
                 }

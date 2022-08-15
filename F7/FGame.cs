@@ -62,6 +62,7 @@ namespace Braver {
         private Stack<Screen> _screens = new();
 
         public VMM Memory { get; } = new();
+        public SaveMap SaveMap { get; } 
 
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
@@ -73,6 +74,8 @@ namespace Braver {
         private Dictionary<string, string> _prefs;
 
         public FGame(string data, string bdata) {
+            SaveMap = new SaveMap(Memory);
+
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "char.lgp"))),
@@ -140,6 +143,7 @@ namespace Braver {
             using (var s = Open("save", "newgame.xml"))
                 SaveData = Serialisation.Deserialise<SaveData>(s);
             Memory.ResetAll();
+            Braver.NewGame.Init(this);
             SaveData.Loaded();
         }
 

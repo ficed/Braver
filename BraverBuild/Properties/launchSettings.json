@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BraverBuild": {
+      "commandName": "Project",
+      "commandLineArgs": "SAVEMAP C:\\Users\\ficed\\Projects\\F7\\F7\\SaveMap.txt C:\\Users\\ficed\\Projects\\F7\\F7\\SaveMap.cs"
+    }
+  }
+}

@@ -15,6 +15,7 @@ namespace Braver.UI {
         public Splash(FGame g, GraphicsDevice graphics) : base(g, graphics) {
             _ui = new UIBatch(graphics, g);
             FadeIn(null);
+            Layout.LayoutScreen.BeginBackgroundLoad(g, "MainMenu");
         }
 
         public override Color ClearColor => Color.Black;

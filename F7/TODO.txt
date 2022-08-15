@@ -3,7 +3,8 @@
 	Track steps
 	Encounter tables
 
-Background load razor engine since initial load takes so long!
-	-Means splash / load screen will need to *not* be a layout, and code it manually
+Background load razor engine - do other templates? Automatically load all of them after any specified
+	"priority" templates like MainMenu?
+
 
 Compressed/single file saves
