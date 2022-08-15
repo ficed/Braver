@@ -24,6 +24,7 @@ namespace Ficedula.FF7.Field {
         public short Scale { get; }
         public List<Entity> Entities { get; }
         public List<string> Dialogs { get; }
+        public List<ushort> AkaoMusicIDs { get; }
 
         public byte[] ScriptBytecode { get; }
 
@@ -92,7 +93,22 @@ namespace Ficedula.FF7.Field {
                 })
                 .ToList();
 
-            //TODO: AKAO
+            AkaoMusicIDs = new();
+            foreach(int offset in akaoOffsets) {
+                source.Position = offset;
+                int size = akaoOffsets
+                    .Where(os => os > offset)
+                    .OrderBy(os => os)
+                    .FirstOrDefault((int)source.Length)
+                    - offset;
+                if (size < 6)
+                    continue;
+                byte[] data = new byte[size];
+                source.Read(data, 0, size);
+                if (Encoding.ASCII.GetString(data, 0, 4) == "AKAO") {
+                    AkaoMusicIDs.Add(BitConverter.ToUInt16(data, 4));
+                }
+            }
         }
     }
 }

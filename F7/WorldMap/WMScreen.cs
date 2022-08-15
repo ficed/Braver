@@ -343,7 +343,7 @@ namespace Braver.WorldMap {
 
             FadeIn(null);
 
-            g.Audio.PlayMusic("ta.ogg");
+            g.Audio.PlayMusic("ta");
         }
 
         private void TryMoveAvatarTo(Vector3 pos) {

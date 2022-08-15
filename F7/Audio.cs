@@ -41,7 +41,7 @@ namespace Braver {
                         }
                         break;
                     default:
-                        vorbis = new NAudio.Vorbis.VorbisWaveReader(System.IO.Path.Combine(_ff7Dir, "music_ogg", file));
+                        vorbis = new NAudio.Vorbis.VorbisWaveReader(System.IO.Path.Combine(_ff7Dir, "music_ogg", file + ".ogg"));
                         waveOut = new NAudio.Wave.WaveOut();
                         waveOut.Init(vorbis);
                         waveOut.Play();

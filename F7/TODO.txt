@@ -6,5 +6,6 @@
 Background load razor engine - do other templates? Automatically load all of them after any specified
 	"priority" templates like MainMenu?
 
+Moving through walkmap triangles on field is still broken, esp. when running
 
 Compressed/single file saves

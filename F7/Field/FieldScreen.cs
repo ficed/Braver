@@ -263,7 +263,7 @@ namespace Braver.Field {
 
         int frame = 0;
         protected override void DoStep(GameTime elapsed) {
-            if ((frame++ % 4) == 0) {
+            if ((frame++ % 2) == 0) {
                 foreach (var entity in Entities) {
                     entity.Run();
                     entity.Model?.FrameStep();
@@ -470,15 +470,16 @@ namespace Braver.Field {
 
                         if (move != Vector2.Zero) {
                             move.Normalize();
+                            move *= 2;
                             if (input.IsDown(InputKey.Cancel)) {
-                                animSpeed = 5f;
-                                move *= 5f;
+                                animSpeed = 2f;
+                                move *= 4f;
                                 desiredAnim = 2;
                             } else
                                 desiredAnim = 1;
 
                             TryWalk(Player, Player.Model.Translation + new Vector3(move.X, move.Y, 0), true);
-                            Player.Model.Rotation = Player.Model.Rotation.WithZ((float)(Math.Atan2(-move.X, -move.Y) * 180f / Math.PI));
+                            Player.Model.Rotation = Player.Model.Rotation.WithZ((float)(Math.Atan2(move.X, -move.Y) * 180f / Math.PI));
 
                             var oldLines = Player.LinesCollidingWith.ToArray();
                             Player.LinesCollidingWith.Clear();

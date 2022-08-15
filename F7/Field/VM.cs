@@ -624,9 +624,9 @@ namespace Braver.Field {
 
             var remaining = new Vector2(x, y) - e.Model.Translation.XY();
 
-            e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(-remaining.X, -remaining.Y) * 180f / Math.PI));
+            e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(remaining.X, -remaining.Y) * 180f / Math.PI));
 
-            if (remaining.Length() <= e.MoveSpeed) {
+            if (remaining.Length() <= (e.MoveSpeed * 4)) {
                 if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), true))
                     return OpResult.Continue;
                 else
@@ -634,7 +634,7 @@ namespace Braver.Field {
                 //TODO: Do we need to stop animating?
             } else {
                 remaining.Normalize();
-                remaining *= e.MoveSpeed;
+                remaining *= e.MoveSpeed * 4;
                 s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0), true);
                 if (e.Model.AnimationState.Animation != 1)
                     e.Model.PlayAnimation(1, true, 1f, null);
@@ -716,16 +716,16 @@ namespace Braver.Field {
         public static OpResult MSPED(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8();
             ushort parm = f.ReadU16();
-            e.MoveSpeed = s.Game.Memory.Read(bank, parm) / 256f;
+            e.MoveSpeed = s.Game.Memory.Read(bank, parm) / 1024f;
             return OpResult.Continue;
         }
 
         public static OpResult TURNGEN(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8(), parm = f.ReadU8(),
-                rotateDir = f.ReadU8(), steps = f.ReadU8(), rotateType = f.ReadU8();
+                rotateDir = f.ReadU8(), steps = f.ReadU8(), rotateType = f.ReadU8(); //TODO!
             byte bRotation = (byte)s.Game.Memory.Read(bank, parm);
             float rotation = 360f * bRotation / 255f; //TODO?
-            float rotationAmount = 0.1f * 360f * steps / 255f;
+            float rotationAmount = 360f * steps / 255f;
 
             float ccwAmount = rotation > e.Model.Rotation.Z ? (e.Model.Rotation.Z + 360 - rotation) : e.Model.Rotation.Z - rotation,
                 cwAmount = rotation < e.Model.Rotation.Z ? (rotation + 360 - e.Model.Rotation.Z) : rotation - e.Model.Rotation.Z;
@@ -863,8 +863,7 @@ namespace Braver.Field {
 
         public static OpResult MUSIC(Fiber f, Entity e, FieldScreen s) {
             byte track = f.ReadU8();
-            //TODO!!!!
-            //s.Game.Audio.PlayMusic(_trackNames[s.Script.MusicIDs.ElementAt(track)], false);
+            s.Game.Audio.PlayMusic(_trackNames[s.FieldDialog.AkaoMusicIDs[track]]);
             return OpResult.Continue;
         }
 
@@ -981,6 +980,13 @@ namespace Braver.Field {
             s.Game.Memory.Write(banks >> 4, dest, (ushort)value);
             return OpResult.Continue;
         }
+        public static OpResult BITOFF(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), src = f.ReadU8();
+            int bit = s.Game.Memory.Read(banks & 0xf, src);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)(current & ~(1 << bit)));
+            return OpResult.Continue;
+        }
         public static OpResult BITON(Fiber f, Entity e, FieldScreen s) {
             byte banks = f.ReadU8(), dest = f.ReadU8(), src = f.ReadU8();
             int bit = s.Game.Memory.Read(banks & 0xf, src);
@@ -994,6 +1000,14 @@ namespace Braver.Field {
             int value = s.Game.Memory.Read(banks & 0xf, src);
             int current = s.Game.Memory.Read(banks >> 4, dest);
             s.Game.Memory.Write(banks >> 4, dest, (ushort)(current & value));
+            return OpResult.Continue;
+        }
+        public static OpResult OR2(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8();
+            ushort src = f.ReadU16();
+            int value = s.Game.Memory.Read(banks & 0xf, src);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (ushort)(current | value));
             return OpResult.Continue;
         }
     }

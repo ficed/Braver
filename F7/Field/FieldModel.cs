@@ -175,9 +175,9 @@ namespace Braver.Field {
             Descend(
                 _hrcModel.Root,
                   Matrix.CreateRotationX((ZUp ? -90 : 0) * (float)Math.PI / 180)
-                * Matrix.CreateRotationZ((Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
-                * Matrix.CreateRotationX((Rotation.X + Rotation2.X) * (float)Math.PI / 180)
-                * Matrix.CreateRotationY((Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
+                * Matrix.CreateRotationZ((-Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
+                * Matrix.CreateRotationX((-Rotation.X + Rotation2.X) * (float)Math.PI / 180)
+                * Matrix.CreateRotationY((-Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
                 * Matrix.CreateScale(Scale, -Scale, Scale)
                 * Matrix.CreateTranslation(Translation + Translation2)
                 ,

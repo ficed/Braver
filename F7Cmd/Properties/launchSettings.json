@@ -2,7 +2,7 @@
   "profiles": {
     "F7Cmd": {
       "commandName": "Project",
-      "commandLineArgs": "Sounds C:\\games\\FF7\\data\\sound"
+      "commandLineArgs": "Field C:\\games\\FF7\\data\\field\\flevel.lgp mrkt2"
     }
   }
 }

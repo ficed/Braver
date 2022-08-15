@@ -53,6 +53,7 @@ if (args[0].Equals("Field", StringComparison.InvariantCultureIgnoreCase)) {
             var cameras = field.GetCameraMatrices();
             var tg = field.GetTriggersAndGateways();
             var background = field.GetBackground();
+            Console.WriteLine(field.GetDialogEvent().AkaoMusicIDs.Count);
             foreach(var layer in background.Export()) {
                 File.WriteAllBytes(
                     @$"C:\temp\layer{layer.Layer}_{layer.Key}.png",
