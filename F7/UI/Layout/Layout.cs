@@ -307,7 +307,8 @@ namespace Braver.UI.Layout {
                 if (forceReload || !_templates.TryGetValue(layout, out var razor)) {
                     string template = _game.OpenString("layout", layout + ".xml");
                     _templates[layout] = razor = _razorEngine.Compile<BraverTemplate>(template, builder => {
-                        builder.AddAssemblyReference(System.Reflection.Assembly.GetExecutingAssembly());
+                        builder.AddAssemblyReference(typeof(RazorLayoutCache));
+                        builder.AddAssemblyReference(typeof(SaveData));
                     });
                 }
                 return razor;

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -57,6 +58,12 @@ namespace Braver.UI {
             _ui.Render();
         }
 
+        private string _version = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), true)
+            .OfType<AssemblyInformationalVersionAttribute>()
+            .First()
+            .InformationalVersion;
+
         protected override void DoStep(GameTime elapsed) {
             _ui.Reset();
 
@@ -66,6 +73,8 @@ namespace Braver.UI {
             _ui.DrawText("main", "Continue", 600, 335, 0.2f, Color.White);
             _ui.DrawText("main", "Load Game", 600, 370, 0.2f, Color.White);
             _ui.DrawText("main", "Quit", 600, 405, 0.2f, Color.White);
+
+            _ui.DrawText("main", "v" + _version, 1275, 705, 0.2f, Color.White, Alignment.Right, size: 0.5f);
 
             _ui.DrawImage("pointer", 595, 300 + 35 * _menu, 0.3f, Alignment.Right);
         }

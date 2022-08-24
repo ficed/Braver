@@ -84,8 +84,8 @@ namespace Braver.Field {
                         maxX = group.Max(s => s.DestX + 16),
                         maxY = group.Max(s => s.DestY + 16);
 
-                    int texWidth = Util.MakePowerOfTwo(maxX - minX),
-                        texHeight = Util.MakePowerOfTwo(maxY - minY);
+                    int texWidth = GraphicsUtil.MakePowerOfTwo(maxX - minX),
+                        texHeight = GraphicsUtil.MakePowerOfTwo(maxY - minY);
                     float maxS = 1f * (maxX - minX) / texWidth,
                         maxT = 1f * (maxY - minY) / texHeight;
 

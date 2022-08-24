@@ -246,6 +246,7 @@ namespace Braver.UI {
             public float z;
             public Color colour;
             public Alignment Alignment;
+            public float Size;
         }
 
         private struct ImageItem {
@@ -286,7 +287,7 @@ namespace Braver.UI {
             _boxItems.Add((location, z));
         }
 
-        public void DrawText(string fontSet, string text, int x, int y, float z, Color colour, Alignment alignment = Alignment.Left) {
+        public void DrawText(string fontSet, string text, int x, int y, float z, Color colour, Alignment alignment = Alignment.Left, float size = 1f) {
             _items.Add(new TextItem {
                 fontSet = fontSet,
                 text = text,
@@ -295,6 +296,7 @@ namespace Braver.UI {
                 z = z,
                 colour = colour,
                 Alignment = alignment,
+                Size = size,
             });
         }
 
@@ -355,10 +357,10 @@ namespace Braver.UI {
                 int dx = item.x;
                 switch (item.Alignment) {
                     case Alignment.Center:
-                        dx -= TextWidth(item.fontSet, item.text) / 2;
+                        dx -= (int)(item.Size * TextWidth(item.fontSet, item.text) / 2);
                         break;
                     case Alignment.Right:
-                        dx -= TextWidth(item.fontSet, item.text);
+                        dx -= (int)(item.Size * TextWidth(item.fontSet, item.text));
                         break;
                 }
                 Color colour = item.colour;
@@ -381,15 +383,15 @@ namespace Braver.UI {
                             break;
 
                         case ' ':
-                            dx += f.GlyphsDict['i'].W * 1;
+                            dx += (int)(f.GlyphsDict['i'].W * 1 * item.Size);
                             break;
                         case '\t':
-                            dx += f.GlyphsDict['i'].W * 3;
+                            dx += (int)(f.GlyphsDict['i'].W * 3 * item.Size);
                             break;
                         default:
                             var glyph = f.GlyphsDict[c];
                             _spriteBatch.Draw(_font.Texture,
-                                new Rectangle(dx, item.y, glyph.W, glyph.H),
+                                new Rectangle(dx, item.y, (int)(glyph.W * item.Size), (int)(glyph.H * item.Size)),
                                 new Rectangle(glyph.X, glyph.Y + 256 * glyph.Layer, glyph.W, glyph.H),
                                 colour,
                                 0,
@@ -397,7 +399,7 @@ namespace Braver.UI {
                                 SpriteEffects.None,
                                 item.z
                             );
-                            dx += glyph.W + 1;
+                            dx += (int)((glyph.W + 1) * item.Size);
                             break;
                     }
                 }
