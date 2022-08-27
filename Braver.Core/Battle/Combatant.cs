@@ -1,4 +1,5 @@
-﻿using Ficedula.FF7.Field;
+﻿using Ficedula.FF7;
+using Ficedula.FF7.Field;
 using System;
 using System.Collections;
 using System.Collections.Generic;

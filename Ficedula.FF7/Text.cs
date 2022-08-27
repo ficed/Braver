@@ -25,7 +25,10 @@ namespace Ficedula.FF7 {
             '\xE00C', '\xE00D', '\xE00E', '\xE00F', '\xE010', '\xE011', '¬', '¬', '¬', '¬', '¬', '¬', '¬', '¬', '\xE012', '\xE013',
         };
 
-        public static string Convert(byte[] input, int offset, int length) {
+        public static string Convert(byte[] input, int offset, int length = -1) {
+            if (length == -1)
+                length = input.Length - offset;
+
             char[] c = Enumerable.Range(offset, length)
                 .Select(i => _translate[input[i]])
                 .ToArray();

@@ -33,6 +33,15 @@ if (args[0].Equals("LGP", StringComparison.OrdinalIgnoreCase)) {
     }
 }
 
+if (args[0].Equals("BattleScene", StringComparison.InvariantCultureIgnoreCase)) {
+    using(var fs = new FileStream(args[1], FileMode.Open, FileAccess.Read)) {
+        foreach(var scene in Ficedula.FF7.Battle.SceneDecoder.Decode(fs)) {
+            Console.WriteLine($"Formation {scene.FormationID} with {scene.Enemies.Count} enemies, location {Ficedula.FF7.Battle.SceneDecoder.LocationIDToFileName(scene.LocationID)}");
+            Console.WriteLine(string.Join(",", scene.Enemies.Select(e => e.Enemy.Name)));
+        }
+    }
+}
+
 if (args[0].Equals("Sounds", StringComparison.OrdinalIgnoreCase)) {
     using (var audio = new Ficedula.FF7.Audio(Path.Combine(args[1], "audio.dat"), Path.Combine(args[1], "audio.fmt"))) {
         Console.WriteLine($"Audio file with {audio.EntryCount} entries");

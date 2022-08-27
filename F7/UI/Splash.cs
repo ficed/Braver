@@ -44,8 +44,13 @@ namespace Braver.UI {
                                 },
                                 Game, Graphics
                             ));
-                            //Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329)); //TODO!
                             break;
+
+                        case 1:
+                            Game.NewGame();
+                            Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329));
+                            break;
+
                         case 3:
                             Environment.Exit(0);
                             break;

@@ -270,7 +270,7 @@ namespace Braver.WorldMap {
 
         private void AnimateAvatar(string name) {
             int index = _avatar.Animations.FindIndex(a => a.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
-            _avatarModel.PlayAnimation(index, true, 1f, null);
+            _avatarModel.PlayAnimation(index, true, 0.5f, null);
         }
 
         public WMScreen(FGame g, GraphicsDevice graphics, float avatarX, float avatarY) : base(g, graphics) {
@@ -416,7 +416,7 @@ namespace Braver.WorldMap {
 
                     move.Normalize();
                     TryMoveAvatarTo(_avatarModel.Translation + move * 15);
-                    var angle = Math.Atan2(-move.X, -move.Z) * 180 / Math.PI;
+                    var angle = Math.Atan2(move.X, -move.Z) * 180 / Math.PI;
                     _avatarModel.Rotation = new Vector3(0, (float)angle, 0);
                 }
 
