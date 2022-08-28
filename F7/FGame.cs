@@ -87,6 +87,10 @@ namespace Braver {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "wm", "world_us.lgp"))),
                 new FileDataSource(Path.Combine(data, "wm"))
             };
+            _data["battle"] = new List<DataSource> {
+                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "battle", "battle.lgp"))),
+                new FileDataSource(Path.Combine(data, "battle"))
+            };
             foreach (string dir in Directory.GetDirectories(bdata)) {
                 string category = Path.GetFileName(dir);
                 if (!_data.TryGetValue(category, out var L))

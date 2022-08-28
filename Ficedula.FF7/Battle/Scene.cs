@@ -32,7 +32,8 @@ namespace Ficedula.FF7.Battle {
         public List<ushort> NextBattleArenaFormations { get; } = new();
         public ushort EscapableFlag { get; set; } //TODO flags?
         public BattleLayout Layout { get; set; }
-        public BattleCamera InitialCamera { get; set; }
+        public byte InitialCamera { get; set; }
+        public List<BattleCamera> Cameras { get; } = new();
 
         public List<EnemyInstance> Enemies { get; } = new();
 
@@ -50,7 +51,8 @@ namespace Ficedula.FF7.Battle {
             );
             EscapableFlag = s.ReadU16();
             Layout = (BattleLayout)s.ReadByte();
-            InitialCamera = cameras.ElementAtOrDefault(s.ReadByte());
+            InitialCamera = (byte)s.ReadByte();
+            Cameras.AddRange(cameras);
         }
     }
 
@@ -213,17 +215,17 @@ namespace Ficedula.FF7.Battle {
         public short X { get; set; }
         public short Y { get; set; }
         public short Z { get; set; }
-        public short DirectionX { get; set; }
-        public short DirectionY { get; set; }
-        public short DirectionZ { get; set; }
+        public short LookAtX { get; set; }
+        public short LookAtY { get; set; }
+        public short LookAtZ { get; set; }
 
         public BattleCamera(Stream s) {
             X = s.ReadI16();
             Y = s.ReadI16();
             Z = s.ReadI16();
-            DirectionX = s.ReadI16();
-            DirectionY = s.ReadI16();
-            DirectionZ = s.ReadI16();
+            LookAtX = s.ReadI16();
+            LookAtY = s.ReadI16();
+            LookAtZ = s.ReadI16();
         }
     }
 

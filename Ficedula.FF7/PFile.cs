@@ -149,7 +149,7 @@ namespace Ficedula.FF7 {
                         gindices.Add(gverts.Count);
                         var pv = new PFileVert {
                             Position = pVerts[group.VerticesStartIndex + v],
-                            Normal = pNormals[n],
+                            Normal = pNormals.Any() ? pNormals[n] : Vector3.Zero,
                             Colour = pVertColours[group.VerticesStartIndex + v]
                         };
                         if (group.AreTexturesUsed != 0)
