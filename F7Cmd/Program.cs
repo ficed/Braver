@@ -41,6 +41,17 @@ if (args[0].Equals("BattleScene", StringComparison.InvariantCultureIgnoreCase)) 
         }
     }
 }
+if (args[0].Equals("Kernel", StringComparison.OrdinalIgnoreCase)) {
+    using (var fs = new FileStream(args[1], FileMode.Open, FileAccess.Read)) {
+        var kernel = new Ficedula.FF7.Kernel(fs);
+        File.WriteAllBytes(@"C:\temp\s9.bin", kernel.Sections.ElementAt(9));
+        File.WriteAllBytes(@"C:\temp\s16.bin", kernel.Sections.ElementAt(16));
+
+        var txt = new Ficedula.FF7.KernelText(kernel.Sections.ElementAt(16));
+        Console.WriteLine(txt.Get(0));
+        Console.WriteLine(txt.Get(1));
+    }
+}
 
 if (args[0].Equals("Sounds", StringComparison.OrdinalIgnoreCase)) {
     using (var audio = new Ficedula.FF7.Audio(Path.Combine(args[1], "audio.dat"), Path.Combine(args[1], "audio.fmt"))) {

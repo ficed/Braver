@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Braver {
 
+
     public class F7Exception : Exception {
         public F7Exception(string msg) : base(msg) { }
     }

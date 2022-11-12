@@ -81,6 +81,21 @@
 			<ArmourMateria>2</ArmourMateria>
 		</Character>
 	</Characters>
+	<Inventory>
+		<InventoryItem>
+			<ItemID>0</ItemID>
+			<Quantity>3</Quantity>
+		</InventoryItem>
+		<InventoryItem>
+			<ItemID>1</ItemID>
+			<Quantity>1</Quantity>
+		</InventoryItem>
+	</Inventory>
+	<KeyItems>
+		<int>0</int>
+		<int>2</int>
+		<int>5</int>
+	</KeyItems>
 	<Location>Train Station</Location>
 	<WorldMapAvatar>cloud</WorldMapAvatar>
 	<Gil>1234</Gil>

@@ -1,0 +1,18 @@
+<Component xsi:type="Image" X="@(Model.IsBackRow ? 40 : 0)" Y="10" Scale="1.5">@("portrait_" + @Model.ID)</Component>
+
+<Component xsi:type="Label" X="250" Y="0">@Model.Name</Component>
+
+<Component xsi:type="Label" X="250" Y="40" Font="bats" Color="Aqua">LV</Component>
+<Component xsi:type="Label" X="350" Y="40" Font="bats" Alignment="Right">@Model.Level</Component>
+
+<Component xsi:type="Label" X="250" Y="80" Font="bats" Color="Aqua">HP</Component>
+<Component xsi:type="Label" X="370" Y="80" Font="bats" Alignment="Right">@Model.CurrentHP</Component>
+<Component xsi:type="Label" X="400" Y="80" Font="bats" Alignment="Right" Color="Gray">/</Component>
+<Component xsi:type="Label" X="480" Y="80" Font="bats" Alignment="Right">@Model.MaxHP</Component>
+<Component xsi:type="Gauge" X="250" Y="100" W="250" H="4" Style="HP" Current="@Model.CurrentHP" Max="@Model.MaxHP" />
+
+<Component xsi:type="Label" X="250" Y="120" Font="bats" Color="Aqua">MP</Component>
+<Component xsi:type="Label" X="370" Y="120" Font="bats" Alignment="Right">@Model.CurrentMP</Component>
+<Component xsi:type="Label" X="400" Y="120" Font="bats" Alignment="Right" Color="Gray">/</Component>
+<Component xsi:type="Label" X="480" Y="120" Font="bats" Alignment="Right">@Model.MaxMP</Component>
+<Component xsi:type="Gauge" X="250" Y="140" W="250" H="4" Style="MP" Current="@Model.CurrentMP" Max="@Model.MaxMP" />

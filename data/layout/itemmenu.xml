@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720">
+
+		<Component xsi:type="Box" X="0" Y="0" W="1280" H="60" ID="Menu">
+			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="50" ID="lUse">Use</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="250" ID="lArrange">Arrange</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="450" ID="lKey">Key Items</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="0" Y="60" W="1280" H="60">
+			<Component xsi:type="Label" Y="15" X="20" ID="lDescription"> </Component>
+		</Component>
+
+		<Component xsi:type="Box" X="0" Y="120" W="550" H="600" ID="Chars">
+			@foreach(int i in Enumerable.Range(0, @Model.SaveData.Party.Length)) {
+				<Component xsi:type="Group" X="25" Y="@(15 + 190 * i)" W="970" H="180" ID='@("Char" + i)' Click='SelectChar'>
+					@Include("charsmall", Model.SaveData.Party[i])
+				</Component>
+			}
+		</Component>
+
+		<Component xsi:type="Box" X="550" Y="120" W="730" H="600">
+			<Component xsi:type="List" X="0" Y="20" W="730" H="560" ID="lbItems">
+				@foreach(int i in Enumerable.Range(0, @Model.SaveData.Inventory.Count)) {
+					<Component xsi:type="Group" X="20" W="700" Click="ItemSelected" ID='@("Item" + i)'>
+						<Component xsi:type="Label" Y="0" X="0">@(Model.CacheItem<Braver.Item>(Model.SaveData.Inventory[i].ItemID).Name)</Component>
+						<Component xsi:type="Label" Y="0" X="670">@(Model.SaveData.Inventory[i].Quantity)</Component>
+					</Component>
+				}
+			</Component>
+
+			<Component xsi:type="List" X="0" Y="20" W="730" H="560" ID="lbKeyItems" Visible="false">
+				@foreach(int i in Enumerable.Range(0, @Model.SaveData.KeyItems.Count)) {
+					<Component xsi:type="Label" Y="0" X="20" ID='@("KeyItem" + i)' Focussed="KeyItemFocussed">@(Model.CacheItem<Braver.KeyItem>(Model.SaveData.KeyItems[i]).Name)</Component>
+				}
+			</Component>
+		</Component>
+
+	</Root>
+</Layout>

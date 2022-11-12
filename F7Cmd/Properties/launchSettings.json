@@ -2,7 +2,7 @@
   "profiles": {
     "F7Cmd": {
       "commandName": "Project",
-      "commandLineArgs": "LGP C:\\games\\FF7\\data\\battle\\battle.lgp BattleScene C:\\games\\FF7\\data\\battle\\scene.bin Field C:\\games\\FF7\\data\\field\\flevel.lgp mrkt2"
+      "commandLineArgs": "Kernel C:\\games\\FF7\\data\\kernel\\KERNEL.BIN  LGP C:\\games\\FF7\\data\\battle\\battle.lgp BattleScene C:\\games\\FF7\\data\\battle\\scene.bin Field C:\\games\\FF7\\data\\field\\flevel.lgp mrkt2"
     }
   }
 }

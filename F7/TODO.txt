@@ -9,3 +9,5 @@ Background load razor engine - do other templates? Automatically load all of the
 Moving through walkmap triangles on field is still broken, esp. when running
 
 Compressed/single file saves
+
+Music looping

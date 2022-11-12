@@ -11,7 +11,7 @@ using System.Xml.Serialization;
 
 namespace Braver.UI.Layout {
     [XmlInclude(typeof(Box)), XmlInclude(typeof(Label)), XmlInclude(typeof(Gauge))]
-    [XmlInclude(typeof(Group)), XmlInclude(typeof(Image))]
+    [XmlInclude(typeof(Group)), XmlInclude(typeof(Image)), XmlInclude(typeof(List))]
     public abstract class Component {
 
         private static Dictionary<string, Color> _colors = new Dictionary<string, Color>(StringComparer.InvariantCultureIgnoreCase);
@@ -42,6 +42,11 @@ namespace Braver.UI.Layout {
         public string Click { get; set; }
         [XmlIgnore]
         public virtual Action OnClick { get; set; }
+        [XmlAttribute]
+        public string Focussed { get; set; }
+        [XmlIgnore]
+        public virtual Action OnFocussed  { get; set; }
+
 
         [XmlIgnore]
         public Container Parent { get; internal set; }
@@ -57,7 +62,7 @@ namespace Braver.UI.Layout {
             return new Point(x, y);
         }
 
-        public abstract void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ);
+        public abstract void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ);
     }
 
     public abstract class SizedComponent : Component {
@@ -72,16 +77,53 @@ namespace Braver.UI.Layout {
         [XmlElement("Component")]
         public List<Component> Children { get; set; } = new();
 
-        public override void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             foreach (var child in Children.Where(c => c.Visible))
-                child.Draw(ui, offsetX + X, offsetY + Y, getZ);
+                child.Draw(model, ui, offsetX + X, offsetY + Y, getZ);
         }
     }
 
     public class Box : Container {
-        public override void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             ui.DrawBox(new Rectangle(offsetX + X, offsetY + Y, W, H), getZ());
-            base.Draw(ui, offsetX, offsetY, getZ);
+            base.Draw(model, ui, offsetX, offsetY, getZ);
+        }
+    }
+
+    public class List : Container {
+        public int ItemHeight { get; set; } = 30;
+
+        public int GetSelectedIndex(LayoutModel model) => Children.IndexOf(model.Focus);
+
+        private int _first = -1;
+
+        private void Rearrange() {
+            foreach (int i in Enumerable.Range(0, Children.Count)) {
+                Children[i].Visible = (i >= _first) && (i < (_first + H / ItemHeight));
+                Children[i].Y = (i - _first) * ItemHeight;
+                if (Children[i] is SizedComponent sized)
+                    sized.H = ItemHeight;
+            }
+        }
+
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+            if (_first < 0) {
+                _first = 0;
+                Rearrange();
+            }
+            int focus = GetSelectedIndex(model);
+            if (focus >= 0) {
+                int? newFirst = null;
+                if (focus < _first)
+                    newFirst = focus;
+                else if (focus >= (_first + H / ItemHeight ))
+                    newFirst = focus - H / ItemHeight - 1;
+                if (newFirst != null) {
+                    _first = newFirst.Value;
+                    Rearrange();
+                }
+            }
+            base.Draw(model, ui, offsetX, offsetY, getZ);
         }
     }
 
@@ -114,7 +156,7 @@ namespace Braver.UI.Layout {
         [XmlAttribute]
         public bool Enabled { get; set; } = true;
 
-        public override void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             if (!string.IsNullOrWhiteSpace(Text))
                 ui.DrawText(Font, Text, offsetX + X, offsetY + Y, getZ(), Color, Alignment);
         }
@@ -126,7 +168,7 @@ namespace Braver.UI.Layout {
         [XmlAttribute]
         public float Scale { get; set; } = 1f;
 
-        public override void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             ui.DrawImage(ImageName, offsetX + X, offsetY + Y, getZ(), Alignment.Left, Scale);
         }
     }
@@ -142,7 +184,7 @@ namespace Braver.UI.Layout {
         [XmlAttribute]
         public GaugeStyle Style { get; set; }
 
-        public override void Draw(UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             switch (Style) {
                 case GaugeStyle.Limit:
                     float z1 = getZ();
@@ -203,20 +245,27 @@ namespace Braver.UI.Layout {
             PopFocus(); 
         }
 
+        void FocusUpdated() {
+            Focus?.OnFocussed?.Invoke();
+        }
+
         public void PushFocus(Container group, Component focus) {
             _focus.Push(new FocusEntry {
                 GroupID = group.ID,
                 FocusID = focus.ID,
             });
             FlashFocus = null;
+            FocusUpdated();
         }
         public void PopFocus() {
             _focus.Pop();
             FlashFocus = null;
+            FocusUpdated();
         }
         public void ChangeFocus(Component focus) {
             Debug.Assert(focus.Parent == FocusGroup);
             _focus.Peek().FocusID = focus.ID;
+            FocusUpdated();
         }
 
         /// <summary>
@@ -248,17 +297,23 @@ namespace Braver.UI.Layout {
                         field.SetValue(this, c);
                 }
 
-                if (!string.IsNullOrEmpty(c.Click)) {
-                    var method = thisType.GetMethod(c.Click);
-                    switch (method.GetParameters().Length) {
-                        case 0:
-                            c.OnClick = () => method.Invoke(this, null);
-                            break;
-                        case 1:
-                            c.OnClick = () => method.Invoke(this, new object[] { c });
-                            break;
+                Action GetHandler(string name) {
+                    if (!string.IsNullOrEmpty(name)) {
+                        var method = thisType.GetMethod(name);
+                        switch (method.GetParameters().Length) {
+                            case 0:
+                                return () => method.Invoke(this, null);
+                            case 1:
+                                return () => method.Invoke(this, new object[] { c });
+                            default:
+                                throw new NotImplementedException();
+                        }
                     }
+                    return null;
                 }
+
+                c.OnClick = GetHandler(c.Click);
+                c.OnFocussed = GetHandler(c.Focussed);
 
                 if (c is Container container) {
                     foreach (var child in container.Children) {
@@ -276,12 +331,53 @@ namespace Braver.UI.Layout {
 
 
     public class BraverTemplate : RazorEngineTemplateBase {
-        public new FGame Model { get; set; }
+        //public new FGame Model { get; set; }
+
+        public FGame GameModel => Model as FGame;
 
         public string Bool(bool b) {
             return b.ToString().ToLower();
         }
+
+        public string Include(string templateName, object model) {
+            var cache = GameModel.Singleton(() => new RazorLayoutCache(GameModel));
+            return cache.ApplyPartial(templateName, false, model);
+        }
     }
+
+    internal class RazorLayoutCache {
+        private Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>> _templates = new Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>>(StringComparer.InvariantCultureIgnoreCase);
+        private IRazorEngine _razorEngine = new RazorEngine();
+        private FGame _game;
+
+        public RazorLayoutCache(FGame game) {
+            _game = game;
+        }
+
+        public IRazorEngineCompiledTemplate<BraverTemplate> Compile(string layout, bool forceReload) {
+            if (forceReload || !_templates.TryGetValue(layout, out var razor)) {
+                string template = _game.OpenString("layout", layout + ".xml");
+                _templates[layout] = razor = _razorEngine.Compile<BraverTemplate>(template, builder => {
+                    builder.AddAssemblyReference(typeof(RazorLayoutCache));
+                    builder.AddAssemblyReference(typeof(SaveData));
+                });
+            }
+            return razor;
+        }
+
+        public Layout Apply(string layout, bool forceReload) {
+            string xml = Compile(layout, forceReload).Run(template => {
+                template.Model = _game;
+            });
+            return Serialisation.Deserialise<Layout>(xml);
+        }
+        public string ApplyPartial(string layout, bool forceReload, object model) {
+            return Compile(layout, forceReload).Run(template => {
+                template.Model = model;
+            });
+        }
+    }
+
     public class LayoutScreen : Screen {
         private Layout _layout;
         private LayoutModel _model;
@@ -292,34 +388,6 @@ namespace Braver.UI.Layout {
         public static void BeginBackgroundLoad(FGame g, string layout) {
             var cache = g.Singleton(() => new RazorLayoutCache(g));
             _backgroundLoad = Task.Run(() => cache.Compile(layout, true));
-        }
-
-        private class RazorLayoutCache {
-            private Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>> _templates = new Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>>(StringComparer.InvariantCultureIgnoreCase);
-            private IRazorEngine _razorEngine = new RazorEngine();
-            private FGame _game;
-
-            public RazorLayoutCache(FGame game) {
-                _game = game;
-            }
-
-            public IRazorEngineCompiledTemplate<BraverTemplate> Compile(string layout, bool forceReload) {
-                if (forceReload || !_templates.TryGetValue(layout, out var razor)) {
-                    string template = _game.OpenString("layout", layout + ".xml");
-                    _templates[layout] = razor = _razorEngine.Compile<BraverTemplate>(template, builder => {
-                        builder.AddAssemblyReference(typeof(RazorLayoutCache));
-                        builder.AddAssemblyReference(typeof(SaveData));
-                    });
-                }
-                return razor;
-            }
-
-            public Layout Apply(string layout, bool forceReload) {
-                string xml = Compile(layout, forceReload).Run(template => {
-                    template.Model = _game;
-                });
-                return Serialisation.Deserialise<Layout>(xml);
-            }
         }
 
         public override Color ClearColor => Color.Black;
@@ -348,7 +416,7 @@ namespace Braver.UI.Layout {
         protected override void DoStep(GameTime elapsed) {
             _ui.Reset();
             float z = 0;
-            _layout.Root.Draw(_ui, 0, 0, () => {
+            _layout.Root.Draw(_model, _ui, 0, 0, () => {
                 z += UIBatch.Z_ITEM_OFFSET;
                 return z;
             });
@@ -357,14 +425,14 @@ namespace Braver.UI.Layout {
 
             if (_model.Focus != null) {
                 var pos = _model.Focus.GetAbsolutePosition();
-                if (_model.Focus is SizedComponent sized)
+                if ((_model.Focus is SizedComponent sized) && (sized.H >= 64)) //only if large enough that offsetting makes sense
                     pos.Y += sized.H / 2;
                 _ui.DrawImage("pointer", pos.X - 5, pos.Y, z + UIBatch.Z_ITEM_OFFSET, Alignment.Right);
             }
             if (_model.FlashFocus != null) {
                 if (((int)(elapsed.TotalGameTime.TotalSeconds * 30) % 2) == 0) {
                     var pos = _model.FlashFocus.GetAbsolutePosition();
-                    if (_model.FlashFocus is SizedComponent sized)
+                    if ((_model.FlashFocus is SizedComponent sized) && (sized.H >= 64)) //only if large enough that offsetting makes sense
                         pos.Y += sized.H / 2;
                     _ui.DrawImage("pointer", pos.X - 5, pos.Y, z + UIBatch.Z_ITEM_OFFSET, Alignment.Right);
                 }
@@ -373,7 +441,7 @@ namespace Braver.UI.Layout {
 
         private Component FindNextFocus(Container container, Component current, int ox, int oy) {
             var candidates = container.Children
-                .Where(c => c.OnClick != null)
+                .Where(c => (c.OnClick != null) || (c.OnFocussed != null))
                 .Where(c => c != current);
 
             switch (ox) {
@@ -415,7 +483,7 @@ namespace Braver.UI.Layout {
 
                 if (input.IsJustDown(InputKey.OK)) {
                     Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
-                    _model.Focus.OnClick();
+                    _model.Focus.OnClick?.Invoke();
                 } else {
                     Component next = null;
                     if (input.IsJustDown(InputKey.Up))

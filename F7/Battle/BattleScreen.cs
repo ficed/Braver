@@ -44,6 +44,8 @@ namespace Braver.Battle {
         private VertexBuffer _vertexBuffer;
         private IndexBuffer _indexBuffer;
 
+        private List<Model> _models = new();
+
         private PerspView3D _view;
 
         public BattleScreen(FGame g, GraphicsDevice graphics, int formationID) : base(g, graphics) {
@@ -126,18 +128,27 @@ namespace Braver.Battle {
                 ZFar = 100000,
             };
 
+            var model = Model.LoadBattleModel(Graphics, g, "rv");
+            model.Scale = 3;
+            model.PlayAnimation(0, true, 1f, null);
+            _models.Add(model);
+
             g.Audio.PlayMusic("bat"); //TODO!
         }
 
         public override Color ClearColor => Color.Black;
 
         protected override void DoStep(GameTime elapsed) {
-            //
+            foreach (var model in _models) {
+                model.Rotation = new Vector3(0, 180, (float)elapsed.TotalGameTime.TotalSeconds * 90 * 0 + 0);
+                model.FrameStep();
+            }
         }
 
         protected override void DoRender() {
 
-            _graphics.RasterizerState = RasterizerState.CullNone;
+            _graphics.DepthStencilState = DepthStencilState.Default;
+            _graphics.RasterizerState = RasterizerState.CullClockwise;
             _graphics.SamplerStates[0] = SamplerState.LinearWrap;
 
             _graphics.Indices = _indexBuffer;
@@ -153,6 +164,9 @@ namespace Braver.Battle {
                     );
                 }
             }
+
+            foreach (var model in _models)
+                model.Render(_view);
         }
 
     }

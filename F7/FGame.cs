@@ -10,11 +10,6 @@ using System.Xml.Serialization;
 
 namespace Braver {
 
-    public abstract class DataSource {
-        public abstract Stream TryOpen(string file);
-        public abstract IEnumerable<string> Scan();
-    }
-
     public class LocalPref {
         [XmlAttribute]
         public string Name { get; set; }
@@ -26,7 +21,7 @@ namespace Braver {
         public List<LocalPref> Prefs { get; set; } = new();
     }
 
-    public class FGame {
+    public class FGame : BGame {
 
         private class LGPDataSource : DataSource {
             private Ficedula.FF7.LGPFile _lgp;
@@ -61,20 +56,14 @@ namespace Braver {
 
         private Stack<Screen> _screens = new();
 
-        public VMM Memory { get; } = new();
-        public SaveMap SaveMap { get; } 
 
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
 
-        public SaveData SaveData { get; private set; }
-        private Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
-        private Dictionary<Type, object> _singletons = new Dictionary<Type, object>();
 
         private Dictionary<string, string> _prefs;
 
         public FGame(string data, string bdata) {
-            SaveMap = new SaveMap(Memory);
 
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
@@ -90,6 +79,9 @@ namespace Braver {
             _data["battle"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "battle", "battle.lgp"))),
                 new FileDataSource(Path.Combine(data, "battle"))
+            };
+            _data["kernel"] = new List<DataSource> {
+                new FileDataSource(Path.Combine(data, "kernel"))
             };
             foreach (string dir in Directory.GetDirectories(bdata)) {
                 string category = Path.GetFileName(dir);
@@ -131,69 +123,6 @@ namespace Braver {
                 };
                 Serialisation.Serialise(lp, fs);
             }
-        }
-
-        public T Singleton<T>(Func<T> create) {
-            if (_singletons.TryGetValue(typeof(T), out object obj))
-                return (T)obj;
-            else {
-                T t = create();
-                _singletons[typeof(T)] = t;
-                return t;
-            }                
-        }
-
-        public void NewGame() {
-            using (var s = Open("save", "newgame.xml"))
-                SaveData = Serialisation.Deserialise<SaveData>(s);
-            Memory.ResetAll();
-            Braver.NewGame.Init(this);
-            SaveData.Loaded();
-        }
-
-        public void Save(string path) {
-            using (var fs = File.OpenWrite(path + ".sav"))
-                Serialisation.Serialise(SaveData, fs);
-            using (var fs = File.OpenWrite(path + ".mem"))
-                Memory.Save(fs);
-        }
-
-        public void Load(string path) {
-            using (var fs = File.OpenRead(path + ".mem"))
-                Memory.Load(fs);
-            using (var fs = File.OpenRead(path + ".sav"))
-                SaveData = Serialisation.Deserialise<SaveData>(fs);
-            SaveData.Loaded();
-        }
-
-        public Stream TryOpen(string category, string file) {
-            foreach (var source in _data[category]) {
-                var s = source.TryOpen(file);
-                if (s != null)
-                    return s;
-            }
-            return null;
-        }
-
-        public Stream Open(string category, string file) {
-            var s = TryOpen(category, file);
-            if (s == null)
-                throw new F7Exception($"Could not open {category}/{file}");
-            else
-                return s;
-        }
-        public string OpenString(string category, string file) {
-            using(var s = Open(category, file)) {
-                using (var sr = new StreamReader(s))
-                    return sr.ReadToEnd();
-            }
-        }
-
-        public IEnumerable<string> ScanData(string category) {
-            if (_data.TryGetValue(category, out var sources))
-                return sources.SelectMany(s => s.Scan());
-            else
-                return Enumerable.Empty<string>();
         }
 
         public void PushScreen(Screen s) {

@@ -7,6 +7,13 @@ using System.Xml.Serialization;
 
 namespace Braver {
 
+    public class InventoryItem {
+        public int ItemID { get; set; }
+        public int Quantity { get; set; }
+    }
+
+
+
     [Flags]
     public enum MenuMask {
         None = 0,
@@ -134,6 +141,9 @@ namespace Braver {
         }
 
         public List<Character> Characters { get; set; }
+
+        public List<InventoryItem> Inventory { get; set; }
+        public List<int> KeyItems { get; set; }
 
         public string WorldMapAvatar { get; set; }
         public float WorldMapX { get; set; }

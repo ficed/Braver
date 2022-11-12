@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Braver {
     internal static class NewGame {
-        public static void Init(FGame game) {
+        public static void Init(BGame game) {
             game.SaveMap.MenuLocked = MenuMask.PHS | MenuMask.Save;
             game.SaveMap.MenuHidden = MenuMask.PHS;
             game.SaveMap.PPV = 0;
