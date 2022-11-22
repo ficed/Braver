@@ -1,0 +1,13 @@
+<Component xsi:type="Label" Y="0" X="10">@Model.Name</Component>
+
+
+<Component xsi:type="Gauge" X="650" Y="35" W="250" H="4" Style="HP" Current="@Model.CurrentHP" Max="@Model.MaxHP" />
+
+<Component xsi:type="Gauge" X="925" Y="35" W="100" H="4" Style="MP" Current="@Model.CurrentMP" Max="@Model.MaxMP" />
+
+<Component xsi:type="Box" X="200" Y="-200" H="250" W="100" ID='@("Menu" + Model.ID)' Visible="false">
+	<Component xsi:type="Label" X="10" Y="10">Attack</Component>
+	<Component xsi:type="Label" X="10" Y="30">Magic</Component>
+
+	<Component xsi:type="Label" X="10" Y="70">Item</Component>
+</Component>

@@ -6,8 +6,8 @@
 			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="50" ID="lUse">Use</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="250" ID="lArrange">Arrange</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="450" ID="lKey">Key Items</Component>
-		</Component>
-
+		</Component>		
+		
 		<Component xsi:type="Box" X="0" Y="60" W="1280" H="60">
 			<Component xsi:type="Label" Y="15" X="20" ID="lDescription"> </Component>
 		</Component>
@@ -23,7 +23,7 @@
 		<Component xsi:type="Box" X="550" Y="120" W="730" H="600">
 			<Component xsi:type="List" X="0" Y="20" W="730" H="560" ID="lbItems">
 				@foreach(int i in Enumerable.Range(0, @Model.SaveData.Inventory.Count)) {
-					<Component xsi:type="Group" X="20" W="700" Click="ItemSelected" ID='@("Item" + i)'>
+					<Component xsi:type="Group" X="20" W="700" Click="ItemSelected" ID='@("Item" + i)' Focussed="ItemFocussed">
 						<Component xsi:type="Label" Y="0" X="0">@(Model.CacheItem<Braver.Item>(Model.SaveData.Inventory[i].ItemID).Name)</Component>
 						<Component xsi:type="Label" Y="0" X="670">@(Model.SaveData.Inventory[i].Quantity)</Component>
 					</Component>
@@ -35,6 +35,17 @@
 					<Component xsi:type="Label" Y="0" X="20" ID='@("KeyItem" + i)' Focussed="KeyItemFocussed">@(Model.CacheItem<Braver.KeyItem>(Model.SaveData.KeyItems[i]).Name)</Component>
 				}
 			</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="250" Y="15" W="150" H="290" ID="Arrange" Visible="false">
+			<Component xsi:type="Label" Y="10" X="15" Click="ArrangeSelected" ID="lCustomise">Customise</Component>
+			<Component xsi:type="Label" Y="45" X="15" Click="ArrangeSelected" ID="lField">Field</Component>
+			<Component xsi:type="Label" Y="80" X="15" Click="ArrangeSelected" ID="lBattle">Battle</Component>
+			<Component xsi:type="Label" Y="115" X="15" Click="ArrangeSelected" ID="lThrow">Throw</Component>
+			<Component xsi:type="Label" Y="150" X="15" Click="ArrangeSelected" ID="lType">Type</Component>
+			<Component xsi:type="Label" Y="185" X="15" Click="ArrangeSelected" ID="lName">Name</Component>
+			<Component xsi:type="Label" Y="220" X="15" Click="ArrangeSelected" ID="lMost">Most</Component>
+			<Component xsi:type="Label" Y="255" X="15" Click="ArrangeSelected" ID="lLeast">Least</Component>
 		</Component>
 
 	</Root>

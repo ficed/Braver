@@ -2,11 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.Intrinsics.X86;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Ficedula.FF7.Battle {
 
@@ -76,7 +71,7 @@ namespace Ficedula.FF7.Battle {
         public byte AdditionalEffects { get; set; }
         public byte AdditionalEffectsParam { get; set; }
         public Statuses Statuses { get; set; }
-        public Element Element { get; set; }
+        public Elements Elements { get; set; }
         public SpecialAttackFlags SpecialAttackFlags { get; set; }
 
         //Not part of standard record
@@ -105,8 +100,21 @@ namespace Ficedula.FF7.Battle {
             AdditionalEffects = (byte)s.ReadByte();
             AdditionalEffectsParam= (byte)s.ReadByte();
             Statuses = (Statuses)s.ReadI32();
-            Element = (Element)s.ReadU16();
-            SpecialAttackFlags = (SpecialAttackFlags)s.ReadU16();            
+            Elements = (Elements)s.ReadU16();
+            SpecialAttackFlags = (SpecialAttackFlags)~s.ReadU16();            
+        }
+    }
+
+    public class AttackCollection {
+        private List<Attack> _attacks = new();
+
+        public System.Collections.ObjectModel.ReadOnlyCollection<Attack> Attacks => _attacks.AsReadOnly();
+
+        public AttackCollection(Stream s) {
+            while(s.Position < s.Length) {
+                var attack = new Attack(s);
+                _attacks.Add(attack);
+            }
         }
     }
 }

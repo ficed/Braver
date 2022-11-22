@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Braver.Core\Braver.Core.csproj" />
+    <ProjectReference Include="..\Ficedula.FF7\Ficedula.FF7.csproj" />
+  </ItemGroup>
+
+</Project>

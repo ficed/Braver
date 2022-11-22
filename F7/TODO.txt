@@ -11,3 +11,5 @@ Moving through walkmap triangles on field is still broken, esp. when running
 Compressed/single file saves
 
 Music looping
+
+Item menu: Icons, actually do arrange

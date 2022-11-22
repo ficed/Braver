@@ -76,13 +76,14 @@ namespace Braver.Battle {
 
             HashSet<ElementResistance> resistances = new HashSet<ElementResistance>(
                 ability.Elements
+                .Where(e => target.Elements.ContainsKey(e))
                 .Select(e => target.Elements[e])
                 .Distinct()
             );
 
             bool deathWeakness = false, recovery = false;
 
-            if (ability.Elements.Any(e => target.Elements[e] == ElementResistance.Absorb)) {
+            if (ability.Elements.Any(e => target.Elements.TryGetValue(e, out var resist) && resist == ElementResistance.Absorb)) {
                 var temp = ability.InflictStatus;
                 ability.InflictStatus = ability.RemoveStatus;
                 ability.RemoveStatus = temp;
@@ -158,7 +159,7 @@ namespace Braver.Battle {
                     if ((source.Statuses & Statuses.LuckyGirl) != 0) {
                         crit = 255;
                     } else {
-                        crit = (sourceStats.Lck + sourceStats.CriticalChance + sourceStats.Level - targetStats.Level) / 4;
+                        crit = (sourceStats.Lck + sourceStats.Level - targetStats.Level) / 4 + sourceStats.CriticalChance;
                     }
 
                     int rc = _r.Next(65536) * 99 / 65535 + 1;
@@ -461,5 +462,17 @@ namespace Braver.Battle {
         public bool Recovery { get; set; }
         public int HPDamage { get; set; }
         public int MPDamage { get; set; }
+
+        public void Apply() {
+            if (Hit) {
+                Target.Statuses |= InflictStatus;
+                Target.Statuses &= ~RemoveStatus;
+                //TODO Recovery
+                if (HPDamage != 0)
+                    Target.HP = Math.Min(Target.MaxHP, Math.Max(0, Target.HP - HPDamage));
+                if (MPDamage != 0)
+                    Target.MP = Math.Min(Target.MaxMP, Math.Max(0, Target.MP - MPDamage));
+            }
+        }
     }
 }

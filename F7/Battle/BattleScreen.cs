@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 
 namespace Braver.Battle {
 
@@ -30,6 +29,11 @@ namespace Braver.Battle {
 
     public class BattleScreen : Screen {
 
+        private class UIHandler : UI.Layout.LayoutModel {
+
+        }
+
+
         private BackgroundKind _backgroundKind;
 
         private class BackgroundChunk {
@@ -45,15 +49,26 @@ namespace Braver.Battle {
         private IndexBuffer _indexBuffer;
 
         private List<Model> _models = new();
+        private Ficedula.FF7.Battle.BattleScene _scene;
 
         private PerspView3D _view;
 
-        public BattleScreen(FGame g, GraphicsDevice graphics, int formationID) : base(g, graphics) {
-            _graphics = graphics;
+        private UI.Layout.LayoutScreen _ui;
 
-            var scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[formationID];
+        private bool _debugCamera = false;
 
-            string prefix = Ficedula.FF7.Battle.SceneDecoder.LocationIDToFileName(scene.LocationID);
+        private void AddModel(string code, Vector3 position) {
+            var model = Model.LoadBattleModel(Graphics, Game, code);
+            model.Translation = position;
+            model.Scale = 1;
+            if (position.Z < 0)
+                model.Rotation = new Vector3(0, 180, 0);
+            model.PlayAnimation(0, true, 1f, null);
+            _models.Add(model);
+        }
+
+        private void LoadBackground() {
+            string prefix = Ficedula.FF7.Battle.SceneDecoder.LocationIDToFileName(_scene.LocationID);
 
             string NumToFile(int num) {
                 char c1 = (char)('a' + (num / 26)),
@@ -65,10 +80,10 @@ namespace Braver.Battle {
 
             int num = 2; //start with ac for texs
             while (true) {
-                using (var stex = g.TryOpen("battle", NumToFile(num++))) {
+                using (var stex = Game.TryOpen("battle", NumToFile(num++))) {
                     if (stex == null)
                         break;
-                    texs.Add(graphics.LoadTex(new Ficedula.FF7.TexFile(stex), 0));
+                    texs.Add(_graphics.LoadTex(new Ficedula.FF7.TexFile(stex), 0));
                 }
             }
 
@@ -78,7 +93,7 @@ namespace Braver.Battle {
             List<Ficedula.FF7.PFile> pfiles = new();
             num = 12;
             while (true) {
-                using (var sp = g.TryOpen("battle", NumToFile(num++))) {
+                using (var sp = Game.TryOpen("battle", NumToFile(num++))) {
                     if (sp == null)
                         break;
                     pfiles.Add(new Ficedula.FF7.PFile(sp));
@@ -87,7 +102,7 @@ namespace Braver.Battle {
 
             foreach (var group in pfiles.SelectMany(p => p.Chunks).GroupBy(c => c.Texture)) {
                 var bchunk = new BackgroundChunk {
-                    Effect = new BasicEffect(graphics) {
+                    Effect = new BasicEffect(_graphics) {
                         VertexColorEnabled = true,
                         LightingEnabled = false,
                         TextureEnabled = group.Key.HasValue,
@@ -114,24 +129,47 @@ namespace Braver.Battle {
                 _backgroundChunks.Add(bchunk);
             }
 
-            _vertexBuffer = new VertexBuffer(graphics, typeof(VertexPositionColorTexture), verts.Count, BufferUsage.WriteOnly);
+            _vertexBuffer = new VertexBuffer(_graphics, typeof(VertexPositionColorTexture), verts.Count, BufferUsage.WriteOnly);
             _vertexBuffer.SetData(verts.ToArray());
-            _indexBuffer = new IndexBuffer(graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
+            _indexBuffer = new IndexBuffer(_graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
             _indexBuffer.SetData(indices.ToArray());
+        }
 
-            var cam = scene.Cameras[0];
+        private static Vector3[] _playerPositions = new[] {
+            new Vector3(-7 * 256, 0, 6 * 256),
+            new Vector3(0 * 256, 0, 6 * 256),
+            new Vector3(7 * 256, 0, 6 * 256),
+        };
+
+        public BattleScreen(FGame g, GraphicsDevice graphics, int formationID) : base(g, graphics) {
+            _graphics = graphics;
+
+            _scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[formationID];
+
+            LoadBackground();
+
+            var cam = _scene.Cameras[0];
             _view = new PerspView3D {
                 CameraPosition = new Vector3(cam.X, cam.Y, cam.Z),
                 CameraForwards = new Vector3(cam.LookAtX - cam.X, cam.LookAtY - cam.Y, cam.LookAtZ - cam.Z),
                 CameraUp = -Vector3.UnitY, //TODO!!
                 ZNear = 100,
                 ZFar = 100000,
+                FOV = 51f, //Seems maybe vaguely correct, more or less what Proud Clod uses for its preview...
             };
 
-            var model = Model.LoadBattleModel(Graphics, g, "rv");
-            model.Scale = 3;
-            model.PlayAnimation(0, true, 1f, null);
-            _models.Add(model);
+            foreach(var enemy in _scene.Enemies) {
+                AddModel(
+                    Ficedula.FF7.Battle.SceneDecoder.ModelIDToFileName(enemy.Enemy.ID),
+                    new Vector3(enemy.PositionX, enemy.PositionY, enemy.PositionZ)
+                );
+            }
+
+            foreach(var player in Game.SaveData.Party.Zip(_playerPositions)) {
+                AddModel(player.First.BattleModel, player.Second);
+            }
+
+            _ui = new UI.Layout.LayoutScreen(g, graphics, "battle", new UIHandler());
 
             g.Audio.PlayMusic("bat"); //TODO!
         }
@@ -140,9 +178,10 @@ namespace Braver.Battle {
 
         protected override void DoStep(GameTime elapsed) {
             foreach (var model in _models) {
-                model.Rotation = new Vector3(0, 180, (float)elapsed.TotalGameTime.TotalSeconds * 90 * 0 + 0);
                 model.FrameStep();
             }
+
+            _ui.Step(elapsed);
         }
 
         protected override void DoRender() {
@@ -167,6 +206,26 @@ namespace Braver.Battle {
 
             foreach (var model in _models)
                 model.Render(_view);
+
+            _ui.Render();
+        }
+
+        public override void ProcessInput(InputState input) {
+            base.ProcessInput(input);
+
+            if (input.IsJustDown(InputKey.Debug1))
+                _debugCamera = !_debugCamera;
+
+            if (_debugCamera) {
+                if (input.IsDown(InputKey.Up))
+                    _view.CameraPosition += new Vector3(0, 0, -100);
+                if (input.IsDown(InputKey.Down))
+                    _view.CameraPosition += new Vector3(0, 0, 100);
+                if (input.IsDown(InputKey.Left))
+                    _view.CameraPosition += new Vector3(100, 0, 0);
+                if (input.IsDown(InputKey.Right))
+                    _view.CameraPosition += new Vector3(-100, 0, 0);
+            }
         }
 
     }

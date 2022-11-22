@@ -7,13 +7,14 @@ using System.Threading.Tasks;
 namespace Braver.UI.Layout {
 	internal class ItemMenu : LayoutModel {
 
-		public Box Chars, Menu;
+		public Box Chars, Menu, Arrange;
 		public List lbItems, lbKeyItems;
         public Group Char0, Char1, Char2;
 
-		public Label lDescription, lUse, lArrange, lKey;
+		public Label lDescription, lUse, lArrange, lKey,
+			lCustomise, lField, lBattle, lThrow, lType, lName, lMost, lLeast;
 
-		protected override void OnInit() {
+        protected override void OnInit() {
 			base.OnInit();
 			if (Focus == null) {
 				PushFocus(Menu, lUse);
@@ -27,6 +28,7 @@ namespace Braver.UI.Layout {
 				_screen.FadeOut(() => _game.PopScreen(_screen));
 			} else
 				base.CancelPressed();
+			Arrange.Visible = FocusGroup == Arrange;
 		}
 
 		public void MenuSelected(Label selected) {
@@ -38,9 +40,13 @@ namespace Braver.UI.Layout {
 			} else {
                 lbItems.Visible = true;
                 lbKeyItems.Visible = false;
-				if (selected == lUse)
+				if (selected == lUse) {
 					if (lbItems.Children.Any())
 						PushFocus(lbItems, lbItems.Children[0]);
+				} else if (selected == lArrange) {
+					Arrange.Visible = true;
+					PushFocus(Arrange, Arrange.Children[0]);
+				}
             }
         }
 
@@ -50,7 +56,17 @@ namespace Braver.UI.Layout {
 		public void ItemSelected(Group selected) {
 		}
 
-		public void KeyItemFocussed() {
+		public void ArrangeSelected(Label selected) {
+
+		}
+
+
+        public void ItemFocussed() {
+			var item = _game.CacheItem<Item>(_game.SaveData.Inventory[lbItems.GetSelectedIndex(this)].ItemID);
+			lDescription.Text = item.Description;
+		}
+
+        public void KeyItemFocussed() {
 			var keyItem = _game.CacheItem<KeyItem>(_game.SaveData.KeyItems[lbKeyItems.GetSelectedIndex(this)]);
 			lDescription.Text = keyItem.Description;
 		}

@@ -44,10 +44,15 @@ if (args[0].Equals("BattleScene", StringComparison.InvariantCultureIgnoreCase)) 
 if (args[0].Equals("Kernel", StringComparison.OrdinalIgnoreCase)) {
     using (var fs = new FileStream(args[1], FileMode.Open, FileAccess.Read)) {
         var kernel = new Ficedula.FF7.Kernel(fs);
+
+        var materia = new Ficedula.FF7.MateriaCollection(kernel);
+
         File.WriteAllBytes(@"C:\temp\s9.bin", kernel.Sections.ElementAt(9));
         File.WriteAllBytes(@"C:\temp\s16.bin", kernel.Sections.ElementAt(16));
 
-        var txt = new Ficedula.FF7.KernelText(kernel.Sections.ElementAt(16));
+        var attacks = new Ficedula.FF7.Battle.AttackCollection(new MemoryStream(kernel.Sections.ElementAt(1)));
+
+        var txt = new Ficedula.FF7.KernelText(kernel.Sections.ElementAt(17));
         Console.WriteLine(txt.Get(0));
         Console.WriteLine(txt.Get(1));
     }

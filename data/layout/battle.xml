@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="570" W="1280" H="150" ID="Root">
+		<Component xsi:type="Box" X="0" Y="0" W="630" H="150"></Component>
+		<Component xsi:type="Box" X="630" Y="0" W="650" H="150"></Component>
+
+		@foreach(int i in Enumerable.Range(0, @Model.SaveData.Party.Length)) {
+		<Component xsi:type="Group" X="0" Y="@(10 + 40 * i)" W="1280" H="40" ID='@("Char" + i)'>
+			@Include("battlechar", Model.SaveData.Party[i])
+		</Component>
+		}
+	</Root>
+</Layout>

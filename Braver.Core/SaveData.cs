@@ -122,6 +122,8 @@ namespace Braver {
         public List<int> WeaponMateria { get; set; }
         public List<int> ArmourMateria { get; set; }
 
+        public string BattleModel { get; set; }
+
         [XmlIgnore]
         public float LevelProgress => 0.7f; //TODO!!!
 

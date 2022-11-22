@@ -24,6 +24,40 @@ namespace Ficedula.FF7 {
         Shout,
     }
 
+    [Flags]
+    public enum Elements {
+        None = 0,
+        Fire = 0x1,
+        Ice = 0x2,
+        Lightning = 0x4,
+        Earth = 0x8,
+        Poison = 0x10,
+        Gravity = 0x20,
+        Water = 0x40,
+        Wind = 0x80,
+        Holy = 0x100,
+        Restore = 0x200,
+        Cut = 0x400,
+        Hit = 0x800,
+        Punch = 0x1000,
+        Shoot = 0x2000,
+        Shout = 0x4000,
+        HiddenUltima = 0x8000
+    }
+
+    public static class ElementUtil {
+        public static IEnumerable<Element> Split(this Elements elements) {
+            foreach (Element element in Enum.GetValues<Element>()) {
+                if (element != 0) {
+                    Elements test = (Elements)(1 << ((int)element - 1));
+                    if ((elements & test) != 0)
+                        yield return element;
+                }
+            }
+        }
+    }
+
+    [Flags]
     public enum Statuses : uint {
         None = 0,
         Death = 0x1,

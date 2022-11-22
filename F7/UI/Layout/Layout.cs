@@ -392,14 +392,14 @@ namespace Braver.UI.Layout {
 
         public override Color ClearColor => Color.Black;
 
-        public LayoutScreen(FGame g, GraphicsDevice graphics, string layout) : base(g, graphics) {
+        public LayoutScreen(FGame g, GraphicsDevice graphics, string layout, LayoutModel model = null) : base(g, graphics) {
             _layoutFile = layout;
             if (_backgroundLoad != null) {
                 _backgroundLoad.Wait();
                 _backgroundLoad = null;
             }
             _layout = g.Singleton(() => new RazorLayoutCache(g)).Apply(layout, false);
-            _model = Activator.CreateInstance(Type.GetType("Braver.UI.Layout." + layout)) as LayoutModel;
+            _model = model ?? Activator.CreateInstance(Type.GetType("Braver.UI.Layout." + layout)) as LayoutModel;
             _model.Init(g, _layout, this);
             _ui = new UIBatch(graphics, g);
         }

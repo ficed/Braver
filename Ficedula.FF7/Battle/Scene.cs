@@ -117,12 +117,12 @@ namespace Ficedula.FF7.Battle {
         public short ID { get; set; }
         public string Name { get; set; }
         public byte Level { get; set; }
-        public byte Speed { get; set; }
+        public byte Dexterity { get; set; }
         public byte Luck { get; set; }
-        public byte Evade { get; set; }
-        public byte Strength { get; set; }
+        public byte DefPercent { get; set; }
+        public byte Attack { get; set; }
         public byte Defense { get; set; }
-        public byte Magic { get; set; }
+        public byte MAttackPercent { get; set; }
         public byte MDef { get; set; }
         public short MP { get; set; }
         public short AP { get; set; }
@@ -131,7 +131,7 @@ namespace Ficedula.FF7.Battle {
         public int HP { get; set; }
         public int Exp { get; set; }
         public int Gil { get; set; }
-        public Statuses ImmuneStatuses { get; set; }
+        public Statuses AllowedStatuses { get; set; }
         public List<(Element, ElementRate)> ElementResistances { get; } = new();
         public List<(Statuses, ElementRate)> StatusResistances { get; } = new();
         public List<EnemyItem> DropItems { get; } = new();
@@ -142,12 +142,12 @@ namespace Ficedula.FF7.Battle {
         public void Load(Stream s) {
             Name = Text.Convert(s.ReadBytes(32).Where(b => b != 0xff).ToArray(), 0).Trim();
             Level = (byte)s.ReadByte();
-            Speed = (byte)s.ReadByte();
+            Dexterity = (byte)s.ReadByte();
             Luck = (byte)s.ReadByte();
-            Evade = (byte)s.ReadByte();
-            Strength = (byte)s.ReadByte();
+            DefPercent = (byte)s.ReadByte();
+            Attack = (byte)s.ReadByte();
             Defense = (byte)s.ReadByte();
-            Magic = (byte)s.ReadByte();
+            MAttackPercent = (byte)s.ReadByte();
             MDef = (byte)s.ReadByte();
 
             byte[] elements = s.ReadBytes(8), rates = s.ReadBytes(8);
@@ -194,10 +194,14 @@ namespace Ficedula.FF7.Battle {
 
             foreach(int _ in Enumerable.Range(0, 3)) {
                 short mid = s.ReadI16();
-                if ((mid != -1) && (mid < Actions.Count))
-                    Actions[mid].AvailableViaManipulate = true;
+                if (mid != -1) {
+                    var action = Actions.FirstOrDefault(a => a.ActionID == mid);
+                    if (action != null) //TODO - OK? :/
+                        action.AvailableViaManipulate = true; 
+                }
             }
 
+            s.ReadI16();
             MP = s.ReadI16();
             AP = s.ReadI16();
             MorphIntoItemID = Util.ValueOrNull(s.ReadI16(), (short)-1);
@@ -206,7 +210,7 @@ namespace Ficedula.FF7.Battle {
             HP = s.ReadI32();
             Exp = s.ReadI32();
             Gil = s.ReadI32();
-            ImmuneStatuses = (Statuses)s.ReadI32();
+            AllowedStatuses = (Statuses)s.ReadI32();
             s.ReadI32();
         }
     }
@@ -289,7 +293,7 @@ namespace Ficedula.FF7.Battle {
                             Enumerable.Range(0, 6)
                             .Select(_ => new EnemyInstance(ms, enemies))
                             .Where(ei => ei.Enemy != null)
-                        );
+                        );                        
                     }
 
                     ms.Position = 0x298;
@@ -305,8 +309,12 @@ namespace Ficedula.FF7.Battle {
                     byte[] aname = new byte[32];
                     foreach (int a in Enumerable.Range(0, 32)) {
                         ms.Read(aname, 0, 32);
-                        attacks[a].Name = Text.Convert(aname, 0);
+                        attacks[a].Name = Text.Convert(aname.TakeWhile(b => b != 0xff).ToArray(), 0);
                     }
+
+                    foreach (var enemy in enemies)
+                        foreach (var action in enemy.Actions)
+                            action.Attack = attacks.FirstOrDefault(a => a.ActionID == action.ActionID);
 
                     ms.Position = 0xC80;
                     short[] aiOffsets = Enumerable.Range(0, 4)
@@ -347,6 +355,13 @@ namespace Ficedula.FF7.Battle {
 
             }
 
+        }
+
+        public static string ModelIDToFileName(int modelID) {
+            //0 = AA
+            char first = (char)('A' + (modelID / 26)),
+                second = (char)('A' + (modelID % 26));
+            return $"{first}{second}";
         }
 
         public static string LocationIDToFileName(int locationID) {
