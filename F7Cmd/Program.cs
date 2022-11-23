@@ -47,6 +47,12 @@ if (args[0].Equals("Kernel", StringComparison.OrdinalIgnoreCase)) {
 
         var materia = new Ficedula.FF7.MateriaCollection(kernel);
 
+        var armour = new Ficedula.FF7.ArmourCollection(kernel);
+
+        var weapons = new Ficedula.FF7.WeaponCollection(kernel);
+
+        var accessories = new Ficedula.FF7.AccessoryCollection(kernel);
+
         File.WriteAllBytes(@"C:\temp\s9.bin", kernel.Sections.ElementAt(9));
         File.WriteAllBytes(@"C:\temp\s16.bin", kernel.Sections.ElementAt(16));
 
@@ -61,10 +67,17 @@ if (args[0].Equals("Kernel", StringComparison.OrdinalIgnoreCase)) {
 if (args[0].Equals("Sounds", StringComparison.OrdinalIgnoreCase)) {
     using (var audio = new Ficedula.FF7.Audio(Path.Combine(args[1], "audio.dat"), Path.Combine(args[1], "audio.fmt"))) {
         Console.WriteLine($"Audio file with {audio.EntryCount} entries");
-        var ms = new MemoryStream();
-        audio.Export(10, ms);
-        File.WriteAllBytes(@"C:\temp\tff.wav", ms.ToArray());
-        File.WriteAllBytes(@"C:\temp\tff.raw", audio.ExportPCM(10, out int freq, out int chans));
+
+        foreach(int i in Enumerable.Range(0, audio.EntryCount)) {
+            try {
+                var ms = new MemoryStream();
+                audio.Export(i, ms);
+                File.WriteAllBytes(Path.Combine(args[2], $"{i}.wav"), ms.ToArray());
+            } catch { }
+            //
+        }
+
+        //File.WriteAllBytes(@"C:\temp\tff.raw", audio.ExportPCM(10, out int freq, out int chans));
     }
 }
 

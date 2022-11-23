@@ -77,6 +77,11 @@ namespace Braver {
 
     }
 
+    public class OwnedMateria {
+        public int MateriaID { get; set; }
+        public int AP { get; set; }
+    }
+
     public class Character {
         public int CharIndex { get; set; }
         public string ID { get; set; }
@@ -119,8 +124,8 @@ namespace Braver {
         public int XP { get; set; }
         public int XPTNL { get; set; }
 
-        public List<int> WeaponMateria { get; set; }
-        public List<int> ArmourMateria { get; set; }
+        public List<OwnedMateria> WeaponMateria { get; set; }
+        public List<OwnedMateria> ArmourMateria { get; set; }
 
         public string BattleModel { get; set; }
 
@@ -146,6 +151,7 @@ namespace Braver {
 
         public List<InventoryItem> Inventory { get; set; }
         public List<int> KeyItems { get; set; }
+        public List<OwnedMateria> MateriaStock { get; set; }
 
         public string WorldMapAvatar { get; set; }
         public float WorldMapX { get; set; }
