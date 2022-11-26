@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,7 +19,9 @@ namespace Braver {
                         "bba.a", "bbb.a", "bbc.a", "bbd.a", "bid.a", "bie.a",
                         "bja.a", "bjb.a", "bjc.a", "bjd.a", "bje.a", "bka.a",
                         "bkb.a", "bkc.a" };
-        public TestScreen(FGame g, GraphicsDevice graphics) : base(g, graphics) {
+
+        public override void Init(FGame g, GraphicsDevice graphics) {
+            base.Init(g, graphics);
 
             graphics.BlendState = BlendState.AlphaBlend;
 

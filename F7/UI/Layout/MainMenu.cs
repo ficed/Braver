@@ -45,9 +45,11 @@ namespace Braver.UI.Layout {
             if (selected == lOrder) {
                 PushFocus(Chars, Char0);
             } else if (selected == lItem) {
-                _game.PushScreen(new LayoutScreen(_game, _screen.Graphics, "ItemMenu"));
+                _game.PushScreen(new LayoutScreen("ItemMenu"));
+            } else if (selected == lEquip) {
+                _game.PushScreen(new LayoutScreen("EquipMenu", parm: 0));
             } else if (selected == lQuit) {
-                _game.PushScreen(new LayoutScreen(_game, _screen.Graphics, "Quit"));
+                _game.PushScreen(new LayoutScreen("Quit"));
             }
         }
 

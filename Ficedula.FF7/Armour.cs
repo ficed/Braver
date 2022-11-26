@@ -56,6 +56,7 @@ namespace Ficedula.FF7 {
                 Armour armour = new Armour {
                     Name = names.Get(index),
                     Description = descriptions.Get(index),
+                    ID = index,
                 };
                 index++;
                 armour.ElementEffect = (EquipElement)data.ReadU8();

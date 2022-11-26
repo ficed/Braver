@@ -1,11 +1,13 @@
-﻿using System;
+﻿using Ficedula.FF7;
+using SharpDX.MediaFoundation;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Braver.UI.Layout {
-	internal class ItemMenu : LayoutModel {
+	public class ItemMenu : LayoutModel {
 
 		public Box Chars, Menu, Arrange;
 		public List lbItems, lbKeyItems;
@@ -60,10 +62,35 @@ namespace Braver.UI.Layout {
 
 		}
 
+		public static (string Item, string Description) GetInventory(FGame game, int index) {
+			var inv = game.SaveData.Inventory[index];
+            switch (inv.Kind) {
+				case InventoryItemKind.Item:
+                    var item = game.CacheItem<Item>(inv.ItemID);
+					return (item.Name, item.Description);
+				case InventoryItemKind.Weapon:
+					var kernel = game.Singleton(() => new Kernel(game.Open("kernel", "kernel.bin")));
+					var weapons = game.Singleton(() => new WeaponCollection(kernel));
+					var weapon = weapons.Weapons[index];
+					return (weapon.Name, weapon.Description);
+				case InventoryItemKind.Armour:
+                    kernel = game.Singleton(() => new Kernel(game.Open("kernel", "kernel.bin")));
+                    var armours = game.Singleton(() => new ArmourCollection(kernel));
+                    var armour = armours.Armour[index];
+                    return (armour.Name, armour.Description);
+                case InventoryItemKind.Accessory:
+                    kernel = game.Singleton(() => new Kernel(game.Open("kernel", "kernel.bin")));
+                    var accessories = game.Singleton(() => new AccessoryCollection(kernel));
+                    var accessory = accessories.Accessories[index];
+                    return (accessory.Name, accessory.Description);
+				default:
+					throw new NotImplementedException();
+            }
+        }
+
 
         public void ItemFocussed() {
-			var item = _game.CacheItem<Item>(_game.SaveData.Inventory[lbItems.GetSelectedIndex(this)].ItemID);
-			lDescription.Text = item.Description;
+			lDescription.Text = GetInventory(_game, lbItems.GetSelectedIndex(this)).Description;
 		}
 
         public void KeyItemFocussed() {

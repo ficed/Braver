@@ -29,7 +29,7 @@ namespace Braver {
         protected override void LoadContent() {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            _g = new FGame(@"C:\games\ff7\data", @"C:\Users\ficed\Projects\F7\data");
+            _g = new FGame(GraphicsDevice, @"C:\games\ff7\data", @"C:\Users\ficed\Projects\F7\data");
             _g.NewGame();
             //_g.ChangeScreen(null, new TestScreen(_g, GraphicsDevice));
             //_screen = new Field.FieldScreen("mrkt2", _g, GraphicsDevice);
@@ -37,7 +37,7 @@ namespace Braver {
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "Quit"));
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
             //_g.ChangeScreen(null, new WorldMap.WMScreen(_g, GraphicsDevice, 139348, 126329));
-            _g.ChangeScreen(null, new UI.Splash(_g, GraphicsDevice));
+            _g.ChangeScreen(null, new UI.Splash());
         }
 
         private static Dictionary<Keys, InputKey> _keyMap = new Dictionary<Keys, InputKey> {

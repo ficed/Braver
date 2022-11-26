@@ -24,7 +24,7 @@
 			<Component xsi:type="List" X="0" Y="20" W="730" H="560" ID="lbItems">
 				@foreach(int i in Enumerable.Range(0, @Model.SaveData.Inventory.Count)) {
 					<Component xsi:type="Group" X="20" W="700" Click="ItemSelected" ID='@("Item" + i)' Focussed="ItemFocussed">
-						<Component xsi:type="Label" Y="0" X="0">@(Model.CacheItem<Braver.Item>(Model.SaveData.Inventory[i].ItemID).Name)</Component>
+						<Component xsi:type="Label" Y="0" X="0">@(Braver.UI.Layout.ItemMenu.GetInventory(Model, i).Item1)</Component>
 						<Component xsi:type="Label" Y="0" X="670">@(Model.SaveData.Inventory[i].Quantity)</Component>
 					</Component>
 				}

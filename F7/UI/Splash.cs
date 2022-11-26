@@ -13,7 +13,8 @@ namespace Braver.UI {
         private UIBatch _ui;
         private int _menu = 0;
 
-        public Splash(FGame g, GraphicsDevice graphics) : base(g, graphics) {
+        public override void Init(FGame g, GraphicsDevice graphics) {
+            base.Init(g, graphics);
             _ui = new UIBatch(graphics, g);
             FadeIn(null);
             Layout.LayoutScreen.BeginBackgroundLoad(g, "MainMenu");
@@ -41,19 +42,18 @@ namespace Braver.UI {
                                     X = -225, Y = -830, Triangle = 152,
                                     Orientation = 116,
                                     DestinationFieldID = 195,
-                                },
-                                Game, Graphics
+                                }
                             ));
                             break;
 
                         case 1:
                             Game.NewGame();
-                            Game.ChangeScreen(this, new WorldMap.WMScreen(Game, Graphics, 139348, 126329));
+                            Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
                             break;
 
                         case 2:
                             Game.NewGame();
-                            Game.ChangeScreen(this, new Battle.BattleScreen(Game, Graphics, 100));
+                            Game.ChangeScreen(this, new Battle.BattleScreen(100));
                             break;
 
                         case 3:

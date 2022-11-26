@@ -54,7 +54,7 @@ namespace Braver {
 
     public abstract class Screen {
 
-        public FGame Game { get; }
+        public FGame Game { get; private set; }
         public GraphicsDevice Graphics { get; private set; }
         public bool InputEnabled { get; protected set; } = true;
 
@@ -65,7 +65,7 @@ namespace Braver {
         private Transition _transition;
         private Action _transitionAction;
 
-        protected Screen(FGame g, GraphicsDevice graphics) {
+        public virtual void Init(FGame g, GraphicsDevice graphics) {
             Game = g;
             Graphics = graphics;
             _fxBatch = new SpriteBatch(graphics);

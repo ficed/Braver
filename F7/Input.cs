@@ -31,12 +31,23 @@ namespace Braver {
     }
 
     public class InputState {
+        public const int REPEAT_DELAY = 60;
+        public const int REPEAT_INTERVAL = 6;
+
         public Dictionary<InputKey, int> DownFor { get; } = new();
 
         public Vector2 Stick1 { get; set; }
 
         public bool IsDown(InputKey k) => DownFor[k] > 0;
         public bool IsJustDown(InputKey k) => DownFor[k] == 1;
+        public bool IsRepeating(InputKey k) {
+            int down = DownFor[k];
+            if (down == 1) return true;
+            if (down > REPEAT_DELAY)
+                return (down % REPEAT_INTERVAL) == 1;
+            else 
+                return false;  
+        }
         public bool IsJustReleased(InputKey k) => DownFor[k] == -1;
 
         public bool IsAnyDirectionDown() {

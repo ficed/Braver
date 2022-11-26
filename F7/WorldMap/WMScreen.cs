@@ -273,7 +273,14 @@ namespace Braver.WorldMap {
             _avatarModel.PlayAnimation(index, true, 0.5f, null);
         }
 
-        public WMScreen(FGame g, GraphicsDevice graphics, float avatarX, float avatarY) : base(g, graphics) {
+        private float _initAvatarX, _initAvatarY;
+        public WMScreen(float avatarX, float avatarY) {
+            _initAvatarX = avatarX;
+            _initAvatarY = avatarY;
+        }
+
+        public override void Init(FGame g, GraphicsDevice graphics) {
+            base.Init(g, graphics);
             _effect = new AlphaTestEffect(graphics) {
                 VertexColorEnabled = false,
                 FogEnabled = true,
@@ -326,7 +333,7 @@ namespace Braver.WorldMap {
 
             Task.Run(Loader);
 
-            TryMoveAvatarTo(new Vector3(avatarX, 0, avatarY));
+            TryMoveAvatarTo(new Vector3(_initAvatarX, 0, _initAvatarY));
 
             _view = new PerspView3D {
 //                CameraPosition = new Vector3(avatarX, 500, avatarY - 500),
@@ -447,7 +454,7 @@ namespace Braver.WorldMap {
                     Game.SaveData.WorldMapX = _avatarModel.Translation.X;
                     Game.SaveData.WorldMapY = _avatarModel.Translation.Z;
                     Game.SaveData.Module = Module.WorldMap;
-                    Game.PushScreen(new UI.Layout.LayoutScreen(Game, Graphics, "MainMenu"));
+                    Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     InputEnabled = true;
                 });
             }

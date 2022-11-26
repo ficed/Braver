@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720">
+
+		<Component xsi:type="Box" X="0" Y="0" W="1280" H="180" ID="bChar">
+			<Component xsi:type="Group" X="20" Y="10" H="160" W="1240" ID="gMenu">
+				@Include("charsmall", Model.Game.SaveData.Party[Model.Game.Screen.Param])
+
+				<Component xsi:type="Label" Click="MenuSelected" Y="15" X="600" Color="Aqua" ID="lWeapon">Weapon</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="65" X="600" Color="Aqua" ID="lArmour">Armour</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="115" X="600" Color="Aqua" ID="lAccessory">Accessory</Component>
+			
+				<Component xsi:type="Label" Y="15" X="800" ID="lWeaponText">@Model.Weapon?.Name</Component>
+				<Component xsi:type="Label" Y="65" X="800" ID="lArmourText">@Model.Armour?.Name</Component>
+				<Component xsi:type="Label" Y="115" X="800" ID="lAccessoryText">@Model.Accessory?.Name</Component>
+			</Component>
+		</Component>		
+		
+		<Component xsi:type="Box" X="0" Y="180" W="1280" H="60">
+			<Component xsi:type="Label" Y="15" X="20" ID="lDescription"> </Component>
+		</Component>
+
+		<Component xsi:type="Box" X="0" Y="240" W="800" H="150">
+
+		</Component>
+
+		<Component xsi:type="Box" X="0" Y="390" W="800" H="330">
+			<Component xsi:type="Group" X="20" Y="10" H="160" W="1240" ID="gStats">
+				<Component xsi:type="Label" Y="25" X="50" Color="Aqua">Attack</Component>
+				<Component xsi:type="Label" Y="65" X="50" Color="Aqua">Attack %</Component>
+				<Component xsi:type="Label" Y="105" X="50" Color="Aqua">Defense</Component>
+				<Component xsi:type="Label" Y="145" X="50" Color="Aqua">Defense %</Component>
+				<Component xsi:type="Label" Y="185" X="50" Color="Aqua">Magic Attack</Component>
+				<Component xsi:type="Label" Y="225" X="50" Color="Aqua">Magic Defense</Component>
+				<Component xsi:type="Label" Y="265" X="50" Color="Aqua">Magic Defense %</Component>
+
+				<Component xsi:type="Label" Y="25" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+				<Component xsi:type="Label" Y="65" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+				<Component xsi:type="Label" Y="105" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+				<Component xsi:type="Label" Y="145" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+				<Component xsi:type="Label" Y="185" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+				<Component xsi:type="Label" Y="225" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+				<Component xsi:type="Label" Y="265" X="450" Font="bats" Color="Aqua">&#8594;</Component>
+
+				<Component xsi:type="Label" Y="25" X="400" Font="bats" Alignment="Right" ID="lAttackFrom" />
+				<Component xsi:type="Label" Y="65" X="400" Font="bats" Alignment="Right" ID="lAttackPCFrom" />
+				<Component xsi:type="Label" Y="105" X="400" Font="bats" Alignment="Right" ID="lDefenseFrom" />
+				<Component xsi:type="Label" Y="145" X="400" Font="bats" Alignment="Right" ID="lDefensePCFrom" />
+				<Component xsi:type="Label" Y="185" X="400" Font="bats" Alignment="Right" ID="lMAttackFrom" />
+				<Component xsi:type="Label" Y="225" X="400" Font="bats" Alignment="Right" ID="lMDefFrom" />
+				<Component xsi:type="Label" Y="265" X="400" Font="bats" Alignment="Right" ID="lMDefPCFrom" />
+
+				<Component xsi:type="Label" Y="25" X="550" Font="bats" Alignment="Right" ID="lAttackTo" />
+				<Component xsi:type="Label" Y="65" X="550" Font="bats" Alignment="Right" ID="lAttackPCTo" />
+				<Component xsi:type="Label" Y="105" X="550" Font="bats" Alignment="Right" ID="lDefenseTo" />
+				<Component xsi:type="Label" Y="145" X="550" Font="bats" Alignment="Right" ID="lDefensePCTo" />
+				<Component xsi:type="Label" Y="185" X="550" Font="bats" Alignment="Right" ID="lMAttackTo" />
+				<Component xsi:type="Label" Y="225" X="550" Font="bats" Alignment="Right" ID="lMDefTo" />
+				<Component xsi:type="Label" Y="265" X="550" Font="bats" Alignment="Right" ID="lMDefPCTo" />
+			</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="800" Y="240" W="480" H="480">
+			<Component xsi:type="List" X="0" Y="20" W="730" H="450" ID="lbWeapons" Visible="false">
+				@foreach(var weapon in @Model.AvailableWeapons) {
+					<Component xsi:type="Label" Y="0" X="20" ID='@("Weapon" + weapon.ID)' Click="WeaponSelected" Focussed="WeaponFocussed">@weapon.Name</Component>
+				}
+			</Component>
+
+			<Component xsi:type="List" X="0" Y="20" W="730" H="450" ID="lbArmour" Visible="false">
+				@foreach(var armour in @Model.AvailableArmour) {
+					<Component xsi:type="Label" Y="0" X="20" ID='@("Armour" + armour.ID)' Click="ArmourSelected" Focussed="ArmourFocussed">@armour.Name</Component>
+				}
+			</Component>
+
+			<Component xsi:type="List" X="0" Y="20" W="730" H="450" ID="lbAccessories" Visible="false">
+				@foreach(var accessory in @Model.AvailableAccessories) {
+					<Component xsi:type="Label" Y="0" X="20" ID='@("Accessory" + accessory.ID)' Click="AccessorySelected" Focussed="AccessoryFocussed">@accessory.Name</Component>
+				}
+			</Component>
+		</Component>
+	
+	</Root>
+</Layout>

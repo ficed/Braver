@@ -7,7 +7,16 @@ using System.Xml.Serialization;
 
 namespace Braver {
 
+    public enum InventoryItemKind {
+        Item,
+        Weapon,
+        Armour,
+        Accessory,
+        Blank,
+    }
+
     public class InventoryItem {
+        public InventoryItemKind Kind { get; set; }
         public int ItemID { get; set; }
         public int Quantity { get; set; }
     }
@@ -174,6 +183,42 @@ namespace Braver {
                 while ((Characters[i] != null) && (Characters[i].CharIndex > i))
                     Characters.Insert(i, null);
             }
+        }
+
+        public bool GiveInventoryItem(InventoryItemKind kind, int id, int quantity = 1) {
+            var entry = Inventory.Find(inv => (inv.Kind == kind) && (inv.ItemID == id));
+            if (entry != null) {
+                if ((entry.Quantity + quantity) > 99) {
+                    entry.Quantity = 99;
+                    return false;
+                }
+                entry.Quantity += quantity;
+            } else {
+                entry = new InventoryItem { Kind = kind, ItemID = id, Quantity = quantity };
+                int index = Inventory.FindIndex(inv => inv.Kind == InventoryItemKind.Blank);
+                if (index >= 0)
+                    Inventory[index] = entry;
+                else
+                    Inventory.Add(entry);
+            }
+            return true;
+        }
+
+        public bool TakeInventoryItem(InventoryItemKind kind, int id, int quantity = 1, bool takePartial = false) {
+            var entry = Inventory.Find(inv => (inv.Kind == kind) && (inv.ItemID == id));
+            if (entry == null) return false;
+            if (entry.Quantity < quantity) {
+                if (!takePartial) return false;
+                entry.Quantity = 0;
+            } else
+                entry.Quantity -= quantity;
+
+            if (entry.Quantity <= 0) {
+                entry.Kind = InventoryItemKind.Blank;
+                while (Inventory.Last().Kind == InventoryItemKind.Blank)
+                    Inventory.RemoveAt(Inventory.Count - 1);
+            }
+            return true;
         }
     }
 }

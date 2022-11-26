@@ -41,6 +41,7 @@ namespace Ficedula.FF7 {
                 Accessory accessory = new Accessory {
                     Name = names.Get(index),
                     Description = descriptions.Get(index),
+                    ID = index,
                 };
                 index++;
 

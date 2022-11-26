@@ -68,22 +68,26 @@ namespace Braver.Field {
 
         private List<WalkmeshTriangle> _walkmesh;
 
-        private FieldDestination _avatarDestination;
-
         public override Color ClearColor => Color.Black;
 
-        public Background Background { get; }
-        public List<Entity> Entities { get; }
+        public Background Background { get; private set; }
+        public List<Entity> Entities { get; private set; }
         public Entity Player { get; private set; }
-        public List<FieldModel> FieldModels { get; }
-        public DialogEvent FieldDialog { get; }
+        public List<FieldModel> FieldModels { get; private set; }
+        public DialogEvent FieldDialog { get; private set; }
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
-        public Dialog Dialog { get; }
+        public Dialog Dialog { get; private set; }
 
-        public FieldScreen(FieldDestination destination, FGame g, GraphicsDevice graphics) : base(g, graphics) {
+        private FieldDestination _destination;
+        public FieldScreen(FieldDestination destination) {
+            _destination = destination;
+        }
 
+        public override void Init(FGame g, GraphicsDevice graphics) {
+            base.Init(g, graphics);
             var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
-            string file = mapList.Items[destination.DestinationFieldID];
+            string file = mapList.Items[_destination.DestinationFieldID];
+    
 
             using (var s = g.Open("field", file)) {
                 var field = new FieldFile(s);
@@ -208,8 +212,6 @@ namespace Braver.Field {
             }
 
             Dialog = new Dialog(g, graphics);
-
-            _avatarDestination = destination;
 
             g.Memory.ResetScratch();
 
@@ -432,7 +434,7 @@ namespace Braver.Field {
                 }
 
                 if (input.IsJustDown(InputKey.Menu) && Options.HasFlag(FieldOptions.MenuEnabled)) {
-                    Game.PushScreen(new UI.Layout.LayoutScreen(Game, Graphics, "MainMenu"));
+                    Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     return;
                 }
 
@@ -654,10 +656,10 @@ namespace Braver.Field {
         }
 
         public void CheckPendingPlayerSetup() {
-            if ((_avatarDestination != null) && (Player.Model != null)) {
-                DropToWalkmesh(Player, new Vector2(_avatarDestination.X, _avatarDestination.Y), _avatarDestination.Triangle);
-                Player.Model.Rotation = new Vector3(0, 0, 360f * _avatarDestination.Orientation / 255f);
-                _avatarDestination = null;
+            if ((_destination != null) && (Player.Model != null)) {
+                DropToWalkmesh(Player, new Vector2(_destination.X, _destination.Y), _destination.Triangle);
+                Player.Model.Rotation = new Vector3(0, 0, 360f * _destination.Orientation / 255f);
+                _destination = null;
             }
         }
 

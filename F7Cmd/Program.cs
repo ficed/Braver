@@ -58,7 +58,7 @@ if (args[0].Equals("Kernel", StringComparison.OrdinalIgnoreCase)) {
 
         var attacks = new Ficedula.FF7.Battle.AttackCollection(new MemoryStream(kernel.Sections.ElementAt(1)));
 
-        var txt = new Ficedula.FF7.KernelText(kernel.Sections.ElementAt(17));
+        var txt = new Ficedula.FF7.KernelText(kernel.Sections.ElementAt(19));
         Console.WriteLine(txt.Get(0));
         Console.WriteLine(txt.Get(1));
     }

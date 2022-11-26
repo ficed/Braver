@@ -141,10 +141,13 @@ namespace Braver.Battle {
             new Vector3(7 * 256, 0, 6 * 256),
         };
 
-        public BattleScreen(FGame g, GraphicsDevice graphics, int formationID) : base(g, graphics) {
-            _graphics = graphics;
-
-            _scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[formationID];
+        private int _formationID;
+        public BattleScreen(int formationID) {
+            _formationID = formationID;
+        }
+        public override void Init(FGame g, GraphicsDevice graphics) {
+            base.Init(g, graphics);
+            _scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[_formationID];
 
             LoadBackground();
 
@@ -157,7 +160,6 @@ namespace Braver.Battle {
                 ZFar = 100000,
                 FOV = 51f, //Seems maybe vaguely correct, more or less what Proud Clod uses for its preview...
             };
-
             foreach(var enemy in _scene.Enemies) {
                 AddModel(
                     Ficedula.FF7.Battle.SceneDecoder.ModelIDToFileName(enemy.Enemy.ID),
@@ -169,7 +171,7 @@ namespace Braver.Battle {
                 AddModel(player.First.BattleModel, player.Second);
             }
 
-            _ui = new UI.Layout.LayoutScreen(g, graphics, "battle", new UIHandler());
+            _ui = new UI.Layout.LayoutScreen("battle", new UIHandler());
 
             g.Audio.PlayMusic("bat"); //TODO!
         }

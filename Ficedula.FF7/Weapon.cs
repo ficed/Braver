@@ -20,6 +20,7 @@ namespace Ficedula.FF7 {
     }
   
     public class EquipItem {
+        public int ID { get; set; }
         public EquipRestrictions Restrictions { get; set; }
 
         public string Name { get; set; }
@@ -74,6 +75,7 @@ namespace Ficedula.FF7 {
                 Weapon weapon = new Weapon {
                     Name = names.Get(index),
                     Description = descriptions.Get(index),
+                    ID = index,
                 };
                 index++;
                 weapon.TargettingFlags = (TargettingFlags)data.ReadU8();

@@ -55,7 +55,7 @@ namespace Braver {
         }
 
         private Stack<Screen> _screens = new();
-
+        private Microsoft.Xna.Framework.Graphics.GraphicsDevice _graphics;
 
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
@@ -63,8 +63,8 @@ namespace Braver {
 
         private Dictionary<string, string> _prefs;
 
-        public FGame(string data, string bdata) {
-
+        public FGame(Microsoft.Xna.Framework.Graphics.GraphicsDevice graphics, string data, string bdata) {
+            _graphics = graphics;
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "char.lgp"))),
@@ -127,6 +127,7 @@ namespace Braver {
 
         public void PushScreen(Screen s) {
             _screens.Push(s);
+            s.Init(this, _graphics);
         }
 
         public void PopScreen(Screen current) {
@@ -142,7 +143,7 @@ namespace Braver {
                 _screens.Pop();
                 current.Dispose();
             }
-            _screens.Push(to);
+            PushScreen(to);
         }
 
         public void InvokeOnMainThread(Action a) {
