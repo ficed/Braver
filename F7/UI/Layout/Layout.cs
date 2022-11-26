@@ -91,7 +91,10 @@ namespace Braver.UI.Layout {
     }
 
     public class List : Container {
+        [XmlAttribute]
         public int ItemHeight { get; set; } = 30;
+        [XmlAttribute]
+        public int ItemSpacing { get; set; } = 0;
 
         public int GetSelectedIndex(LayoutModel model) => Children.IndexOf(model.Focus);
 
@@ -102,7 +105,7 @@ namespace Braver.UI.Layout {
                 Children[i].Visible = (i >= _first) && (i < (_first + H / ItemHeight));
                 Children[i].Y = (i - _first) * ItemHeight;
                 if (Children[i] is SizedComponent sized)
-                    sized.H = ItemHeight;
+                    sized.H = ItemHeight - ItemSpacing;
             }
         }
 

@@ -454,6 +454,8 @@ namespace Braver.WorldMap {
                     Game.SaveData.WorldMapX = _avatarModel.Translation.X;
                     Game.SaveData.WorldMapY = _avatarModel.Translation.Z;
                     Game.SaveData.Module = Module.WorldMap;
+                    Game.SaveMap.MenuLocked &= ~(MenuMask.Save | MenuMask.PHS);
+                    Game.SaveMap.MenuHidden &= ~(MenuMask.Save | MenuMask.PHS);
                     Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     InputEnabled = true;
                 });

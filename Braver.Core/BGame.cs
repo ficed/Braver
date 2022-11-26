@@ -27,6 +27,7 @@ namespace Braver {
 
 
         public void Save(string path) {
+            Directory.CreateDirectory(Path.GetDirectoryName(path + ".sav"));
             using (var fs = File.OpenWrite(path + ".sav"))
                 Serialisation.Serialise(SaveData, fs);
             using (var fs = File.OpenWrite(path + ".mem"))

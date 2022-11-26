@@ -109,6 +109,7 @@ namespace Braver {
 
         }
 
+        public static string GetSavePath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "save");
         private static string GetPrefsPath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "prefs.xml");
 
         public string GetPref(string name, string def = "") {

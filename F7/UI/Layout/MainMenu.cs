@@ -48,6 +48,8 @@ namespace Braver.UI.Layout {
                 _game.PushScreen(new LayoutScreen("ItemMenu"));
             } else if (selected == lEquip) {
                 _game.PushScreen(new LayoutScreen("EquipMenu", parm: 0));
+            } else if (selected == lSave) {
+                _game.PushScreen(new LayoutScreen("SaveMenu"));
             } else if (selected == lQuit) {
                 _game.PushScreen(new LayoutScreen("Quit"));
             }
