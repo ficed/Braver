@@ -29,6 +29,7 @@ namespace Ficedula.FF7.Battle {
         Inflict,
         Cure,
         Toggle,
+        None,
     }
 
 
@@ -94,9 +95,16 @@ namespace Ficedula.FF7.Battle {
             Power = (byte)s.ReadByte();
             AttackCondition = (AttackCondition)s.ReadByte();
             StatusChance = (byte)s.ReadByte();
-            StatusType = ((StatusChance & 0x40) != 0) ? AttackStatusType.Cure :
-                ((StatusChance & 0x80) != 0) ? AttackStatusType.Toggle :
-                AttackStatusType.Inflict;
+            switch (StatusChance & 0xC0) {
+                case 0x80:
+                    StatusType = AttackStatusType.Toggle; break;
+                case 0x40:
+                    StatusType = AttackStatusType.Cure; break;
+                case 0x0:
+                    StatusType = AttackStatusType.Inflict; break;
+                default:
+                    StatusType = AttackStatusType.None; break;
+            }
             StatusChance &= 0x3f;
             AdditionalEffects = (byte)s.ReadByte();
             AdditionalEffectsParam= (byte)s.ReadByte();

@@ -21,14 +21,14 @@ var enemies = scene
     .GroupBy(ei => ei.Enemy.ID)
     .SelectMany(group => group.Select((ei, index) => new EnemyCombatant(ei, group.Count() == 1 ? null : index)));
 
-var engine = new Braver.Battle.Engine(128, chars.Concat<ICombatant>(enemies));
+var engine = new Engine(128, chars.Concat<ICombatant>(enemies));
 
 while (true) {
     engine.Tick();
     var ready = engine.Combatants.Where(c => c.TTimer.IsFull);
     if (ready.Any()) {
         Console.WriteLine($"At {engine.GTimer.Ticks} gticks, {string.Join(", ", ready.Select(c => c.Name))} ready to act");
-        
+
         foreach(var chr in ready.OfType<CharacterCombatant>()) {
             Console.WriteLine(chr.Name);
             var ability = MenuChoose(chr);
@@ -47,9 +47,9 @@ while (true) {
             );
             foreach (var result in results) {
                 Console.WriteLine($"--Target {result.Target}, hit {result.Hit}, inflict {result.InflictStatus} remove {result.RemoveStatus} recovery {result.Recovery}, damage HP {result.HPDamage} MP {result.MPDamage}");
+                result.Apply();
             }
             chr.TTimer.Reset();
-            Console.ReadLine();
         }
 
         foreach (var enemy in ready.OfType<EnemyCombatant>()) {
@@ -68,10 +68,15 @@ while (true) {
             );
             foreach(var result in results) {
                 Console.WriteLine($"--Target {result.Target}, hit {result.Hit}, inflict {result.InflictStatus} remove {result.RemoveStatus} recovery {result.Recovery}, damage HP {result.HPDamage} MP {result.MPDamage}");
+                result.Apply();
             }
             enemy.TTimer.Reset();
-            Console.ReadLine();
         }
+
+        foreach(var c in engine.Combatants) {
+            Console.WriteLine($"{c.Name} HP {c.HP}/{c.MaxHP} MP {c.MP}/{c.MaxMP} Status {c.Statuses}");
+        }
+        Console.WriteLine();
     }
 
 }

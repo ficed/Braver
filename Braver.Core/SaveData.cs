@@ -145,6 +145,17 @@ namespace Braver {
         [XmlIgnore]
         public bool IsBackRow => Flags.HasFlag(CharFlags.BackRow);
 
+        public IEnumerable<(Materia Materia, int AP, int Level)> EquippedMateria(BGame game) {
+            var materias = game.Singleton<Materias>();
+            foreach(var mat in WeaponMateria.Concat(ArmourMateria)) {
+                var materia = materias[mat.MateriaID];
+                int level = Enumerable.Range(0, materia.APLevels.Count)
+                    .Where(lvl => materia.APLevels[lvl] <= mat.AP)
+                    .Count() + 1;
+                yield return (materia, mat.AP, level);
+            }
+        }
+
         public Weapon GetWeapon(BGame game) {
             return EquipWeapon < 0 ? null : game.Singleton<Weapons>()[EquipWeapon];
         }

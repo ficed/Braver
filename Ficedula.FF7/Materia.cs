@@ -148,6 +148,9 @@ namespace Ficedula.FF7 {
     }
 
     public class MasterMagicMateria : MagicMateria {
+
+        public override IEnumerable<int> GrantedAtLevel(int level) => _magics.Select(m => m.Value);
+
         protected override void DoInit(byte subType, IEnumerable<byte> attrs) {
             _magics = Enumerable.Range(0, 53).Cast<int?>().ToList();
         }
@@ -157,6 +160,11 @@ namespace Ficedula.FF7 {
         protected List<int?> _magics;
 
         public IReadOnlyList<int?> Magics => _magics.AsReadOnly();
+
+        public virtual IEnumerable<int> GrantedAtLevel(int level) => Magics
+            .Take(level)
+            .Where(m => m.HasValue)
+            .Select(m => m.Value);
 
         protected override void DoInit(byte subType, IEnumerable<byte> attrs) {
             _magics = attrs

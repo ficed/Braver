@@ -48,9 +48,11 @@ namespace Braver.Battle {
         public void Tick() {
             GTimer.Tick();
             foreach(var comb in _combatants) {
-                comb.VTimer.Tick();
-                comb.CTimer.Tick();
-                comb.TTimer.Tick();
+                if (comb.HP > 0) { //TODO - valid check, other statuses, ...?
+                    comb.VTimer.Tick();
+                    comb.CTimer.Tick();
+                    comb.TTimer.Tick();
+                }
             }
         }
 
@@ -463,9 +465,9 @@ namespace Braver.Battle {
                 Target.Statuses &= ~RemoveStatus;
                 //TODO Recovery
                 if (HPDamage != 0)
-                    Target.HP = Math.Min(Target.MaxHP, Math.Max(0, Target.HP - HPDamage));
+                    Target.HP = Math.Min(Target.MaxHP, Math.Max(0, Target.HP + HPDamage));
                 if (MPDamage != 0)
-                    Target.MP = Math.Min(Target.MaxMP, Math.Max(0, Target.MP - MPDamage));
+                    Target.MP = Math.Min(Target.MaxMP, Math.Max(0, Target.MP + MPDamage));
             }
         }
     }

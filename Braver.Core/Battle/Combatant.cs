@@ -113,6 +113,32 @@ namespace Braver.Battle {
                     Formula = AttackFormula.Physical, //TODO                    
                 }
             });
+
+            var kernel = g.Singleton<KernelCache>();
+            var attacks = g.Singleton<Attacks>();
+            var materia = chr.EquippedMateria(g);
+            var grantedMagic = materia
+                .Where(m => m.Materia is MagicMateria)
+                .SelectMany(m => (m.Materia as MagicMateria).GrantedAtLevel(m.Level))
+                .Distinct()
+                .OrderBy(m => m);
+
+            if (grantedMagic.Any()) {
+                var mText = new KernelText(kernel.Kernel.Sections[18]);
+                var magic = new CharacterAction {
+                    Name = "Magic",
+                    SubMenu = new List<CharacterActionItem>()
+                };
+                Actions.Add(magic);
+                foreach(int m in grantedMagic) {
+                    magic.SubMenu.Add(new CharacterActionItem {
+                        ID = m,
+                        Ability = attacks[m].ToAbility(this),
+                        Name = mText.Get(m),
+                    });
+                }
+            }
+
             Actions.Add(new CharacterAction {
                 Name = "Item",
                 SubMenu = g.SaveData

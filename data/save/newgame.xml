@@ -36,9 +36,16 @@
 			<MaxMP>60</MaxMP>
 			<XP>8000</XP>
 			<XPTNL>500</XPTNL>
-			<WeaponMateria>0</WeaponMateria>
-			<WeaponMateria>1</WeaponMateria>
-			<ArmourMateria>2</ArmourMateria>
+			<WeaponMateria>
+				<OwnedMateria>
+					<MateriaID>49</MateriaID>
+					<AP>21</AP>
+				</OwnedMateria>
+				<OwnedMateria>
+					<MateriaID>53</MateriaID>
+					<AP>0</AP>
+				</OwnedMateria>
+			</WeaponMateria>
 			<BattleModel>rt</BattleModel>
 		</Character>
 		<Character>

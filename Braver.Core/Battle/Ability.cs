@@ -121,7 +121,8 @@ namespace Braver.Battle {
                     cure = inflict = Statuses.None;
                     break;
                 default:
-                    throw new NotImplementedException();
+                    inflict = cure = toggle = Statuses.None;
+                    break;
             }
 
             return new Ability {
@@ -145,5 +146,21 @@ namespace Braver.Battle {
             };
         }
 
+    }
+
+    public class Attacks : Cacheable {
+
+        private Ficedula.FF7.Battle.AttackCollection _attacks;
+
+        public Ficedula.FF7.Battle.Attack this[int index] => _attacks.Attacks[index];
+        public int Count => _attacks.Attacks.Count;
+
+
+        public override void Init(BGame g) {
+            var kernel = g.Singleton<KernelCache>();
+            _attacks = new Ficedula.FF7.Battle.AttackCollection(
+                new MemoryStream(kernel.Kernel.Sections[1])
+            );
+        }
     }
 }

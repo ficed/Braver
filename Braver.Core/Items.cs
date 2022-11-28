@@ -89,4 +89,14 @@ namespace Braver {
         }
     }
 
+    public class Materias : Cacheable {
+        private MateriaCollection _materia;
+        public Materia this[int index] => _materia.Item[index];
+        public int Count => _materia.Item.Count;
+
+        public override void Init(BGame g) {
+            var kernel = g.Singleton<KernelCache>();
+            _materia = new MateriaCollection(kernel.Kernel);
+        }
+    }
 }
