@@ -60,6 +60,18 @@ namespace Braver.Battle {
         public Statuses Statuses { get; set; }
     }
 
+    public class CharacterActionItem {
+        public int ID { get; set; }
+        public Ability Ability { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class CharacterAction {
+        public Ability? Ability { get; set; }
+        public string Name { get; set; }
+        public List<CharacterActionItem> SubMenu { get; set; }
+    }
+
     public class CharacterCombatant : ICombatant {
 
         private Character _char;
@@ -67,23 +79,62 @@ namespace Braver.Battle {
 
         public string Name => _char.Name;
 
-        public CharacterCombatant(Character chr) {
+        public List<CharacterAction> Actions { get; } = new();
+
+        public CharacterCombatant(BGame g, Character chr) {
             _char = chr;
+
+            var weapon = chr.GetWeapon(g);
+            var armour = chr.GetArmour(g);
+            var accessory = chr.GetAccessory(g);
+
             _stats = new CombatStats {
                 Dex = chr.Dexterity,
                 Lck = chr.Luck,
                 Level = chr.Level,
-                CriticalChance = 0, //TODO weapon crit%
-                Att = 90, //TODO Str + Weapon Attack Bonus
-                Def = chr.Vitality, //TODO Vit + Armour Defense Bonus
-                DfPC = chr.Dexterity / 4, //TODO [Dex / 4] + Armour Defense% Bonus
+                CriticalChance = weapon.CriticalChance,
+                Att = chr.Strength + (weapon?.AttackStrength ?? 0),
+                Def = chr.Vitality + (armour?.Defense ?? 0),
+                DfPC = chr.Dexterity / 4 + (armour?.DefensePercent ?? 0),
                 MAt = chr.Spirit,
-                MDf = chr.Spirit, //TODO Spr + Armour MDefense Bonus
-                MDPC = 0, //TODO Armour MDefense% Bonus
+                MDf = chr.Spirit + (armour?.MDefense ?? 0),
+                MDPC = armour?.MDefensePercent ?? 0,
             };
 
-            //Attack action:                  //AtPC = 90, //TODO weapon at%,
-
+            Actions.Add(new CharacterAction {
+                Name = "Attack",
+                Ability = new Ability {
+                    PAtPercent = (byte)weapon.HitChance,
+                    Power = (byte)(chr.Strength + weapon.AttackStrength),
+                    IsPhysical = true,
+                    Elements = new HashSet<Element>(weapon.Elements.Split()),
+                    LongRange = !weapon.TargettingFlags.HasFlag(TargettingFlags.ShortRange),
+                    InflictStatus = weapon.Statuses,
+                    Formula = AttackFormula.Physical, //TODO                    
+                }
+            });
+            Actions.Add(new CharacterAction {
+                Name = "Item",
+                SubMenu = g.SaveData
+                    .Inventory
+                    .Where(inv => inv.Kind == InventoryItemKind.Item)
+                    .Select(inv => g.Singleton<Items>()[inv.ItemID])
+                    .Where(item => item.Restrictions.HasFlag(EquipRestrictions.CanUseInBattle))
+                    .Select(item => {
+                        return new CharacterActionItem {
+                            ID = item.ID,
+                            Ability = new Ability {
+                                Power = item.Power,
+                                Elements = new HashSet<Element>(item.Elements.Split()),
+                                StatusChance = item.StatusChance,
+                                InflictStatus = item.StatusType == AttackStatusType.Inflict ? item.Statuses : Statuses.None,
+                                RemoveStatus = item.StatusType == AttackStatusType.Cure ? item.Statuses : Statuses.None,
+                                ToggleStatus = item.StatusType == AttackStatusType.Toggle ? item.Statuses : Statuses.None,                                
+                            }
+                        };
+                    })
+                    .ToList()
+            });
         }
 
         public CombatStats BaseStats => _stats;

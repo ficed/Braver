@@ -13,13 +13,43 @@ namespace Braver {
     }
 
     public abstract class BGame {
+
+        protected class LGPDataSource : DataSource {
+            private Ficedula.FF7.LGPFile _lgp;
+
+            public LGPDataSource(Ficedula.FF7.LGPFile lgp) {
+                _lgp = lgp;
+            }
+
+            public override IEnumerable<string> Scan() => _lgp.Filenames;
+            public override Stream TryOpen(string file) => _lgp.TryOpen(file);
+        }
+
+        protected class FileDataSource : DataSource {
+            private string _root;
+
+            public FileDataSource(string root) {
+                _root = root;
+            }
+
+            public override IEnumerable<string> Scan() {
+                //TODO subdirectories
+                return Directory.GetFiles(_root).Select(s => Path.GetFileName(s));
+            }
+
+            public override Stream TryOpen(string file) {
+                string fn = Path.Combine(_root, file);
+                if (File.Exists(fn))
+                    return new FileStream(fn, FileMode.Open, FileAccess.Read);
+                return null;
+            }
+        }
         public VMM Memory { get; } = new();
         public SaveMap SaveMap { get; }
 
-        public SaveData SaveData { get; private set; }
+        public SaveData SaveData { get; protected set; }
         protected Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
         private Dictionary<Type, object> _singletons = new();
-        private Dictionary<Type, Dictionary<int, CacheItem>> _cacheItems = new();
 
         public BGame() {
             SaveMap = new SaveMap(Memory);
@@ -42,6 +72,14 @@ namespace Braver {
             SaveData.Loaded();
         }
 
+        public T Singleton<T>() where T : Cacheable, new() {
+            return Singleton<T>(() => {
+                T t = new T();
+                t.Init(this);
+                return t;
+            });
+        }
+
         public T Singleton<T>(Func<T> create) {
             if (_singletons.TryGetValue(typeof(T), out object obj))
                 return (T)obj;
@@ -50,17 +88,6 @@ namespace Braver {
                 _singletons[typeof(T)] = t;
                 return t;
             }
-        }
-
-        public T CacheItem<T>(int id) where T : CacheItem, new() {
-            if (!_cacheItems.TryGetValue(typeof(T), out var dict))
-                dict = _cacheItems[typeof(T)] = new Dictionary<int, CacheItem>();
-            if (!dict.TryGetValue(id, out var item)) {
-                T t = new T();
-                t.Init(this, id);
-                item = dict[id] = t;
-            }
-            return (T)item;
         }
 
 
@@ -104,22 +131,8 @@ namespace Braver {
 
     }
 
-    public abstract class CacheItem {
-        public abstract void Init(BGame g, int index);
+    public abstract class Cacheable {
+        public abstract void Init(BGame g);
     }
 
-    public class GameText {
-        private List<Ficedula.FF7.KernelText> _texts = new();
-        public GameText(BGame g) {
-            var kernel = new Ficedula.FF7.Kernel(g.Open("kernel", "kernel.bin"));
-            _texts.AddRange(Enumerable.Repeat<Ficedula.FF7.KernelText>(null, 9));
-            _texts.AddRange(
-                kernel.Sections
-                .Skip(9)
-                .Select(section => new Ficedula.FF7.KernelText(section))
-            );
-        }
-
-        public string Get(int section, int item) => _texts[section].Get(item);
-    }
 }

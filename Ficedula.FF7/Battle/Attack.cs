@@ -78,6 +78,7 @@ namespace Ficedula.FF7.Battle {
         public short ActionID { get; set; }
         public string Name { get; set; }
 
+        public Attack() { }
         public Attack(Stream s) {
             AttackPC = (byte)s.ReadByte();
             ImpactEffect = (byte)s.ReadByte();

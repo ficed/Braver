@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ficedula.FF7;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -143,6 +144,16 @@ namespace Braver {
 
         [XmlIgnore]
         public bool IsBackRow => Flags.HasFlag(CharFlags.BackRow);
+
+        public Weapon GetWeapon(BGame game) {
+            return EquipWeapon < 0 ? null : game.Singleton<Weapons>()[EquipWeapon];
+        }
+        public Armour GetArmour(BGame game) {
+            return EquipArmour < 0 ? null : game.Singleton<Armours>()[EquipArmour];
+        }
+        public Accessory GetAccessory(BGame game) {
+            return EquipAccessory < 0 ? null : game.Singleton<Accessories>()[EquipAccessory];
+        }
     }
 
     public class SaveData {

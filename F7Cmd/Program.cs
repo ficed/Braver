@@ -53,6 +53,8 @@ if (args[0].Equals("Kernel", StringComparison.OrdinalIgnoreCase)) {
 
         var accessories = new Ficedula.FF7.AccessoryCollection(kernel);
 
+        var items = new Ficedula.FF7.ItemCollection(kernel);
+
         File.WriteAllBytes(@"C:\temp\s9.bin", kernel.Sections.ElementAt(9));
         File.WriteAllBytes(@"C:\temp\s16.bin", kernel.Sections.ElementAt(16));
 

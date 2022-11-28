@@ -11,7 +11,7 @@ namespace Ficedula.FF7 {
 
         private List<byte[]> _sections = new();
 
-        public IEnumerable<byte[]> Sections => _sections.AsReadOnly();
+        public IReadOnlyList<byte[]> Sections => _sections.AsReadOnly();
 
         public Kernel(Stream source) {
             while (source.Position < source.Length) {

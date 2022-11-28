@@ -20,14 +20,10 @@ namespace Braver.UI.Layout {
 
         public override bool IsRazorModel => true;
 
-        private WeaponCollection _weapons;
-        private ArmourCollection _armours;
-        private AccessoryCollection _accessories;
-
         public Character Character => _game.SaveData.Party[(int)_screen.Param];
-        public Weapon Weapon => _weapons.Weapons.ElementAtOrDefault(Character.EquipWeapon);
-        public Armour Armour => _armours.Armour.ElementAtOrDefault(Character.EquipArmour);
-        public Accessory Accessory => _accessories.Accessories.ElementAtOrDefault(Character.EquipAccessory);
+        public Weapon Weapon => Character.GetWeapon(_game);
+        public Armour Armour => Character.GetArmour(_game);
+        public Accessory Accessory => Character.GetAccessory(_game);
 
         public List<Weapon> AvailableWeapons { get; } = new();
         public List<Armour> AvailableArmour { get; } = new();
@@ -35,10 +31,11 @@ namespace Braver.UI.Layout {
 
         public override void Created(FGame g, LayoutScreen screen) {
             base.Created(g, screen);
+
             var kernel = _game.Singleton(() => new Kernel(_game.Open("kernel", "kernel.bin")));
-            _weapons = _game.Singleton(() => new WeaponCollection(kernel));
-            _armours = _game.Singleton(() => new ArmourCollection(kernel));
-            _accessories = _game.Singleton(() => new AccessoryCollection(kernel));
+            var weapons = _game.Singleton(() => new WeaponCollection(kernel));
+            var armours = _game.Singleton(() => new ArmourCollection(kernel));
+            var accessories = _game.Singleton(() => new AccessoryCollection(kernel));
 
             AvailableWeapons.Clear();
             AvailableWeapons.AddRange(
@@ -49,7 +46,7 @@ namespace Braver.UI.Layout {
                 .Where(id => id >= 0)
                 .Distinct()
                 .OrderBy(i => i)
-                .Select(i => _weapons.Weapons[i])
+                .Select(i => weapons.Weapons[i])
             );
 
             AvailableArmour.Clear();
@@ -61,7 +58,7 @@ namespace Braver.UI.Layout {
                 .Where(id => id >= 0)
                 .Distinct()
                 .OrderBy(i => i)
-                .Select(i => _armours.Armour[i])
+                .Select(i => armours.Armour[i])
             );
 
             AvailableAccessories.Clear();
@@ -73,7 +70,7 @@ namespace Braver.UI.Layout {
                 .Where(id => id >= 0)
                 .Distinct()
                 .OrderBy(i => i)
-                .Select(i => _accessories.Accessories[i])
+                .Select(i => accessories.Accessories[i])
             );
         }
 

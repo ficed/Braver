@@ -43,6 +43,10 @@ namespace Braver.Battle {
             });
         }
 
+        public void Reset() {
+            _value = 0;
+        }
+
         public void Tick() {
             if (_value < _max) {
                 _value += _increment;

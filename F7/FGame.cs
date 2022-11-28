@@ -23,37 +23,6 @@ namespace Braver {
 
     public class FGame : BGame {
 
-        private class LGPDataSource : DataSource {
-            private Ficedula.FF7.LGPFile _lgp;
-
-            public LGPDataSource(Ficedula.FF7.LGPFile lgp) {
-                _lgp = lgp;
-            }
-
-            public override IEnumerable<string> Scan() => _lgp.Filenames;
-            public override Stream TryOpen(string file) => _lgp.TryOpen(file);
-        }
-
-        private class FileDataSource : DataSource {
-            private string _root;
-
-            public FileDataSource(string root) {
-                _root = root;
-            }
-
-            public override IEnumerable<string> Scan() {
-                //TODO subdirectories
-                return Directory.GetFiles(_root).Select(s => Path.GetFileName(s));
-            }
-
-            public override Stream TryOpen(string file) {
-                string fn = Path.Combine(_root, file);
-                if (File.Exists(fn))
-                    return new FileStream(fn, FileMode.Open, FileAccess.Read);
-                return null;
-            }
-        }
-
         private Stack<Screen> _screens = new();
         private Microsoft.Xna.Framework.Graphics.GraphicsDevice _graphics;
 

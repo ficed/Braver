@@ -64,24 +64,18 @@ namespace Braver.UI.Layout {
 
 		public static (string Item, string Description) GetInventory(FGame game, int index) {
 			var inv = game.SaveData.Inventory[index];
-            switch (inv.Kind) {
+			switch (inv.Kind) {
 				case InventoryItemKind.Item:
-                    var item = game.CacheItem<Item>(inv.ItemID);
+					var item = game.Singleton<Items>()[inv.ItemID];
 					return (item.Name, item.Description);
 				case InventoryItemKind.Weapon:
-					var kernel = game.Singleton(() => new Kernel(game.Open("kernel", "kernel.bin")));
-					var weapons = game.Singleton(() => new WeaponCollection(kernel));
-					var weapon = weapons.Weapons[index];
+					var weapon = game.Singleton<Weapons>()[inv.ItemID];
 					return (weapon.Name, weapon.Description);
 				case InventoryItemKind.Armour:
-                    kernel = game.Singleton(() => new Kernel(game.Open("kernel", "kernel.bin")));
-                    var armours = game.Singleton(() => new ArmourCollection(kernel));
-                    var armour = armours.Armour[index];
-                    return (armour.Name, armour.Description);
-                case InventoryItemKind.Accessory:
-                    kernel = game.Singleton(() => new Kernel(game.Open("kernel", "kernel.bin")));
-                    var accessories = game.Singleton(() => new AccessoryCollection(kernel));
-                    var accessory = accessories.Accessories[index];
+					var armour = game.Singleton<Armours>()[inv.ItemID];
+					return (armour.Name, armour.Description);
+				case InventoryItemKind.Accessory:
+					var accessory = game.Singleton<Accessories>()[inv.ItemID];
                     return (accessory.Name, accessory.Description);
 				default:
 					throw new NotImplementedException();
@@ -94,7 +88,7 @@ namespace Braver.UI.Layout {
 		}
 
         public void KeyItemFocussed() {
-			var keyItem = _game.CacheItem<KeyItem>(_game.SaveData.KeyItems[lbKeyItems.GetSelectedIndex(this)]);
+			var keyItem = _game.Singleton<KeyItems>().Items[_game.SaveData.KeyItems[lbKeyItems.GetSelectedIndex(this)]];
 			lDescription.Text = keyItem.Description;
 		}
 
