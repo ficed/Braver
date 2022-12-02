@@ -38,6 +38,7 @@ namespace Braver.Battle {
         public int MaxHP { get; }
         public int MP { get; set; }
         public int MaxMP { get; }
+        public int Level { get; }
 
         public Timer VTimer { get; set; }
         public Timer CTimer { get; set; }
@@ -58,6 +59,8 @@ namespace Braver.Battle {
         public Statuses ImmuneStatuses { get; }
 
         public Statuses Statuses { get; set; }
+
+        void Init(Engine engine, AICallbacks callbacks);
     }
 
     public class CharacterActionItem {
@@ -176,6 +179,8 @@ namespace Braver.Battle {
         }
         public int MaxMP { get => _char.MaxMP; }
 
+        public int Level => _char.Level;
+
         public Timer VTimer { get; set; }
         public Timer CTimer { get; set; }
         public Timer TTimer { get; set; }
@@ -193,6 +198,12 @@ namespace Braver.Battle {
         public Statuses ImmuneStatuses => Statuses.None; //TODO!!!
 
         public Statuses Statuses { get; set; }
+
+        public override string ToString() => Name;
+
+        public void Init(Engine engine, AICallbacks callbacks) {
+            //
+        }
     }
 
     public class EnemyCombatant : ICombatant {
@@ -203,6 +214,7 @@ namespace Braver.Battle {
         public string Name { get; private set; }
 
         public EnemyInstance Enemy => _enemy;
+        public AI AI { get; set; }
 
         public EnemyCombatant(EnemyInstance enemy, int? indexInGroup) {
             _enemy = enemy;
@@ -210,9 +222,8 @@ namespace Braver.Battle {
             _currentMP = enemy.Enemy.MP;
             Row = enemy.Row;
             IsBackRow = Row > 0;
-
             if (indexInGroup != null)
-                Name = _enemy.Enemy.Name + " " + ('A' + indexInGroup.Value);
+                Name = _enemy.Enemy.Name + " " + (char)('A' + indexInGroup.Value);
             else
                 Name = _enemy.Enemy.Name;
 
@@ -250,6 +261,7 @@ namespace Braver.Battle {
         public bool IsDefending { get; set; }
 
         public bool IsPlayer => false;
+        public int Level => _enemy.Enemy.Level;
 
         public bool PhysicalImmune { get; set; }
         public bool MagicalImmune { get; set; }
@@ -261,10 +273,19 @@ namespace Braver.Battle {
         public Statuses ImmuneStatuses => ~_enemy.Enemy.AllowedStatuses;
 
         public Statuses Statuses { get; set; }
+        public override string ToString() => Name;
+
+        public void Init(Engine engine, AICallbacks callbacks) {
+            AI = new AI(Enemy.Enemy.AI, new CombatantMemory(engine, this), callbacks);
+        }
     }
 
-
     public static class CombatantUtil {
+
+        public static bool IsAlive(this ICombatant combatant) {
+            return combatant.HP > 0; //TODO???
+        }
+
         public static CombatStats ModifiedStats(this ICombatant combatant) {
             var stats = combatant.BaseStats;
             foreach (var mod in combatant.StatModifiers)

@@ -76,9 +76,11 @@ namespace Braver.Battle {
 
             AttackFormula formula;
 
+            bool noSplit = true;
+
             switch(attack.DamageType & 0xf) {
                 case 0x1:
-                    formula = AttackFormula.Physical;
+                    formula = AttackFormula.Physical; noSplit = false;
                     break;
                 case 0x2:
                     formula = AttackFormula.Magical;
@@ -143,6 +145,7 @@ namespace Braver.Battle {
                 MPTurboLevel = 0,
                 MAtPercent = attack.AttackPC,
                 PAtPercent = attack.AttackPC,
+                NoSplit = noSplit,
             };
         }
 

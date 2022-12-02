@@ -1,11 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Braver {
 
+    public static class Utils {
+        public static IEnumerable<int> IndicesOfSetBits(int value) {
+            foreach(int i in Enumerable.Range(0, 32))
+                if ((value & (1 << i)) != 0)
+                    yield return i;
+        }
+    }
 
     public class F7Exception : Exception {
         public F7Exception(string msg) : base(msg) { }

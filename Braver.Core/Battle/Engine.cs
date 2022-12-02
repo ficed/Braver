@@ -6,6 +6,13 @@ using System.Linq;
 using System.Text;
 
 namespace Braver.Battle {
+
+    public enum BattleStatus {
+        InProgress,
+        PlayerWin,
+        EnemyWin,
+    }
+
     public class Engine {
         private int _speedValue;
         private List<ICombatant> _combatants;
@@ -13,21 +20,33 @@ namespace Braver.Battle {
 
         public Timer GTimer { get; }
 
-        public IEnumerable<ICombatant> Combatants => _combatants.AsReadOnly();
+        public IReadOnlyList<ICombatant> Combatants => _combatants.AsReadOnly();
+        public IEnumerable<ICombatant> ActiveCombatants => _combatants.Where(c => c != null);
 
-        public Engine(int battleSpeed, IEnumerable<ICombatant> combatants) {
+        public BattleStatus Status {
+            get {
+                var alive = ActiveCombatants.Where(c => c.IsAlive());
+                if (alive.All(c => c.IsPlayer))
+                    return BattleStatus.PlayerWin;
+                if (alive.All(c => !c.IsPlayer))
+                    return BattleStatus.EnemyWin;
+                return BattleStatus.InProgress;
+            }
+        }
+
+        public Engine(int battleSpeed, IEnumerable<ICombatant> combatants, AICallbacks callbacks) {
             _speedValue = 32768 / (120 + battleSpeed * 15 / 8);
 
             GTimer = new Timer(_speedValue, 8192, 0);
 
             _combatants = combatants.ToList();
 
-            var players = _combatants.Where(c => c.IsPlayer);
+            var players = ActiveCombatants.Where(c => c.IsPlayer);
 
             int normalSpeed = (int)Math.Ceiling(players.Average(c => c.BaseStats.Dex)) + 50; 
 
 
-            foreach(var comb in _combatants) {
+            foreach(var comb in ActiveCombatants) {
                 comb.VTimer = new Timer(_speedValue * 2, 8192, 0);
                 comb.CTimer = new Timer(136, 8192, 0);
 
@@ -38,16 +57,16 @@ namespace Braver.Battle {
                     ttinc = comb.ModifiedStats().Dex * (_speedValue * 2) / normalSpeed;
                 }
                 comb.TTimer = new Timer(ttinc, 65535, _r.Next(0, 32767), false);
+
+                comb.Init(this, callbacks);
             }
 
             //TODO: Implement battle type (side attack, etc) on TTimer
-
-
         }
 
         public void Tick() {
             GTimer.Tick();
-            foreach(var comb in _combatants) {
+            foreach(var comb in ActiveCombatants) {
                 if (comb.HP > 0) { //TODO - valid check, other statuses, ...?
                     comb.VTimer.Tick();
                     comb.CTimer.Tick();
