@@ -149,6 +149,13 @@ namespace Braver.Battle {
                 case 0x040:
                     getValue = (c, index) => (ushort)((index << 8) | c.Level); break;
 
+                case 0x0D0:
+                    getValue = (c, index) => (ushort)(c.LastAttacker != null ? 1 << _engine.Combatants.IndexOf(c.LastAttacker) : 0); break;
+                case 0x0E0:
+                    getValue = (c, index) => (ushort)(c.LastPhysicalAttacker != null ? 1 << _engine.Combatants.IndexOf(c.LastPhysicalAttacker) : 0); break;
+                case 0x0F0:
+                    getValue = (c, index) => (ushort)(c.LastMagicAttacker != null ? 1 << _engine.Combatants.IndexOf(c.LastMagicAttacker) : 0); break;
+
                 case 0x140:
                     getValue = (c, index) => (ushort)((c.MaxMP << 8) | c.MP); break;
                 case 0x160:
@@ -163,9 +170,13 @@ namespace Braver.Battle {
                 default:
                     throw new NotImplementedException();
             }
-            return _engine.Combatants
+            var results = _engine.Combatants
                 .Select((c, index) => c == null ? (ushort)0 : getValue(c, index))
                 .ToArray();
+
+            Console.WriteLine($"Reading bank 4 addr {offset:x4} gave {string.Join(",", results)}");
+
+            return results;
         }
 
         /*
@@ -200,9 +211,6 @@ namespace Braver.Battle {
 0x40B0 	Related to Idle Animations
 0x40B8 	Character that was just covered. (Character index +10h)
 0x40C0 	Target(s) of last action performed by actor
-0x40D0 	Previous Attacker
-0x40E0 	Previous Physical Attacker
-0x40F0 	Previous Magical Attacker
 0x4100 	Physical Defense Rating
 0x4110 	Magical Defense Rating
 0x4120 	Index of actor
@@ -292,22 +300,36 @@ namespace Braver.Battle {
 
     public class AI {
 
-        private ushort[] _offsets;
-        private Stream _data;
+        private Stream[] _functions;
         private Stack<StackValue> _stack = new();
         private CombatantMemory _memory;
         private AICallbacks _callbacks;
         private Random _random = new();
 
-        public ushort ActionID { get; private set; }
-        public ushort ActionType { get; private set; }
+        public ushort? ActionID { get; private set; }
+        public ushort? ActionType { get; private set; }
         public CombatantMemory Memory => _memory;
 
         public AI(byte[] aiWithTable, CombatantMemory memory, AICallbacks callbacks) {
-            _offsets = Enumerable.Range(0, 16)
+            var offsets = Enumerable.Range(0, 16)
                 .Select(i => BitConverter.ToUInt16(aiWithTable, i * 2))
                 .ToArray();
-            _data = new MemoryStream(aiWithTable.Skip(32).ToArray());
+
+            _functions = new Stream[offsets.Length];
+
+            foreach(int i in Enumerable.Range(0, offsets.Length)) {
+                if (offsets[i] != 0xffff) {
+                    int next = offsets.Skip(i + 1)
+                        .FirstOrDefault(os => os != 0xffff, (ushort)aiWithTable.Length);
+                    _functions[i] = new MemoryStream(
+                        aiWithTable
+                        .Skip(offsets[i])
+                        .Take(next - offsets[i])
+                        .ToArray()
+                    );
+                }
+            }
+
             _memory = memory;
             _callbacks = callbacks;
         }
@@ -342,7 +364,7 @@ namespace Braver.Battle {
                     value = value.Select(i => i & 0xff).ToArray();
                     break;
                 case ValueSize.Bit:
-                    value = value.Select(i => (i >> (addr & 7)) & 0x1).ToArray();
+                    value = value.Select(i => (i >> (addr & 0xf)) & 0x1).ToArray();
                     break;
             }
 
@@ -353,16 +375,16 @@ namespace Braver.Battle {
             };
         }
 
-        private AIScriptResult Dispatch0x(byte opcode) {
+        private AIScriptResult Dispatch0x(byte opcode, Stream data) {
             var size = (ValueSize)(opcode & 0xf);
-            ushort address = _data.ReadU16();
+            ushort address = data.ReadU16();
             _stack.Push(MemRead(address, size));
             return AIScriptResult.Continue;
         }
 
-        private AIScriptResult Dispatch1x(byte opcode) {
+        private AIScriptResult Dispatch1x(byte opcode, Stream data) {
             var size = (ValueSize)(opcode & 0xf);
-            ushort address = _data.ReadU16();
+            ushort address = data.ReadU16();
             _stack.Push(new StackValue {
                 Kind = ValueKind.Address,
                 Size = size,
@@ -439,25 +461,44 @@ namespace Braver.Battle {
             return AIScriptResult.Continue;
         }
 
+
+        private void PerformComparison(Func<int, int, bool> op) {
+            var v1 = _stack.Pop();
+            var v0 = _stack.Pop();
+            if (v0.Kind == ValueKind.List) {
+                _stack.Push(new StackValue {
+                    Kind = ValueKind.List,
+                    Size = ValueSize.Bit,
+                    Data = new[] { v0.Data.All(i => op(i, v1.Data[0])) ? 1 : 0 }
+                });
+            } else {
+                _stack.Push(new StackValue {
+                    Kind = ValueKind.List,
+                    Size = ValueSize.Bit,
+                    Data = new[] { op(v0.Data[0], v1.Data[0]) ? 1 : 0 }
+                });
+            }
+        }
+
         private AIScriptResult Dispatch4x(byte opcode) {
             switch (opcode) {
                 case 0x40:
-                    PerformBinaryOp((i1, i2) => i1 == i2 ? 1 : 0, ValueSize.Bit);
+                    PerformComparison((i1, i2) => i1 == i2);
                     break;
                 case 0x41:
-                    PerformBinaryOp((i1, i2) => i1 != i2 ? 1 : 0, ValueSize.Bit);
+                    PerformComparison((i1, i2) => i1 != i2);
                     break;
                 case 0x42:
-                    PerformBinaryOp((i1, i2) => i1 >= i2 ? 1 : 0, ValueSize.Bit);
+                    PerformComparison((i1, i2) => i1 >= i2);
                     break;
                 case 0x43:
-                    PerformBinaryOp((i1, i2) => i1 <= i2 ? 1 : 0, ValueSize.Bit);
+                    PerformComparison((i1, i2) => i1 <= i2);
                     break;
                 case 0x44:
-                    PerformBinaryOp((i1, i2) => i1 > i2 ? 1 : 0, ValueSize.Bit);
+                    PerformComparison((i1, i2) => i1 > i2);
                     break;
                 case 0x45:
-                    PerformBinaryOp((i1, i2) => i1 < i2 ? 1 : 0, ValueSize.Bit);
+                    PerformComparison((i1, i2) => i1 < i2);
                     break;
             }
             return AIScriptResult.Continue;
@@ -476,10 +517,10 @@ namespace Braver.Battle {
             }
             return AIScriptResult.Continue;
         }
-        private AIScriptResult Dispatch6x(byte opcode) {
+        private AIScriptResult Dispatch6x(byte opcode, Stream data) {
             switch (opcode) {
                 case 0x60:
-                    byte arg = _data.ReadU8();
+                    byte arg = data.ReadU8();
                     _stack.Push(new StackValue {
                         Kind = ValueKind.Value,
                         Size = ValueSize.Byte,
@@ -487,7 +528,7 @@ namespace Braver.Battle {
                     });
                     break;
                 case 0x61:
-                    ushort arg2 = _data.ReadU16();
+                    ushort arg2 = data.ReadU16();
                     _stack.Push(new StackValue {
                         Kind = ValueKind.Value,
                         Size = ValueSize.Word,
@@ -495,8 +536,8 @@ namespace Braver.Battle {
                     });
                     break;
                 case 0x62:
-                    int triple = _data.ReadI32() & 0xffffff;
-                    _data.Seek(-1, SeekOrigin.Current);
+                    int triple = data.ReadI32() & 0xffffff;
+                    data.Seek(-1, SeekOrigin.Current);
                     _stack.Push(new StackValue {
                         Kind = ValueKind.Value,
                         Size = ValueSize.Triple,
@@ -506,21 +547,21 @@ namespace Braver.Battle {
             }
             return AIScriptResult.Continue;
         }
-        private AIScriptResult Dispatch7x(byte opcode) {
+        private AIScriptResult Dispatch7x(byte opcode, Stream data) {
             switch (opcode) {
                 case 0x70:
-                    ushort target = _data.ReadU16();
+                    ushort target = data.ReadU16();
                     if (_stack.Pop().IsZero)
-                        _data.Position = target;
+                        data.Position = target;
                     break;
                 case 0x71:
-                    target = _data.ReadU16();
+                    target = data.ReadU16();
                     if (!_stack.Pop().Equals(_stack.Peek()))
-                        _data.Position = target;
+                        data.Position = target;
                     break;
                 case 0x72:
-                    target = _data.ReadU16();
-                    _data.Position = target;
+                    target = data.ReadU16();
+                    data.Position = target;
                     break;
                 case 0x73:
                     return AIScriptResult.End;
@@ -535,9 +576,10 @@ namespace Braver.Battle {
                 case 0x80:
                     var value = _stack.Pop();
                     var mask = _stack.Pop();
+                    StackValue newValue;
                     if (value.Kind == ValueKind.List) {
 
-                        value = new StackValue {
+                        newValue = new StackValue {
                             Kind = ValueKind.List,
                             Size = value.Size,
                             Data = Utils.IndicesOfSetBits(mask.Data[0])
@@ -545,13 +587,14 @@ namespace Braver.Battle {
                                 .ToArray()
                         };
                     } else {
-                        value = new StackValue {
+                        newValue = new StackValue {
                             Kind = value.Kind,
                             Size = value.Size,
                             Data = new[] { value.Data[0] & mask.Data[0] }
                         };
                     }
-                    _stack.Push(value);
+                    Console.WriteLine($"Masking {value} with {mask} gave {newValue}");
+                    _stack.Push(newValue);
                     break;
                 case 0x81:
                     _stack.Push(new StackValue {
@@ -642,7 +685,7 @@ namespace Braver.Battle {
          *90h 		One of type 1X, One of type 0X or 2X 	If first pop < 4000h; Stores second pop at first pop
 90h 		One of type 1X, One of type 0X or 2X, One of type 1X 	If first pop >= 4000h; Stores second pop at first pop constrained by mask at third pop
         */
-        private AIScriptResult Dispatch9x(byte opcode) {
+        private AIScriptResult Dispatch9x(byte opcode, Stream data) {
             switch (opcode) {
                 case 0x90:
                     var value = _stack.Pop();
@@ -674,7 +717,7 @@ namespace Braver.Battle {
                 case 0x93:
                     List<byte> text = new();
                     byte b;
-                    while ((b = _data.ReadU8()) != 0)
+                    while ((b = data.ReadU8()) != 0)
                         text.Add(b);
                     _callbacks.DisplayText(text.ToArray());
                     break;
@@ -697,12 +740,12 @@ namespace Braver.Battle {
 
             return AIScriptResult.Continue;
         }
-        private AIScriptResult DispatchAx(byte opcode) {
+        private AIScriptResult DispatchAx(byte opcode, Stream data) {
             switch (opcode) {
                 case 0xA0:
                     List<byte> text = new();
                     byte b;
-                    while ((b = _data.ReadU8()) != 0)
+                    while ((b = data.ReadU8()) != 0)
                         text.Add(b);
                     string s = Encoding.ASCII.GetString(text.ToArray()); //VERY TODO
                     s = System.Text.RegularExpressions.Regex.Replace(
@@ -721,19 +764,20 @@ namespace Braver.Battle {
         }
 
         public AIScriptResult Run(AIScriptFunction function) {
-            int entryPoint = _offsets[(int)function] - 0x20;
-            if (entryPoint >= _data.Length)
+            ActionID = ActionType = null;
+            var data = _functions[(int)function];
+            if (data == null)
                 return AIScriptResult.End;
+            data.Position = 0;
 
-            _data.Position = entryPoint;
             AIScriptResult result;
             do {
-                byte opcode = _data.ReadU8();
+                byte opcode = data.ReadU8();
                 switch (opcode & 0xf0) {
                     case 0x00:
-                        result = Dispatch0x(opcode); break;
+                        result = Dispatch0x(opcode, data); break;
                     case 0x10:
-                        result = Dispatch1x(opcode); break;
+                        result = Dispatch1x(opcode, data); break;
                     case 0x30:
                         result = Dispatch3x(opcode); break;
                     case 0x40:
@@ -741,15 +785,15 @@ namespace Braver.Battle {
                     case 0x50:
                         result = Dispatch5x(opcode); break;
                     case 0x60:
-                        result = Dispatch6x(opcode); break;
+                        result = Dispatch6x(opcode, data); break;
                     case 0x70:
-                        result = Dispatch7x(opcode); break;
+                        result = Dispatch7x(opcode, data); break;
                     case 0x80:
                         result = Dispatch8x(opcode); break;
                     case 0x90:
-                        result = Dispatch9x(opcode); break;
+                        result = Dispatch9x(opcode, data); break;
                     case 0xA0:
-                        result = DispatchAx(opcode); break;
+                        result = DispatchAx(opcode, data); break;
                     default:
                         throw new NotImplementedException();
                 }

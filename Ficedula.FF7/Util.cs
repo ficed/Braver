@@ -18,5 +18,12 @@ namespace Ficedula.FF7 {
             return (i & 0xff00ff00) | ((i & 0xff) << 16) | ((i >> 16) & 0xff);
         }
 
+        public static int IndexOf<T>(this IReadOnlyList<T> list, T value) where T : class {
+            foreach (int i in Enumerable.Range(0, list.Count))
+                if (list[i] == value)
+                    return i;
+            return -1;
+        }
+
     }
 }

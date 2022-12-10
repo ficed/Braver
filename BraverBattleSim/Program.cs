@@ -28,15 +28,17 @@ foreach(var group in scene.Enemies.GroupBy(ei => ei.Enemy.ID)) {
 }
 
 var callbacks = new SimCallbacks(game.Memory);
-var engine = new Engine(128, combatants, callbacks);
+var engine = new Engine(128, combatants, game, callbacks);
+
+engine.ReadyForAction += c => Console.WriteLine(c.Name + " is ready for an action.");
+engine.ActionQueued += a => Console.WriteLine($"{a.Source} queued action {a.Name} priority {a.Priority}");
 
 while (engine.Status == BattleStatus.InProgress) {
     engine.Tick();
-    var ready = engine.ActiveCombatants.Where(c => c.TTimer.IsFull);
+    var ready = engine.ActiveCombatants.OfType<CharacterCombatant>().Where(c => c.ReadyForAction);
     if (ready.Any()) {
-        Console.WriteLine($"At {engine.GTimer.Ticks} gticks, {string.Join(", ", ready)} ready to act");
 
-        foreach(var chr in ready.OfType<CharacterCombatant>()) {
+        foreach (var chr in ready) {
             Console.WriteLine(chr.Name);
             var ability = MenuChoose(chr);
             Console.WriteLine("Targets:");
@@ -47,52 +49,37 @@ while (engine.Status == BattleStatus.InProgress) {
                 .Split(' ')
                 .Select(s => s[0])
                 .Select(c => engine.ActiveCombatants.ElementAt(c - 'A'));
-            var results = engine.ApplyAbility(
-                chr,
-                ability,
-                targets
-            ).ToArray();
-            foreach (var result in results) {
-                Console.WriteLine($"--Target {result.Target}, hit {result.Hit}, inflict {result.InflictStatus} remove {result.RemoveStatus} recovery {result.Recovery}, damage HP {result.HPDamage} MP {result.MPDamage}");
-                result.Apply();
-            }
-            chr.TTimer.Reset();
+
+            var q = new QueuedAction(chr, ability.ability, targets.ToArray(), ActionPriority.Normal, ability.name);
+            //TODO limit priority
+            q.AfterAction = () => {
+                chr.TTimer.Reset();
+            };
+            engine.QueueAction(q);
+            chr.ReadyForAction = false;
         }
+    }
 
-        foreach (var enemy in ready.OfType<EnemyCombatant>()) {
-
-            enemy.AI.Memory.ResetRegion2(game.SaveData.Gil);
-            enemy.AI.Run(AIScriptFunction.Main);
-
-            var action = enemy.Enemy.Enemy.Actions.First(a => a.ActionID == enemy.AI.ActionID);
-            var targets = Utils.IndicesOfSetBits(enemy.AI.Memory.Read2(0x070))
-                .Select(i => engine.Combatants[i]);
-
-            Console.WriteLine($"Enemy {enemy} targetting {string.Join(",", targets)} with {action.Attack.Name}");
-
-            var results = engine.ApplyAbility(
-                enemy,
-                action.Attack.ToAbility(enemy),
-                targets
-            );
-            foreach(var result in results) {
-                Console.WriteLine($"--Target {result.Target}, hit {result.Hit}, inflict {result.InflictStatus} remove {result.RemoveStatus} recovery {result.Recovery}, damage HP {result.HPDamage} MP {result.MPDamage}");
-                result.Apply();
-            }
-            enemy.TTimer.Reset();
+    bool didAnyActions = false;
+    while (engine.ExecuteNextAction(out var action, out var results)) {
+        Console.WriteLine($"{action.Source} targetting {string.Join<ICombatant>(",", action.Targets)} with {action.Name}");
+        foreach (var result in results) {
+            Console.WriteLine($"--Target {result.Target}, hit {result.Hit}, inflict {result.InflictStatus} remove {result.RemoveStatus} recovery {result.Recovery}, damage HP {result.HPDamage} MP {result.MPDamage}");
+            result.Apply(action);
         }
+        didAnyActions = true;
+    }
 
-        foreach(var c in engine.ActiveCombatants) {
+    if (didAnyActions) {
+        foreach (var c in engine.ActiveCombatants) {
             Console.WriteLine($"{c} HP {c.HP}/{c.MaxHP} MP {c.MP}/{c.MaxMP} Status {c.Statuses}");
         }
         Console.WriteLine();
-
     }
-
 }
 Console.WriteLine($"Result: {engine.Status}");
 
-Ability MenuChoose(CharacterCombatant chr) {
+(Ability ability, string name) MenuChoose(CharacterCombatant chr) {
     char c = 'A';
     foreach (var action in chr.Actions) {
         Console.WriteLine($"  {c++}: {action.Name}");
@@ -100,7 +87,7 @@ Ability MenuChoose(CharacterCombatant chr) {
     char choice = Console.ReadLine().Trim().ToUpper().First();
     var chosen = chr.Actions[choice - 'A'];
     if (chosen.Ability != null)
-        return chosen.Ability.Value;
+        return (chosen.Ability.Value, chosen.Name);
 
     c = 'A';
     foreach(var sub in chosen.SubMenu) {
@@ -108,7 +95,7 @@ Ability MenuChoose(CharacterCombatant chr) {
     }
     choice = Console.ReadLine().Trim().ToUpper().First();
     var subchosen = chosen.SubMenu[choice - 'A'];
-    return subchosen.Ability;
+    return (subchosen.Ability, subchosen.Name);
 }
 
 public class SimGame : BGame {

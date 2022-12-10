@@ -12,6 +12,7 @@ namespace Braver.Battle {
         private class Event {
             public int When;
             public Action Callback;
+            public bool Persistant;
         }
 
         private List<Event> _events = new();
@@ -30,15 +31,17 @@ namespace Braver.Battle {
             _value = value;
         }
 
-        public void On(int value, Action callback) {
+        public void On(int value, Action callback, bool persistant = false) {
             _events.Add(new Event {
                 When = value,
+                Persistant = persistant,
                 Callback = callback,
             });
         }
-        public void In(int value, Action callback) {
+        public void In(int value, Action callback, bool persistant = false) {
             _events.Add(new Event {
                 When = value + _value,
+                Persistant = persistant,
                 Callback = callback,
             });
         }
@@ -61,7 +64,7 @@ namespace Braver.Battle {
                     var triggered = _events
                         .Where(e => e.When <= _ticks)
                         .ToArray();
-                    _events.RemoveAll(e => e.When <= _ticks);
+                    _events.RemoveAll(e => (e.When <= _ticks) && !e.Persistant);
                     foreach (var evt in triggered)
                         evt.Callback();
                 }

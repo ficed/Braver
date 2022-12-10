@@ -9,6 +9,7 @@ using System.Reflection.Emit;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Braver.Battle {
 
@@ -52,6 +53,10 @@ namespace Braver.Battle {
         public bool PhysicalImmune { get; set; }
         public bool MagicalImmune { get; set; }
 
+        public ICombatant LastAttacker { get; set; }
+        public ICombatant LastPhysicalAttacker { get; set; }
+        public ICombatant LastMagicAttacker { get; set; }
+
         public List<StatModifier> StatModifiers { get; }
 
         public Dictionary<Element, ElementResistance> Elements { get; }
@@ -61,6 +66,8 @@ namespace Braver.Battle {
         public Statuses Statuses { get; set; }
 
         void Init(Engine engine, AICallbacks callbacks);
+        void TakeAction();
+        void Hit(QueuedAction hitBy);
     }
 
     public class CharacterActionItem {
@@ -190,6 +197,9 @@ namespace Braver.Battle {
         public bool IsPlayer => true;
         public bool PhysicalImmune { get; set; }
         public bool MagicalImmune { get; set; }
+        public ICombatant LastAttacker { get; set; }
+        public ICombatant LastPhysicalAttacker { get; set; }
+        public ICombatant LastMagicAttacker { get; set; }
 
         public List<StatModifier> StatModifiers { get; } = new();
 
@@ -198,11 +208,20 @@ namespace Braver.Battle {
         public Statuses ImmuneStatuses => Statuses.None; //TODO!!!
 
         public Statuses Statuses { get; set; }
+        public bool ReadyForAction { get; set; }
 
         public override string ToString() => Name;
 
         public void Init(Engine engine, AICallbacks callbacks) {
             //
+        }
+
+        public void TakeAction() {
+            ReadyForAction = true;
+        }
+
+        public void Hit(QueuedAction hitBy) {
+            //TODO
         }
     }
 
@@ -259,6 +278,9 @@ namespace Braver.Battle {
         public int Row { get; set; }
         public bool IsBackRow { get; set; }
         public bool IsDefending { get; set; }
+        public ICombatant LastAttacker { get; set; }
+        public ICombatant LastPhysicalAttacker { get; set; }
+        public ICombatant LastMagicAttacker { get; set; }
 
         public bool IsPlayer => false;
         public int Level => _enemy.Enemy.Level;
@@ -275,8 +297,49 @@ namespace Braver.Battle {
         public Statuses Statuses { get; set; }
         public override string ToString() => Name;
 
+        private Engine _engine;
         public void Init(Engine engine, AICallbacks callbacks) {
+            _engine = engine;
             AI = new AI(Enemy.Enemy.AI, new CombatantMemory(engine, this), callbacks);
+            AI.Run(AIScriptFunction.PreBattle);
+        }
+
+        private QueuedAction RunAIAndQueueAction(AIScriptFunction function, ActionPriority priority) {
+            AI.Memory.ResetRegion2(_engine.Game.SaveData.Gil);
+            AI.Run(function);
+
+            if (AI.ActionID.HasValue) {
+                var action = Enemy.Enemy.Actions.First(a => a.ActionID == AI.ActionID);
+                var targets = Utils.IndicesOfSetBits(AI.Memory.Read2(0x070))
+                    .Select(i => _engine.Combatants[i]);
+                var q = new QueuedAction(
+                    this, action.Attack.ToAbility(this), targets.ToArray(),
+                    priority, action.Attack.Name
+                );
+                _engine.QueueAction(q);
+                return q;
+            } else
+                return null;
+        }
+
+        public void TakeAction() {
+            var action = RunAIAndQueueAction(AIScriptFunction.Main, ActionPriority.Normal);
+            if (action != null)
+                action.AfterAction = () => TTimer.Reset();
+            else //Guess we chose not to do anything, so just reset our TTimer now and try again next time!
+                TTimer.Reset();
+        }
+
+        public void Hit(QueuedAction hitBy) {
+            if (hitBy.Priority != ActionPriority.Counter) {
+                Console.WriteLine($"Enemy {Name} was hit, last attacked {LastAttacker} physical {LastPhysicalAttacker} magic {LastMagicAttacker}");
+                RunAIAndQueueAction(AIScriptFunction.GeneralCounter, ActionPriority.Counter);
+                AI.Run(AIScriptFunction.GeneralCounter);
+                if (hitBy.Ability.IsPhysical)
+                    RunAIAndQueueAction(AIScriptFunction.PhysicalCounter, ActionPriority.Counter);
+                if (hitBy.Ability.IsMagical)
+                    RunAIAndQueueAction(AIScriptFunction.MagicCounter, ActionPriority.Counter);
+            }
         }
     }
 

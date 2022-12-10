@@ -1,8 +1,10 @@
 ﻿using Ficedula.FF7;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 
 namespace Braver.Battle {
@@ -13,12 +15,48 @@ namespace Braver.Battle {
         EnemyWin,
     }
 
+    public enum ActionPriority {
+        Normal,
+        Limit,
+        Counter,
+    }
+
+    public class QueuedAction {
+        public ICombatant Source { get; private set; }
+        public Ability Ability { get; private set; }
+        public ICombatant[] Targets { get; private set; }
+        public ActionPriority Priority { get; private set; }
+        public string Name { get; private set; }
+
+        public Action AfterAction { get; set; }
+
+        public QueuedAction(ICombatant source, Ability ability, ICombatant[] targets, ActionPriority priority, string name) {
+            Source = source;
+            Ability = ability;
+            Targets = targets;
+            Priority = priority;
+            Name = name;
+
+            Debug.Assert(Targets.Any());
+            Debug.Assert(Source != null);
+        }   
+    }
+
     public class Engine {
         private int _speedValue;
         private List<ICombatant> _combatants;
         private Random _r = new();
 
+        private Dictionary<ActionPriority, Queue<QueuedAction>> _queuedActions = new Dictionary<ActionPriority, Queue<QueuedAction>> {
+            [ActionPriority.Counter] = new Queue<QueuedAction>(),
+            [ActionPriority.Limit] = new Queue<QueuedAction>(),
+            [ActionPriority.Normal] = new Queue<QueuedAction>(),
+        };
+
         public Timer GTimer { get; }
+        public BGame Game { get; private set; }
+        public Action<ICombatant> ReadyForAction { get; set; }
+        public Action<QueuedAction> ActionQueued { get; set; }
 
         public IReadOnlyList<ICombatant> Combatants => _combatants.AsReadOnly();
         public IEnumerable<ICombatant> ActiveCombatants => _combatants.Where(c => c != null);
@@ -34,7 +72,9 @@ namespace Braver.Battle {
             }
         }
 
-        public Engine(int battleSpeed, IEnumerable<ICombatant> combatants, AICallbacks callbacks) {
+        public Engine(int battleSpeed, IEnumerable<ICombatant> combatants, BGame game, AICallbacks callbacks) {
+            Game = game;
+
             _speedValue = 32768 / (120 + battleSpeed * 15 / 8);
 
             GTimer = new Timer(_speedValue, 8192, 0);
@@ -57,12 +97,18 @@ namespace Braver.Battle {
                     ttinc = comb.ModifiedStats().Dex * (_speedValue * 2) / normalSpeed;
                 }
                 comb.TTimer = new Timer(ttinc, 65535, _r.Next(0, 32767), false);
-
+                comb.TTimer.On(
+                    1, () => {
+                        ReadyForAction?.Invoke(comb);
+                        comb.TakeAction();
+                    }, true);
                 comb.Init(this, callbacks);
             }
 
             //TODO: Implement battle type (side attack, etc) on TTimer
         }
+
+
 
         public void Tick() {
             GTimer.Tick();
@@ -73,6 +119,27 @@ namespace Braver.Battle {
                     comb.TTimer.Tick();
                 }
             }
+        }
+
+        public void QueueAction(QueuedAction action) {
+            _queuedActions[action.Priority].Enqueue(action);
+            ActionQueued?.Invoke(action);
+        }
+
+        public bool ExecuteNextAction(out QueuedAction action, out AbilityResult[] results) {
+            results = null;
+            if (!_queuedActions[ActionPriority.Counter].TryDequeue(out action))
+                if (!_queuedActions[ActionPriority.Limit].TryDequeue(out action))
+                    if (!_queuedActions[ActionPriority.Normal].TryDequeue(out action))
+                        return false;
+
+            results = ApplyAbility(
+                action.Source,
+                action.Ability,
+                action.Targets
+            ).ToArray();
+            action.AfterAction?.Invoke();
+            return true;
         }
 
         private static Statuses _autoHitStatuses = Statuses.Death | Statuses.Sleep |
@@ -217,6 +284,7 @@ namespace Braver.Battle {
 
             //Now check whether status effects apply
             if (didHit) {
+                Statuses inflictStatus = Statuses.None, cureStatus = Statuses.None;
                 if ((ability.InflictStatus != 0) || (ability.ToggleStatus != 0) || (ability.RemoveStatus != 0)) {
                     int statusHit = ability.StatusChance;
                     bool didStatusHit;
@@ -245,10 +313,9 @@ namespace Braver.Battle {
                     }
 
                     if (didStatusHit) {
-
-                    } else {
-                        ability.InflictStatus = ability.ToggleStatus = ability.RemoveStatus = 0;
-                    }
+                        inflictStatus = ability.InflictStatus | (ability.ToggleStatus & ~target.Statuses);
+                        cureStatus = ability.RemoveStatus | (ability.ToggleStatus & target.Statuses);
+                    } 
                 }
 
                 int damage;
@@ -447,13 +514,14 @@ namespace Braver.Battle {
                     Hit = true,
                     MPDamage = ability.DamageMP ? -damage : 0,
                     HPDamage = ability.DamageMP ? 0 : -damage,
-                    
+                    InflictStatus = inflictStatus,
+                    RemoveStatus = cureStatus,
                 };
 
             } else {
                 return new AbilityResult {
                     Target = target,
-                    Hit = false,
+                    Hit = false,                    
                     InflictStatus = ability.InflictStatus | (ability.ToggleStatus & ~target.Statuses),
                     RemoveStatus = ability.RemoveStatus | (ability.ToggleStatus & target.Statuses),
                 };
@@ -478,15 +546,23 @@ namespace Braver.Battle {
         public int HPDamage { get; set; }
         public int MPDamage { get; set; }
 
-        public void Apply() {
+        public void Apply(QueuedAction action) {
             if (Hit) {
                 Target.Statuses |= InflictStatus;
                 Target.Statuses &= ~RemoveStatus;
+                Target.LastAttacker = action.Source;
+                if (action.Ability.IsPhysical)
+                    Target.LastPhysicalAttacker = action.Source;
+                if (action.Ability.IsMagical)
+                    Target.LastMagicAttacker = action.Source;
+
                 //TODO Recovery
                 if (HPDamage != 0)
                     Target.HP = Math.Min(Target.MaxHP, Math.Max(0, Target.HP + HPDamage));
                 if (MPDamage != 0)
                     Target.MP = Math.Min(Target.MaxMP, Math.Max(0, Target.MP + MPDamage));
+
+                Target.Hit(action);
             }
         }
     }
