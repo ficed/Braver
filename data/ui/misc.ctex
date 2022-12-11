@@ -1,19 +1,98 @@
 <?xml version="1.0"?>
 <CompositeTexture xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-	<Width>512</Width>
-	<Height>512</Height>
+	<Width>1024</Width>
+	<Height>1024</Height>
 	<Images>
 		<SourceImage>
-			<Texture>menu\btl_win_b_h.tex,0</Texture>
+			<Texture>menu\btl_win_a_h.tex,0</Texture>
 			<X>0</X>
+			<Y>0</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_a_h.tex,1</Texture>
+			<X>0</X>
+			<Y>256</Y>
+			<Chunk X="224" Y="64" W="24" H="24">materia_slot_nogrowth</Chunk>
+			<Chunk X="227" Y="98" W="14" H="18">materia_slot_link</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,0</Texture>
+			<X>256</X>
 			<Y>0</Y>
 		</SourceImage>
 		<SourceImage>
 			<Texture>menu\btl_win_b_h.tex,1</Texture>
 			<X>256</X>
-			<Y>0</Y>
+			<Y>256</Y>
 			<Chunk X="144" Y="16" W="48" H="32">pointer_left</Chunk>
 			<Chunk X="144" Y="16" W="48" H="32" Flip="true">pointer</Chunk>
+			<Chunk X="0" Y="96" W="24" H="24">materia_slot</Chunk>
+			<Chunk X="3" Y="67" W="18" H="18">materia</Chunk>
+			<Chunk X="32" Y="64" W="26" H="26">materia_star</Chunk>
+			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty</Chunk>
 		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_c_h.tex,0</Texture>
+			<X>512</X>
+			<Y>0</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_c_h.tex,1</Texture>
+			<X>512</X>
+			<Y>256</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_d_h.tex,0</Texture>
+			<X>768</X>
+			<Y>0</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_d_h.tex,1</Texture>
+			<X>768</X>
+			<Y>256</Y>
+		</SourceImage>
+
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,4</Texture>
+			<X>0</X>
+			<Y>512</Y>
+			<Chunk X="3" Y="67" W="18" H="18">materia_magic</Chunk>
+			<Chunk X="32" Y="64" W="26" H="26">materia_star_magic</Chunk>
+			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty_magic</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,5</Texture>
+			<X>256</X>
+			<Y>512</Y>
+			<Chunk X="3" Y="67" W="18" H="18">materia_support</Chunk>
+			<Chunk X="32" Y="64" W="26" H="26">materia_star_support</Chunk>
+			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty_support</Chunk>
+		</SourceImage>
+
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,8</Texture>
+			<X>0</X>
+			<Y>768</Y>
+			<Chunk X="3" Y="67" W="18" H="18">materia_command</Chunk>
+			<Chunk X="32" Y="64" W="26" H="26">materia_star_command</Chunk>
+			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty_command</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,9</Texture>
+			<X>256</X>
+			<Y>768</Y>
+			<Chunk X="3" Y="67" W="18" H="18">materia_independent</Chunk>
+			<Chunk X="32" Y="64" W="26" H="26">materia_star_independent</Chunk>
+			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty_independent</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>menu\btl_win_b_h.tex,10</Texture>
+			<X>512</X>
+			<Y>768</Y>
+			<Chunk X="3" Y="67" W="18" H="18">materia_summon</Chunk>
+			<Chunk X="32" Y="64" W="26" H="26">materia_star_summon</Chunk>
+			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty_summon</Chunk>
+		</SourceImage>
+
 	</Images>
 </CompositeTexture>

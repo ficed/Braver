@@ -53,15 +53,17 @@ namespace Ficedula.FF7 {
 
         public IReadOnlyList<int> APLevels => _apLevels.AsReadOnly();
         public string Name { get; private set; }
+        public int ID { get; private set; }
         public string Description { get; private set; }
         public MateriaEquipEffect EquipEffect { get; private set; }
 
         protected abstract void DoInit(byte subType, IEnumerable<byte> attrs);
 
-        public void Init(string name, string description, MateriaEquipEffect equipEffect, 
+        public void Init(string name, string description, int id, MateriaEquipEffect equipEffect, 
             IEnumerable<int> apLevels,
             byte subType, IEnumerable<byte> attrs) {
             Name = name;
+            ID = id;
             Description = description; 
             EquipEffect = equipEffect;
             _apLevels = apLevels.ToList();
@@ -206,7 +208,7 @@ namespace Ficedula.FF7 {
                 if (_byType.TryGetValue(materiaType & 0xf, out var create)) {
                     var materia = create();
                     materia.Init(
-                        names.Get(index), descriptions.Get(index),
+                        names.Get(index), descriptions.Get(index), index,
                         MateriaEquipEffect.ByIndex(equipEffect),
                         apLimits.TakeWhile(u16 => u16 != 0xffff).Select(u16 => (int)u16),
                         (byte)(materiaType >> 4), attrs

@@ -157,10 +157,26 @@ namespace Braver {
         }
 
         public Weapon GetWeapon(BGame game) {
-            return EquipWeapon < 0 ? null : game.Singleton<Weapons>()[EquipWeapon];
+            if (EquipWeapon < 0) return null;
+            var w = game.Singleton<Weapons>()[EquipWeapon];
+            while (WeaponMateria.Count < w.MateriaSlots.Count)
+                WeaponMateria.Add(null);
+            while (WeaponMateria.Count > w.MateriaSlots.Count) {
+                game.SaveData.MateriaStock.Add(WeaponMateria[w.MateriaSlots.Count]);
+                WeaponMateria.RemoveAt(w.MateriaSlots.Count);
+            }
+            return w;
         }
         public Armour GetArmour(BGame game) {
-            return EquipArmour < 0 ? null : game.Singleton<Armours>()[EquipArmour];
+            if (EquipArmour < 0) return null;
+            var a = game.Singleton<Armours>()[EquipArmour];
+            while (ArmourMateria.Count < a.MateriaSlots.Count)
+                ArmourMateria.Add(null);
+            while (ArmourMateria.Count > a.MateriaSlots.Count) {
+                game.SaveData.MateriaStock.Add(ArmourMateria[a.MateriaSlots.Count]);
+                ArmourMateria.RemoveAt(a.MateriaSlots.Count);
+            }
+            return a;
         }
         public Accessory GetAccessory(BGame game) {
             return EquipAccessory < 0 ? null : game.Singleton<Accessories>()[EquipAccessory];

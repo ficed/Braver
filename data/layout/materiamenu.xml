@@ -1,0 +1,101 @@
+@using Ficedula.FF7
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720">
+
+		<Component xsi:type="Box" X="0" Y="0" W="1280" H="180" ID="bChar">
+			<Component xsi:type="Group" X="20" Y="10" H="160" W="1240" ID="gMain">
+				@Include("charsmall", Model.Character)
+
+				<Component xsi:type="Label" Y="10" X="600" Color="Aqua">Weapon</Component>
+				<Component xsi:type="Label" Y="10" X="700">@Model.Weapon?.Name</Component>
+
+				<Component xsi:type="Label" Y="50" X="620" ID="lCheck" Click="Check_Click">Check</Component>
+
+				<Component xsi:type="Group" BackgroundAlpha="0.2" X="700" Y="50" W="300" H="30" InputPassthrough="true">
+					@foreach(int slot in Enumerable.Range(0, Model.Weapon?.MateriaSlots?.Count ?? 0)) {
+						<Component xsi:type="Image" X="@(5 + 30 * slot)" Y="3" ID="W@(slot)" Click="EClick" Focussed="EFocussed">materia_slot</Component>
+						@if (((slot % 2) == 0) && (Model.Weapon.MateriaSlots[slot] == MateriaSlotKind.Linked)) {
+							<Component xsi:type="Image" X="@(25 + 30 * slot)" Y="5">materia_slot_link</Component>
+						}
+						
+						@if (Model.WeaponMateria[slot] != null) {
+							<Component xsi:type="Image" X="@(8 + 30 * slot)" Y="5">materia_@Model.MateriaColor(Model.WeaponMateria[slot].Materia)</Component>
+						}
+					}
+				</Component>
+				
+				<Component xsi:type="Label" Y="90" X="600" Color="Aqua">Armour</Component>
+				<Component xsi:type="Label" Y="90" X="700">@Model.Armour?.Name</Component>
+
+				<Component xsi:type="Label" Y="130" X="620" ID="lArrange" Click="Arrange_Click">Arrange</Component>
+
+				<Component xsi:type="Group" BackgroundAlpha="0.2" X="700" Y="130" W="300" H="30" InputPassthrough="true">
+
+				</Component>
+			</Component>
+		</Component>		
+		
+		<Component xsi:type="Box" X="0" Y="180" W="1280" H="60">
+			<Component xsi:type="Label" Y="20" X="20" ID="lDescription">@Model.CurrentMateria?.Materia?.Description</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="0" Y="240" W="800" H="480">
+			<Component xsi:type="Group" X="20" Y="10" H="480" W="1240" ID="gStats">
+				
+				@if (Model.CurrentMateria != null) {
+					<Component xsi:type="Image" X="20" Y="50">materia_@Model.MateriaColor(Model.CurrentMateria.Materia)</Component>
+					<Component xsi:type="Label" Y="50" X="50">@Model.CurrentMateria.Materia.Name</Component>
+				
+					<Component xsi:type="Label" X="680" Y="103" Font="bats" Alignment="Right">@Model.CurrentMateria.AP</Component>
+					<Component xsi:type="Label" X="680" Y="153" Font="bats" Alignment="Right">@Model.CurrentMateria.ToNextLevel</Component>
+
+					@foreach(int L in Enumerable.Range(1, Model.CurrentMateria.Materia.APLevels.Count)) {
+						if (L > Model.CurrentMateria.Level) {
+							<Component xsi:type="Image" X="@(500 + 32 * L)" Y="50">materia_star_empty_@Model.MateriaColor(Model.CurrentMateria.Materia)</Component>
+						} else {
+							<Component xsi:type="Image" X="@(500 + 32 * L)" Y="50">materia_star_@Model.MateriaColor(Model.CurrentMateria.Materia)</Component>
+						}
+					}
+					
+					<Component xsi:type="List" X="50" Y="260" W="240" H="240">
+						@foreach(var ability in Model.MateriaAbilities(Model.CurrentMateria.Materia)) {
+							<Component xsi:type="Label">@ability</Component>
+						}
+					</Component>
+				
+					<Component xsi:type="List" X="400" Y="260" W="240" H="240">
+						@foreach(var effect in Model.EquipEffects(Model.CurrentMateria.Materia)) {
+							<Component xsi:type="Group">
+								<Component xsi:type="Label" X="0">@effect.Name</Component>
+								<Component xsi:type="Label" X="150" Font="bats" Color='@(effect.Change > 0 ? "Yellow" : "Red")'>@effect.Change.ToString("+##;-##")</Component>
+								<Component xsi:type="Label" X="205" Font="bats" Visible="@effect.Percent.ToString().ToLower()">%</Component>
+							</Component>
+						}
+					</Component>
+				}
+				
+				<Component xsi:type="Label" Y="100" X="550" Color="Aqua" Alignment="Right">AP</Component>
+
+				<Component xsi:type="Label" Y="150" X="550" Color="Aqua" Alignment="Right">To next level</Component>
+
+				<Component xsi:type="Label" Y="220" X="50" Color="Aqua">Ability List</Component>
+				<Component xsi:type="Label" Y="220" X="400" Color="Aqua">Equip Effect</Component>
+			</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="800" Y="240" W="480" H="480">
+			<Component xsi:type="List" X="0" Y="20" W="730" H="450" ID="lbMateria">
+				@foreach(var m in @Model.AvailableMateria) {
+					<Component xsi:type="Group">
+						@if (m != null) {
+							<Component xsi:type="Image" X="20" Y="0">materia_@Model.MateriaColor(m.Materia)</Component>
+							<Component xsi:type="Label" X="50" Y="0" ID='@("Materia" + m.Materia.ID)' Click="MateriaSelected" Focussed="MateriaFocussed">@m.Materia.Name</Component>
+						}
+					</Component>
+				}
+			</Component>
+		</Component>
+	
+	</Root>
+</Layout>

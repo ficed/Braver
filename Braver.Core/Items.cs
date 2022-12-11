@@ -41,6 +41,26 @@ namespace Braver {
 
     }
 
+    public abstract class CachedText : Cacheable {
+
+        private KernelText _names, _descriptions;
+
+        public (string Name, string Description) this[int index] => (_names.Get(index), _descriptions.Get(index));
+        public int Count => _names.Count;
+
+        protected void Init(BGame g, int nameSection, int descriptionSection) {
+            var kernel = g.Singleton<KernelCache>();
+            _names = new KernelText(kernel.Kernel.Sections[nameSection]);
+            _descriptions = new KernelText(kernel.Kernel.Sections[descriptionSection]);
+        }
+    }
+
+    public class MagicText : CachedText {
+        public override void Init(BGame g) {
+            base.Init(g, 18, 10);
+        }
+    }
+
     public class Items : Cacheable {
         private ItemCollection _items;
 

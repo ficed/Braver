@@ -44,7 +44,6 @@ namespace Braver.Battle {
         }
 
         private List<BackgroundChunk> _backgroundChunks = new();
-        private GraphicsDevice _graphics;
         private VertexBuffer _vertexBuffer;
         private IndexBuffer _indexBuffer;
 
@@ -83,7 +82,7 @@ namespace Braver.Battle {
                 using (var stex = Game.TryOpen("battle", NumToFile(num++))) {
                     if (stex == null)
                         break;
-                    texs.Add(_graphics.LoadTex(new Ficedula.FF7.TexFile(stex), 0));
+                    texs.Add(Graphics.LoadTex(new Ficedula.FF7.TexFile(stex), 0));
                 }
             }
 
@@ -102,7 +101,7 @@ namespace Braver.Battle {
 
             foreach (var group in pfiles.SelectMany(p => p.Chunks).GroupBy(c => c.Texture)) {
                 var bchunk = new BackgroundChunk {
-                    Effect = new BasicEffect(_graphics) {
+                    Effect = new BasicEffect(Graphics) {
                         VertexColorEnabled = true,
                         LightingEnabled = false,
                         TextureEnabled = group.Key.HasValue,
@@ -129,9 +128,9 @@ namespace Braver.Battle {
                 _backgroundChunks.Add(bchunk);
             }
 
-            _vertexBuffer = new VertexBuffer(_graphics, typeof(VertexPositionColorTexture), verts.Count, BufferUsage.WriteOnly);
+            _vertexBuffer = new VertexBuffer(Graphics, typeof(VertexPositionColorTexture), verts.Count, BufferUsage.WriteOnly);
             _vertexBuffer.SetData(verts.ToArray());
-            _indexBuffer = new IndexBuffer(_graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
+            _indexBuffer = new IndexBuffer(Graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
             _indexBuffer.SetData(indices.ToArray());
         }
 
@@ -172,6 +171,7 @@ namespace Braver.Battle {
             }
 
             _ui = new UI.Layout.LayoutScreen("battle", new UIHandler());
+            _ui.Init(Game, Graphics);
 
             g.Audio.PlayMusic("bat"); //TODO!
         }
@@ -188,19 +188,19 @@ namespace Braver.Battle {
 
         protected override void DoRender() {
 
-            _graphics.DepthStencilState = DepthStencilState.Default;
-            _graphics.RasterizerState = RasterizerState.CullClockwise;
-            _graphics.SamplerStates[0] = SamplerState.LinearWrap;
+            Graphics.DepthStencilState = DepthStencilState.Default;
+            Graphics.RasterizerState = RasterizerState.CullClockwise;
+            Graphics.SamplerStates[0] = SamplerState.LinearWrap;
 
-            _graphics.Indices = _indexBuffer;
-            _graphics.SetVertexBuffer(_vertexBuffer);
+            Graphics.Indices = _indexBuffer;
+            Graphics.SetVertexBuffer(_vertexBuffer);
 
             foreach(var chunk in _backgroundChunks) {
                 chunk.Effect.View = _view.View;
                 chunk.Effect.Projection = _view.Projection;
                 foreach (var pass in chunk.Effect.CurrentTechnique.Passes) {
                     pass.Apply();
-                    _graphics.DrawIndexedPrimitives(
+                    Graphics.DrawIndexedPrimitives(
                         PrimitiveType.TriangleList, chunk.VertOffset, chunk.IndexOffset, chunk.TriCount
                     );
                 }

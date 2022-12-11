@@ -51,6 +51,16 @@ namespace Braver.UI.Layout {
         [XmlIgnore]
         public Container Parent { get; internal set; }
 
+        [XmlIgnore]
+        public Container FocusParent {
+            get {
+                Container c = Parent;
+                while ((c != null) && c.InputPassthrough)
+                    c = c.Parent;
+                return c;
+            }
+        }
+
         public Point GetAbsolutePosition() {
             int x = X, y = Y;
             Container c = Parent;
@@ -73,13 +83,37 @@ namespace Braver.UI.Layout {
 
     }
 
+    public class Focussable {
+        public Component Component { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+
     public abstract class Container : SizedComponent {
         [XmlElement("Component")]
         public List<Component> Children { get; set; } = new();
 
+        [XmlAttribute]
+        public bool InputPassthrough { get; set; }
+
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             foreach (var child in Children.Where(c => c.Visible))
                 child.Draw(model, ui, offsetX + X, offsetY + Y, getZ);
+        }
+
+        public IEnumerable<Focussable> FocussableChildren() {
+            foreach (var child in Children.Where(c => (c.OnClick != null) || (c.OnFocussed != null)))
+                yield return new Focussable {
+                    Component = child,
+                    X = child.X,
+                    Y = child.Y,
+                };
+            foreach (var container in Children.OfType<Container>().Where(c => c.InputPassthrough))
+                foreach (var gChild in container.FocussableChildren()) {
+                    gChild.X += container.X;
+                    gChild.Y += container.Y;
+                    yield return gChild;
+                }
         }
     }
 
@@ -130,7 +164,29 @@ namespace Braver.UI.Layout {
         }
     }
 
-    public class Group : Container { }
+    public class Group : Container {
+        [XmlAttribute("Background")]
+        public string BackgroundString { get; set; } = "Black";
+        [XmlAttribute]
+
+        private Color? _background;
+        [XmlIgnore]
+        public Color Background {
+            get => GetColor(BackgroundString, ref _background);
+            set => _background = value;
+        }
+
+        [XmlAttribute]
+        public float BackgroundAlpha { get; set; }
+
+
+        public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
+            if (BackgroundAlpha > 0)
+                ui.DrawImage("white", X + offsetX, Y + offsetY, getZ(), new Point(W, H), color: Background.WithAlpha((byte)(BackgroundAlpha * 255)));
+            base.Draw(model, ui, offsetX, offsetY, getZ);
+        }
+
+    }
 
     public class Label : Component {
         [XmlText]
@@ -171,8 +227,19 @@ namespace Braver.UI.Layout {
         [XmlAttribute]
         public float Scale { get; set; } = 1f;
 
+        [XmlAttribute("Color")]
+        public string ColorString { get; set; } = "White";
+        [XmlAttribute]
+
+        private Color? _color;
+        [XmlIgnore]
+        public Color Color {
+            get => GetColor(ColorString, ref _color);
+            set => _color = value;
+        }
+
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
-            ui.DrawImage(ImageName, offsetX + X, offsetY + Y, getZ(), Alignment.Left, Scale);
+            ui.DrawImage(ImageName, offsetX + X, offsetY + Y, getZ(), Alignment.Left, Scale, Color);
         }
     }
 
@@ -269,7 +336,7 @@ namespace Braver.UI.Layout {
             FocusUpdated();
         }
         public void ChangeFocus(Component focus) {
-            Debug.Assert(focus.Parent == FocusGroup);
+            Debug.Assert(focus.FocusParent == FocusGroup);
             _focus.Peek().FocusID = focus.ID;
             FocusUpdated();
         }
@@ -380,6 +447,7 @@ namespace Braver.UI.Layout {
                 _templates[layout] = razor = _razorEngine.Compile<BraverTemplate>(template, builder => {
                     builder.AddAssemblyReference(typeof(RazorLayoutCache));
                     builder.AddAssemblyReference(typeof(SaveData));
+                    builder.AddAssemblyReference(typeof(Ficedula.FF7.Item));
                 });
             }
             return razor;
@@ -469,36 +537,36 @@ namespace Braver.UI.Layout {
         }
 
         private Component FindNextFocus(Container container, Component current, int ox, int oy) {
-            var candidates = container.Children
-                .Where(c => (c.OnClick != null) || (c.OnFocussed != null))
-                .Where(c => c != current);
+            var candidates = container.FocussableChildren();
+            var currentFocus = candidates.FirstOrDefault(c => c.Component == current);
+            candidates = candidates.Where(c => c.Component != current);
 
             switch (ox) {
                 case 1:
                     candidates = candidates
-                        .Where(c => (c.X > current.X) && (Math.Abs(c.Y - current.Y) < Math.Abs(c.X - current.X)));
+                        .Where(c => (c.X > currentFocus.X) && (Math.Abs(c.Y - currentFocus.Y) < Math.Abs(c.X - currentFocus.X)));
                     break;
                 case -1:
                     candidates = candidates
-                        .Where(c => (c.X < current.X) && (Math.Abs(c.Y - current.Y) < Math.Abs(c.X - current.X)));
+                        .Where(c => (c.X < currentFocus.X) && (Math.Abs(c.Y - currentFocus.Y) < Math.Abs(c.X - currentFocus.X)));
                     break;
             }
             switch (oy) {
                 case 1:
                     candidates = candidates
-                        .Where(c => (c.Y > current.Y) && (Math.Abs(c.X - current.X) < Math.Abs(c.Y - current.Y)));
+                        .Where(c => (c.Y > currentFocus.Y) && (Math.Abs(c.X - currentFocus.X) < Math.Abs(c.Y - currentFocus.Y)));
                     break;
                 case -1:
                     candidates = candidates
-                        .Where(c => (c.Y < current.Y) && (Math.Abs(c.X - current.X) < Math.Abs(c.Y - current.Y)));
+                        .Where(c => (c.Y < currentFocus.Y) && (Math.Abs(c.X - currentFocus.X) < Math.Abs(c.Y - currentFocus.Y)));
                     break;
             }
 
             var result = candidates
-                .OrderBy(c => (new Vector2(c.X, c.Y) - new Vector2(current.X, current.Y)).LengthSquared())
+                .OrderBy(c => (new Vector2(c.X, c.Y) - new Vector2(currentFocus.X, currentFocus.Y)).LengthSquared())
                 .FirstOrDefault();
 
-            return result;
+            return result?.Component;
         }
 
         public override void ProcessInput(InputState input) {

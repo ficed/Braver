@@ -167,11 +167,14 @@
 				<Glyph X="208" Y="192" W="16" H="16" Layer="2">90</Glyph>
 
 				<Glyph X="48" Y="208" W="16" H="16" Layer="2">37</Glyph>
+				<Glyph X="48" Y="176" W="16" H="16" Layer="2">43</Glyph>
+				<Glyph X="16" Y="224" W="16" H="16" Layer="2">45</Glyph>
 				<Glyph X="64" Y="208" W="16" H="16" Layer="2">47</Glyph>
 				<Glyph X="80" Y="208" W="16" H="16" Layer="2">58</Glyph>
 				<Glyph X="96" Y="208" W="16" H="16" Layer="2">38</Glyph>
 				<Glyph X="112" Y="208" W="16" H="16" Layer="2">91</Glyph>
 				<Glyph X="128" Y="208" W="16" H="16" Layer="2">93</Glyph>
+
 
 				<Glyph X="160" Y="208" W="16" H="16" Layer="2">8594</Glyph> <!-- Right arrow -->
 				<Glyph X="144" Y="208" W="16" H="16" Layer="2">9829</Glyph> <!-- Heart -->

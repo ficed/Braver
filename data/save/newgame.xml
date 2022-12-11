@@ -19,7 +19,7 @@
 			<LimitLevel>1</LimitLevel>
 			<LimitBar>128</LimitBar>
 			<Name>Cloud</Name>
-			<EquipWeapon>0</EquipWeapon>
+			<EquipWeapon>2</EquipWeapon>
 			<EquipArmour>0</EquipArmour>
 			<EquipAccessor>0</EquipAccessor>
 			<Flags>Available Party1</Flags>
@@ -230,4 +230,19 @@
 	<Location>Train Station</Location>
 	<WorldMapAvatar>cloud</WorldMapAvatar>
 	<Gil>1234</Gil>
+	<MateriaStock>
+		<OwnedMateria>
+			<MateriaID>50</MateriaID>
+			<AP>21</AP>
+		</OwnedMateria>
+		<OwnedMateria>
+			<MateriaID>14</MateriaID>
+			<AP>21</AP>
+		</OwnedMateria>
+		<OwnedMateria>
+			<MateriaID>77</MateriaID>
+			<AP>21</AP>
+		</OwnedMateria>
+
+	</MateriaStock>
 </SaveData>
