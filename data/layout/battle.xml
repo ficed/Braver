@@ -4,10 +4,18 @@
 		<Component xsi:type="Box" X="0" Y="0" W="630" H="150"></Component>
 		<Component xsi:type="Box" X="630" Y="0" W="650" H="150"></Component>
 
-		@foreach(int i in Enumerable.Range(0, @Model.SaveData.Party.Length)) {
-		<Component xsi:type="Group" X="0" Y="@(10 + 40 * i)" W="1280" H="40" ID='@("Char" + i)'>
-			@Include("battlechar", Model.SaveData.Party[i])
-		</Component>
+		<Component xsi:type="Image" X="30" Y="15">bm_name</Component>
+		<Component xsi:type="Image" X="400" Y="15">bm_barrier</Component>
+
+		<Component xsi:type="Image" X="650" Y="15">bm_hp</Component>
+		<Component xsi:type="Image" X="875" Y="15">bm_mp</Component>
+		<Component xsi:type="Image" X="1050" Y="15">bm_limit</Component>
+		<Component xsi:type="Image" X="1150" Y="15">bm_time</Component>
+
+		@foreach(int i in Enumerable.Range(0, @Model.Combatants.Count)) {
+			<Component xsi:type="Group" X="0" Y="@(30 + 40 * i)" W="1280" H="40" ID='@("Char" + i)'>
+				@Include("battlechar", Model.Combatants[i])
+			</Component>
 		}
 	</Root>
 </Layout>

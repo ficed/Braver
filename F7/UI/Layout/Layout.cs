@@ -448,6 +448,7 @@ namespace Braver.UI.Layout {
                     builder.AddAssemblyReference(typeof(RazorLayoutCache));
                     builder.AddAssemblyReference(typeof(SaveData));
                     builder.AddAssemblyReference(typeof(Ficedula.FF7.Item));
+                    builder.AddAssemblyReference(typeof(Enumerable));
                 });
             }
             return razor;

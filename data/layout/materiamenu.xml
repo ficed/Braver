@@ -31,7 +31,16 @@
 				<Component xsi:type="Label" Y="130" X="620" ID="lArrange" Click="Arrange_Click">Arrange</Component>
 
 				<Component xsi:type="Group" BackgroundAlpha="0.2" X="700" Y="130" W="300" H="30" InputPassthrough="true">
-
+					@foreach(int slot in Enumerable.Range(0, Model.Armour?.MateriaSlots?.Count ?? 0)) {
+						<Component xsi:type="Image" X="@(5 + 30 * slot)" Y="3" ID="A@(slot)" Click="EClick" Focussed="EFocussed">materia_slot</Component>
+						@if (((slot % 2) == 0) && (Model.Weapon.MateriaSlots[slot] == MateriaSlotKind.Linked)) {
+							<Component xsi:type="Image" X="@(25 + 30 * slot)" Y="5">materia_slot_link</Component>
+						}
+						
+						@if (Model.ArmourMateria[slot] != null) {
+							<Component xsi:type="Image" X="@(8 + 30 * slot)" Y="5">materia_@Model.MateriaColor(Model.ArmourMateria[slot].Materia)</Component>
+						}
+					}
 				</Component>
 			</Component>
 		</Component>		
@@ -59,8 +68,11 @@
 					}
 					
 					<Component xsi:type="List" X="50" Y="260" W="240" H="240">
-						@foreach(var ability in Model.MateriaAbilities(Model.CurrentMateria.Materia)) {
-							<Component xsi:type="Label">@ability</Component>
+						@{
+						  int abilityCount = 0;
+						}
+						@foreach(string ability in Model.MateriaAbilities(Model.CurrentMateria.Materia)) {
+							<Component xsi:type="Label" Color='@(abilityCount++ >= Model.CurrentMateria.Level ? "Gray" : "White")'>@ability</Component>
 						}
 					</Component>
 				
@@ -86,11 +98,14 @@
 
 		<Component xsi:type="Box" X="800" Y="240" W="480" H="480">
 			<Component xsi:type="List" X="0" Y="20" W="730" H="450" ID="lbMateria">
+				@{
+					int mcount = 0;
+				}
 				@foreach(var m in @Model.AvailableMateria) {
-					<Component xsi:type="Group">
+					<Component xsi:type="Group" ID='@("M" + mcount++)' Click="MateriaClick" Focussed="MateriaFocussed">
 						@if (m != null) {
 							<Component xsi:type="Image" X="20" Y="0">materia_@Model.MateriaColor(m.Materia)</Component>
-							<Component xsi:type="Label" X="50" Y="0" ID='@("Materia" + m.Materia.ID)' Click="MateriaSelected" Focussed="MateriaFocussed">@m.Materia.Name</Component>
+							<Component xsi:type="Label" X="50" Y="0" ID='@("Materia" + m.Materia.ID)'>@m.Materia.Name</Component>
 						}
 					</Component>
 				}

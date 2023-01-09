@@ -14,6 +14,12 @@
 			<Y>256</Y>
 			<Chunk X="224" Y="64" W="24" H="24">materia_slot_nogrowth</Chunk>
 			<Chunk X="227" Y="98" W="14" H="18">materia_slot_link</Chunk>
+			<Chunk X="112" Y="0" W="48" H="16">bm_limit</Chunk>
+			<Chunk X="160" Y="0" W="32" H="16">bm_hp</Chunk>
+			<Chunk X="192" Y="0" W="32" H="16">bm_mp</Chunk>
+			<Chunk X="224" Y="0" W="48" H="16">bm_time</Chunk>
+			<Chunk X="112" Y="16" W="80" H="16">bm_barrier</Chunk>
+			<Chunk X="192" Y="16" W="48" H="16">bm_wait</Chunk>
 		</SourceImage>
 		<SourceImage>
 			<Texture>menu\btl_win_b_h.tex,0</Texture>
@@ -30,6 +36,8 @@
 			<Chunk X="3" Y="67" W="18" H="18">materia</Chunk>
 			<Chunk X="32" Y="64" W="26" H="26">materia_star</Chunk>
 			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty</Chunk>
+			<Chunk X="0" Y="32" W="64" H="16">bm_name</Chunk>
+			<Chunk X="0" Y="48" W="64" H="16">bm_status</Chunk>
 		</SourceImage>
 		<SourceImage>
 			<Texture>menu\btl_win_c_h.tex,0</Texture>

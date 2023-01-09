@@ -69,7 +69,7 @@ namespace Braver {
                 Memory.Load(fs);
             using (var fs = File.OpenRead(path + ".sav"))
                 SaveData = Serialisation.Deserialise<SaveData>(fs);
-            SaveData.Loaded();
+            SaveData.CleanUp();
         }
 
         public T Singleton<T>() where T : Cacheable, new() {
@@ -96,7 +96,7 @@ namespace Braver {
                 SaveData = Serialisation.Deserialise<SaveData>(s);
             Memory.ResetAll();
             Braver.NewGame.Init(this);
-            SaveData.Loaded();
+            SaveData.CleanUp();
         }
 
         public IEnumerable<string> ScanData(string category) {

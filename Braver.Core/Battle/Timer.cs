@@ -18,6 +18,7 @@ namespace Braver.Battle {
         private List<Event> _events = new();
 
         public bool IsFull => _value >= _max;
+        public float Fill => 1f * _value / _max;
         public int Ticks => _ticks;
 
         public Timer(int increment, int max, int value, bool autoReset = true) {

@@ -88,6 +88,7 @@ namespace Braver.Battle {
         private CombatStats _stats;
 
         public string Name => _char.Name;
+        public Character Character => _char;
 
         public List<CharacterAction> Actions { get; } = new();
 

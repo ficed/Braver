@@ -100,5 +100,6 @@ namespace Braver {
         SaveReady = 1,
         Invalid = 2,
         Cancel = 3,
+        DeEquip = 446,
     }
 }

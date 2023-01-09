@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Ficedula.FF7.Battle;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -9,10 +10,10 @@ using System.Threading.Tasks;
 namespace Braver.Battle {
 
     public class BattleSceneCache {
-        public Dictionary<int, Ficedula.FF7.Battle.BattleScene> Scenes { get; }
+        public Dictionary<int, BattleScene> Scenes { get; }
 
         public BattleSceneCache(FGame g) {
-            Scenes = Ficedula.FF7.Battle.SceneDecoder.Decode(g.Open("battle", "scene.bin"))
+            Scenes = SceneDecoder.Decode(g.Open("battle", "scene.bin"))
                 .Where(s => s.Enemies.Any())
                 .ToDictionary(s => s.FormationID, s => s);
         }
@@ -29,8 +30,62 @@ namespace Braver.Battle {
 
     public class BattleScreen : Screen {
 
-        private class UIHandler : UI.Layout.LayoutModel {
+        private class Callbacks : AICallbacks {
+            public Callbacks(VMM vmm) {
+                _vmm = vmm;
+            }
 
+            public override void DisplayText(byte[] text) {
+                //TODO encoding?!?!
+                Console.WriteLine(Encoding.ASCII.GetString(text));
+            }
+        }
+
+        private class UIHandler : UI.Layout.LayoutModel {
+            public UI.Layout.Label
+                lHP0, lHP1, lHP2,
+                lMaxHP0, lMaxHP1, lMaxHP2,
+                lMP0, lMP1, lMP2,
+                lMaxMP0, lMaxMP1, lMaxMP2;
+            public UI.Layout.Gauge
+                gHP0, gHP1, gHP2,
+                gMP0, gMP1, gMP2,
+                gLimit0, gLimit1, gLimit2,
+                gTime0, gTime1, gTime2;
+            public UI.Layout.Box
+                bMenu0, bMenu1, bMenu2;
+
+
+            private List<CharacterCombatant> _combatants;
+
+            public IReadOnlyList<CharacterCombatant> Combatants => _combatants.AsReadOnly();
+
+            public override bool IsRazorModel => true;
+
+            public UIHandler(IEnumerable<CharacterCombatant> combatants) {
+                _combatants = combatants.ToList();
+            }
+
+            private void DoUpdate(CharacterCombatant combatant,
+                UI.Layout.Label lHP, UI.Layout.Label lMaxHP, UI.Layout.Label lMP, UI.Layout.Label lMaxMP,
+                UI.Layout.Gauge gHP, UI.Layout.Gauge gMP, UI.Layout.Gauge gLimit, UI.Layout.Gauge gTime,
+                UI.Layout.Box bMenu) {
+                
+                if (combatant == null) return;
+
+                lHP.Text = combatant.Character.CurrentHP.ToString();
+                lMP.Text = combatant.Character.CurrentMP.ToString();
+                gHP.Current = combatant.Character.CurrentHP;
+                gMP.Current = combatant.Character.CurrentMP;
+                gLimit.Current = combatant.Character.LimitBar;
+                gTime.Current = 255 * combatant.TTimer.Fill;
+            }
+
+            public void Update() {
+                DoUpdate(_combatants.ElementAtOrDefault(0), lHP0, lMaxHP0, lMP0, lMaxMP0, gHP0, gMP0, gLimit0, gTime0, bMenu0);
+                DoUpdate(_combatants.ElementAtOrDefault(1), lHP1, lMaxHP1, lMP1, lMaxMP1, gHP1, gMP1, gLimit1, gTime1, bMenu1);
+                DoUpdate(_combatants.ElementAtOrDefault(2), lHP2, lMaxHP2, lMP2, lMaxMP2, gHP2, gMP2, gLimit2, gTime2, bMenu2);
+            }
         }
 
 
@@ -53,6 +108,10 @@ namespace Braver.Battle {
         private PerspView3D _view;
 
         private UI.Layout.LayoutScreen _ui;
+        private UIHandler _uiHandler;
+
+        private Engine _engine;
+
 
         private bool _debugCamera = false;
 
@@ -170,10 +229,37 @@ namespace Braver.Battle {
                 AddModel(player.First.BattleModel, player.Second);
             }
 
-            _ui = new UI.Layout.LayoutScreen("battle", new UIHandler());
+            InitEngine();
+
+            _uiHandler = new UIHandler(_engine.Combatants.OfType<CharacterCombatant>());
+            _ui = new UI.Layout.LayoutScreen("battle", _uiHandler);
             _ui.Init(Game, Graphics);
 
             g.Audio.PlayMusic("bat"); //TODO!
+        }
+
+        private void InitEngine() {
+
+            ICombatant[] combatants = new ICombatant[16];
+
+            int index = 0;
+            foreach (var chr in Game.SaveData.Party)
+                combatants[index++] = new CharacterCombatant(Game, chr);
+
+            index = 4;
+            foreach (var group in _scene.Enemies.GroupBy(ei => ei.Enemy.ID)) {
+                int c = 0;
+                foreach (var enemy in group) {
+                    combatants[index++] = new EnemyCombatant(enemy, group.Count() == 1 ? null : c++);
+                }
+            }
+
+            var callbacks = new Callbacks(Game.Memory);
+            _engine = new Engine(128, combatants, Game, callbacks);
+
+            _engine.ReadyForAction += c => { };
+            _engine.ActionQueued += a => { };
+
         }
 
         public override Color ClearColor => Color.Black;
@@ -182,7 +268,8 @@ namespace Braver.Battle {
             foreach (var model in _models) {
                 model.FrameStep();
             }
-
+            _engine.Tick();
+            _uiHandler.Update();
             _ui.Step(elapsed);
         }
 

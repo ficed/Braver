@@ -145,9 +145,21 @@ namespace Braver {
         [XmlIgnore]
         public bool IsBackRow => Flags.HasFlag(CharFlags.BackRow);
 
+        [XmlIgnore]
+        public int PartyIndex {
+            get {
+                switch(Flags & CharFlags.ANY_PARTY_SLOT) {
+                    case CharFlags.Party1:  return 0;
+                    case CharFlags.Party2:  return 1;
+                    case CharFlags.Party3:  return 2;
+                    default:                return -1;
+                }
+            }
+        }
+
         public IEnumerable<(Materia Materia, int AP, int Level)> EquippedMateria(BGame game) {
             var materias = game.Singleton<Materias>();
-            foreach(var mat in WeaponMateria.Concat(ArmourMateria)) {
+            foreach(var mat in WeaponMateria.Concat(ArmourMateria).Where(m => m != null)) {
                 var materia = materias[mat.MateriaID];
                 int level = Enumerable.Range(0, materia.APLevels.Count)
                     .Where(lvl => materia.APLevels[lvl] <= mat.AP)
@@ -211,16 +223,20 @@ namespace Braver {
         public int GameTimeSeconds { get; set; }
 
         [XmlIgnore]
-        public Character[] Party => CharactersInParty().ToArray(); //Array so we can interop with Lua
+        public Character[] Party => CharactersInParty().ToArray(); //Array so we can interop
 
-        public void Loaded() {
-            Characters.Sort((c1, c2) => c1.CharIndex.CompareTo(c2.CharIndex));
+        public void CleanUp() {
+            Characters.Sort((c1, c2) => (c1?.CharIndex ?? 0).CompareTo(c2?.CharIndex ?? 0));
             foreach (int i in Enumerable.Range(0, 8)) {
                 while (Characters.Count <= i)
                     Characters.Add(null);
                 while ((Characters[i] != null) && (Characters[i].CharIndex > i))
                     Characters.Insert(i, null);
             }
+
+            int lastValid = MateriaStock.FindLastIndex(m => m != null);
+            if (lastValid < (MateriaStock.Count - 1))
+                MateriaStock.RemoveRange(lastValid + 1, MateriaStock.Count - lastValid - 1);
         }
 
         public bool GiveInventoryItem(InventoryItemKind kind, int id, int quantity = 1) {
