@@ -39,10 +39,18 @@ namespace Braver.UI {
                             Game.NewGame();
                             Game.ChangeScreen(this, new Field.FieldScreen(
                                 new Ficedula.FF7.Field.FieldDestination {
-                                    X = -225, Y = -830, Triangle = 152,
+                                    X = 50, Y = -140, Triangle = 3,
                                     Orientation = 116,
-                                    DestinationFieldID = 195,
+                                    DestinationFieldID = 180,
                                 }
+
+                            /*
+                                                            new Ficedula.FF7.Field.FieldDestination {
+                                                                X = -225, Y = -830, Triangle = 152,
+                                                                Orientation = 116,
+                                                                DestinationFieldID = 195,
+                                                            }
+                            */
                             ));
                             break;
 

@@ -8,6 +8,11 @@ Background load razor engine - do other templates? Automatically load all of the
 
 Moving through walkmap triangles on field is still broken, esp. when running
 
+IFKEYON etc not fully working - prob. due to IsJustPressed one-frame check conflicting with field scripts
+	not running every frame?
+
+Shops!
+
 Compressed/single file saves
 
 Music looping

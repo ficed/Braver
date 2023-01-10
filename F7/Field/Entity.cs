@@ -53,7 +53,7 @@ namespace Braver.Field {
         public void Run(bool isInit = false) {
             int priority = 7;
             foreach (var fiber in _priorities.Reverse()) {
-                if (fiber.InProgress && fiber.Active) {
+                if (fiber.InProgress) {
                     if (DEBUG_OUT)
                         System.Diagnostics.Debug.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
                     fiber.Run(isInit);

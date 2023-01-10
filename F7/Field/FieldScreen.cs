@@ -56,7 +56,8 @@ namespace Braver.Field {
 
     public class FieldScreen : Screen {
 
-        private OrthoView3D _view3D; 
+        //private OrthoView3D _view3D; 
+        private PerspView3D _view3D;
         private View2D _view2D;
         private FieldDebug _debug;
         private FieldInfo _info;
@@ -131,6 +132,7 @@ namespace Braver.Field {
 
                 var cam = field.GetCameraMatrices().First();
 
+                /*
                 float camWidth, camHeight;
                 if (_info.Cameras.Any()) {
                     camWidth = _info.Cameras[0].Width;
@@ -207,6 +209,33 @@ namespace Braver.Field {
                     CenterX = _base3DOffset.X,
                     CenterY = _base3DOffset.Y,
                 };
+                */
+
+                double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
+
+                _view3D = new PerspView3D {
+                    FOV = (float)fovy,
+                    ZNear = 0.001f * 4096f,
+                    ZFar = 1000f * 4096f,
+                    CameraPosition = cam.CameraPosition.ToX() * 4096,
+                    CameraForwards = cam.Forwards.ToX(),
+                    CameraUp = cam.Up.ToX(),
+                };
+
+                var vp = System.Numerics.Matrix4x4.CreateLookAt(
+                    cam.CameraPosition * 4096f, cam.CameraPosition * 4096f + cam.Forwards, cam.Up
+                ) * System.Numerics.Matrix4x4.CreatePerspectiveFieldOfView(
+                    (float)(fovy * Math.PI / 180.0), 1280f / 720f, 0.001f * 4096f, 1000f * 4096f
+                );
+
+                foreach (var wTri in _walkmesh) {
+                    System.Numerics.Vector4 v0 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V0.X  , wTri.V0.Y , wTri.V0.Z , 1), vp),
+                        v1 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V1.X , wTri.V1.Y , wTri.V1.Z , 1), vp),
+                        v2 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V2.X , wTri.V2.Y , wTri.V2.Z , 1), vp);
+                    System.Diagnostics.Debug.WriteLine(v0 / v0.W);
+                    System.Diagnostics.Debug.WriteLine(v1 / v1.W);
+                    System.Diagnostics.Debug.WriteLine(v2 / v2.W);
+                }
 
                 _debug = new FieldDebug(graphics, field);
             }
@@ -218,6 +247,15 @@ namespace Braver.Field {
             foreach (var entity in Entities) {
                 entity.Call(0, 0, null);
                 entity.Run(true);
+            }
+
+            if (Player == null) {
+                var autoPlayer = Entities
+                    .Where(e => e.Character != null)
+                    .Where(e => e.Model?.Visible == true)
+                    .FirstOrDefault();
+                if (autoPlayer != null)
+                    SetPlayer(Entities.IndexOf(autoPlayer));
             }
 
             _view2D = new View2D {
@@ -292,11 +330,13 @@ namespace Braver.Field {
             BGScrollOffset(x - (_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
         }
         public void BGScrollOffset(float ox, float oy) {
+            /*
             var _3dScrollAmount = new Vector2(_view3D.Width / 427f, _view3D.Height / 240f);
             _view2D.CenterX += 3 * ox;
             _view3D.CenterX += _3dScrollAmount.X * ox;
             _view2D.CenterY += 3 * oy;
             _view3D.CenterY += _3dScrollAmount.Y * oy;
+            */ //TODO!!!
         }
 
         private void ReportAllModelPositions() {
@@ -338,8 +378,13 @@ namespace Braver.Field {
             return new Vector2(tx, ty);
         }
 
+        private InputState _lastInput;
+
+        internal InputState LastInput => _lastInput;
+
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
+            _lastInput = input;
             if (input.IsJustDown(InputKey.Start))
                 _debugMode = !_debugMode;
 
@@ -358,7 +403,7 @@ namespace Braver.Field {
 
             if (_debugMode) {
                 if (input.IsAnyDirectionDown() || input.IsJustDown(InputKey.Select)) {
-
+                    /*
                     //Now calculate 3d scroll amount
                     var _3dScrollAmount = new Vector2(_view3D.Width / 427f, _view3D.Height / 240f);
                     System.Diagnostics.Debug.WriteLine($"To scroll 3d view by one BG pixel, it will move {_3dScrollAmount}");
@@ -425,6 +470,7 @@ namespace Braver.Field {
                     }
                     System.Diagnostics.Debug.WriteLine($"View2D Center: {_view2D.CenterX}/{_view2D.CenterY}");
                     System.Diagnostics.Debug.WriteLine($"View3D: {_view3D}");
+                    */
                 }
             } else {
 
@@ -494,6 +540,7 @@ namespace Braver.Field {
                                 System.Diagnostics.Debug.WriteLine($"Player has entered line {entered}");
                                 entered.Call(3, 5, null); //TODO PRIORITY!?!
                             }
+
                             foreach (var left in oldLines.Except(Player.LinesCollidingWith)) {
                                 System.Diagnostics.Debug.WriteLine($"Player has left line {left}");
                                 left.Call(3, 6, null); //TODO PRIORITY!?!
@@ -519,6 +566,10 @@ namespace Braver.Field {
                         } else {
                             //
                         }
+                    }
+
+                    foreach (var isIn in Player.LinesCollidingWith) {
+                        isIn.Call(2, 4, null); //TODO PRIORITY!?!
                     }
 
                     if ((Player.Model.AnimationState.Animation != desiredAnim) || (Player.Model.AnimationState.AnimationSpeed != animSpeed))

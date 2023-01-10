@@ -89,6 +89,10 @@
 			<ArmourMateria>2</ArmourMateria>
 			<BattleModel>rv</BattleModel>
 		</Character>
+		<Character>
+			<CharIndex>8</CharIndex>
+			<ID>cid</ID>
+		</Character>
 	</Characters>
 	<Inventory>
 		<InventoryItem>

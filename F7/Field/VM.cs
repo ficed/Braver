@@ -459,6 +459,60 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        private static Dictionary<int, InputKey> _maskToKey = new Dictionary<int, InputKey> {
+            //TODO - all the other keys!
+
+            [0x0010] = InputKey.Menu,
+            [0x0020] = InputKey.OK,
+            [0x0040] = InputKey.Cancel,
+
+            [0x0100] = InputKey.Select,
+            [0x0800] = InputKey.Start,
+
+            [0x1000] = InputKey.Up,
+            [0x2000] = InputKey.Right,
+            [0x4000] = InputKey.Down,
+            [0x8000] = InputKey.Left,
+        };
+
+        private static IEnumerable<InputKey> GetIndicatedKeys(ushort mask) {
+            for(int bit = 0; bit < 16; bit++) {
+                if (mask == 0) yield break;
+                if ((mask & 1) == 1) {
+                    //Skip bits 9 and 10 - unknown input keys?
+                    if ((bit != 9) && (bit != 10))
+                        yield return _maskToKey[1 << bit];
+                }
+                mask >>= 1;
+            }
+        }
+
+        public static OpResult IFKEY(Fiber f, Entity e, FieldScreen s) {
+            ushort buttons = f.ReadU16();
+            int newIP = f.IP + f.ReadU8();
+            bool jump = !GetIndicatedKeys(buttons).Any(k => s.LastInput.IsDown(k));
+            if (jump)
+                f.Jump(newIP);
+            return OpResult.Continue;
+        }
+
+        public static OpResult IFKEYON(Fiber f, Entity e, FieldScreen s) {
+            ushort buttons = f.ReadU16();
+            int newIP = f.IP + f.ReadU8();
+            bool jump = !GetIndicatedKeys(buttons).Any(k => s.LastInput.IsJustDown(k));
+            if (jump)
+                f.Jump(newIP);
+            return OpResult.Continue;
+        }
+        public static OpResult IFKEYOFF(Fiber f, Entity e, FieldScreen s) {
+            ushort buttons = f.ReadU16();
+            int newIP = f.IP + f.ReadU8();
+            bool jump = GetIndicatedKeys(buttons).Any(k => s.LastInput.IsDown(k));
+            if (jump)
+                f.Jump(newIP);
+            return OpResult.Continue;
+        }
+
         public static OpResult IFUB(Fiber f, Entity e, FieldScreen s) {
             byte banks = f.ReadU8(), bVal1 = f.ReadU8(), bVal2 = f.ReadU8(), comparison = f.ReadU8();
             int newIP = f.IP + f.ReadU8();
@@ -560,6 +614,13 @@ namespace Braver.Field {
     }
 
     internal static class FieldModels {
+
+        public static OpResult SLIP(Fiber f, Entity e, FieldScreen s) {
+            byte parm = f.ReadU8();
+            //TODO!
+            return OpResult.Continue;
+        }
+
         public static OpResult CC(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
             s.SetPlayer(parm);
@@ -580,6 +641,10 @@ namespace Braver.Field {
         public static OpResult PC(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
             e.Character = s.Game.SaveData.Characters[parm];
+            if (!s.Game.SaveData.Party.Contains(e.Character)) {
+                e.Model.Visible = false;
+                e.Flags = EntityFlags.None;
+            }
             return OpResult.Continue;
         }
 
@@ -720,12 +785,8 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
-        public static OpResult TURNGEN(Fiber f, Entity e, FieldScreen s) {
-            byte bank = f.ReadU8(), parm = f.ReadU8(),
-                rotateDir = f.ReadU8(), steps = f.ReadU8(), rotateType = f.ReadU8(); //TODO!
-            byte bRotation = (byte)s.Game.Memory.Read(bank, parm);
-            float rotation = 360f * bRotation / 255f; //TODO?
-            float rotationAmount = 360f * steps / 255f;
+        private static OpResult DoTurn(Entity e, float rotation, float rotationSteps, byte rotateDir, byte rotateType) {
+            float rotationAmount = 360f * rotationSteps / 255f;
 
             float ccwAmount = rotation > e.Model.Rotation.Z ? (e.Model.Rotation.Z + 360 - rotation) : e.Model.Rotation.Z - rotation,
                 cwAmount = rotation < e.Model.Rotation.Z ? (rotation + 360 - e.Model.Rotation.Z) : rotation - e.Model.Rotation.Z;
@@ -752,6 +813,36 @@ namespace Braver.Field {
                     e.Model.Rotation = e.Model.Rotation.WithZ((e.Model.Rotation.Z + 360 - rotationAmount) % 360);
                 return OpResult.Restart;
             }
+        }
+
+        public static OpResult TURNGEN(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), parm = f.ReadU8(),
+                rotateDir = f.ReadU8(), steps = f.ReadU8(), rotateType = f.ReadU8(); //TODO!
+            byte bRotation = (byte)s.Game.Memory.Read(bank, parm);
+            float rotation = 360f * bRotation / 255f; //TODO?
+
+            return DoTurn(e, rotation, steps, rotateDir, rotateType);
+        }
+
+        public static OpResult TURA(Fiber f, Entity e, FieldScreen s) {
+            byte targetEntityID = f.ReadU8();
+            ushort rotateDir = f.ReadU16(), steps = f.ReadU16();
+
+            var target = s.Entities[targetEntityID];
+            float rotation = (float)(Math.Atan2(target.Model.Translation.X - e.Model.Translation.X, -(target.Model.Translation.Y - e.Model.Translation.Y)) * 180 / Math.PI);
+            //TODO - we should calculate this *once* and not on every restart
+
+            return DoTurn(e, rotation, steps, (byte)rotateDir, 2);
+        }
+
+        public static OpResult PTURA(Fiber f, Entity e, FieldScreen s) {
+            byte targetParty = f.ReadU8(), steps = f.ReadU8(), rotateDir = f.ReadU8();
+
+            var target = s.Entities.Find(e => e.Character == s.Game.SaveData.Party[targetParty]);
+            float rotation = (float)(Math.Atan2(target.Model.Translation.X - e.Model.Translation.X, -(target.Model.Translation.Y - e.Model.Translation.Y)) * 180 / Math.PI);
+            //TODO - we should calculate this *once* and not on every restart
+
+            return DoTurn(e, rotation, steps, (byte)rotateDir, 2);
         }
 
         public static OpResult TALKR(Fiber f, Entity e, FieldScreen s) {
@@ -809,6 +900,23 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult WINDOW(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8();
+            ushort x = f.ReadU16(), y = f.ReadU16(), w = f.ReadU16(), h = f.ReadU16();
+            s.Dialog.SetupWindow(id, x, y, w, h);
+            /* TODO
+Adjustments are made for windows that are either too close an edge, or the width / height is too big for the screen. Eg:
+
+// Adjust window position if too close to an edge
+const MIN_WINDOW_DISTANCE = 8 // Looks about right
+if (x < MIN_WINDOW_DISTANCE) { x = MIN_WINDOW_DISTANCE }
+if (y < MIN_WINDOW_DISTANCE) { y = MIN_WINDOW_DISTANCE }
+if (x + w + MIN_WINDOW_DISTANCE > GAME_WIDTH) { x = GAME_WIDTH - w - MIN_WINDOW_DISTANCE }
+if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDOW_DISTANCE }
+             */
+            return OpResult.Continue;
+        }
+
         public static OpResult WREST(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
             s.Dialog.ResetWindow(id);
@@ -837,6 +945,25 @@ namespace Braver.Field {
                 s.Options |= FieldOptions.MenuEnabled;
             else
                 s.Options &= ~FieldOptions.MenuEnabled;
+            return OpResult.Continue;
+        }
+
+        public static OpResult MENU(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), menu = f.ReadU8(), parm = f.ReadU8();
+            int parmValue = s.Game.Memory.Read(bank, parm);
+
+            switch (menu) {
+                case 0x9:
+                    s.Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
+                    break;
+                case 0xE:
+                    s.Game.PushScreen(new UI.Layout.LayoutScreen("SaveMenu"));
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
             return OpResult.Continue;
         }
 
@@ -967,6 +1094,16 @@ namespace Braver.Field {
     }
 
     internal static class Maths {
+
+        private static Random _random = new();
+
+        public static OpResult RANDOM(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), dest = f.ReadU8();
+            byte value = (byte)_random.Next(256);
+            s.Game.Memory.Write(bank, dest, value);
+            return OpResult.Continue;
+        }
+
         public static OpResult SETBYTE(Fiber f, Entity e, FieldScreen s) {
             byte banks = f.ReadU8(), dest = f.ReadU8(), src = f.ReadU8();
             int value = s.Game.Memory.Read(banks & 0xf, src);

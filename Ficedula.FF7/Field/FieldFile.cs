@@ -143,20 +143,26 @@ namespace Ficedula.FF7.Field {
             Vector3 DecodeVec() {
                 return new Vector3(
                     s.ReadI16() / 4096f,
-                    s.ReadI16() / -4096f,
-                    s.ReadI16() / -4096f
+                    s.ReadI16() / 4096f,
+                    s.ReadI16() / 4096f
                 );
             }
 
             Right = DecodeVec();
-            Up = DecodeVec();
+            Up = -DecodeVec();
             Forwards = DecodeVec();
 
             s.ReadI16();
 
-            int ox = s.ReadI32(), oy = s.ReadI32(), oz = s.ReadI32();
+            float ox = s.ReadI32() / 4096f, oy = -s.ReadI32() / 4096f, oz = s.ReadI32() / 4096f;
 
             CameraPosition = -(ox * Right + oy * Up + oz * Forwards);
+
+            float tx = -(ox * Right.X + oy * Up.X + oz * Forwards.X),
+                ty = -(ox * Right.Y + oy * Up.Y + oz * Forwards.Y),
+                tz = -(ox * Right.Z + oy * Up.Z + oz * Forwards.Z);
+
+            CameraPosition = new Vector3(tx, ty, tz);
 
             s.ReadI32();
 
