@@ -27,26 +27,35 @@ namespace Braver {
             NAudio.Vorbis.VorbisWaveReader vorbis = null;
             NAudio.Wave.WaveOut waveOut = null;
 
+            void DoStop() {
+                if (vorbis != null) {
+                    waveOut.Dispose();
+                    vorbis.Dispose();
+                    waveOut = null;
+                    vorbis = null;
+                }
+            }
+
+            string current = string.Empty;
             while (true) {
                 string file = await _channel.Reader.ReadAsync();
-                switch (file) {
-                    case null:
-                        return;
-                    case "":
-                        if (vorbis != null) {
-                            waveOut.Dispose();
-                            vorbis.Dispose();
-                            waveOut = null;
-                            vorbis = null;
-                        }
-                        break;
-                    default:
-                        vorbis = new NAudio.Vorbis.VorbisWaveReader(System.IO.Path.Combine(_ff7Dir, "music_ogg", file + ".ogg"));
-                        waveOut = new NAudio.Wave.WaveOut();
-                        waveOut.Init(vorbis);
-                        waveOut.Play();
-                        break;
+                if (current != file) {
+                    switch (file) {
+                        case null:
+                            return;
+                        case "":
+                            DoStop();
+                            break;
+                        default:
+                            DoStop();
+                            vorbis = new NAudio.Vorbis.VorbisWaveReader(System.IO.Path.Combine(_ff7Dir, "music_ogg", file + ".ogg"));
+                            waveOut = new NAudio.Wave.WaveOut();
+                            waveOut.Init(vorbis);
+                            waveOut.Play();
+                            break;
+                    }
                 }
+                current = file;
             }
         }
 

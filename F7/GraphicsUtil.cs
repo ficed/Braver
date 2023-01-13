@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -80,6 +81,24 @@ namespace Braver {
 
         public static Vector2 XY(this Vector3 v) {
             return new Vector2(v.X, v.Y);
+        }
+
+        public static bool LineCircleIntersect(Vector2 line0, Vector2 line1, Vector2 center, float radius) {
+            Vector2 ac = center - line0;
+            Vector2 ab = line1 - line0;
+            float ab2 = Vector2.Dot(ab, ab);
+            float acab = Vector2.Dot(ac, ab);
+            float t = acab / ab2;
+
+            if (t < 0)
+                t = 0;
+            else if (t > 1)
+                t = 1;
+
+            Vector2 h = ((ab * t) + line0) - center;
+            float h2 = Vector2.Dot(h, h);
+
+            return h2 <= (radius * radius);
         }
     }
 

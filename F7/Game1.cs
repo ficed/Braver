@@ -29,7 +29,7 @@ namespace Braver {
         protected override void LoadContent() {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            _g = new FGame(GraphicsDevice, @"C:\games\ff7\data", @"C:\Users\ficed\Projects\F7\data");
+            _g = new FGame(GraphicsDevice, @"C:\games\ff7", @"C:\Users\ficed\Projects\F7\data");
             _g.NewGame();
             //_g.ChangeScreen(null, new TestScreen(_g, GraphicsDevice));
             //_screen = new Field.FieldScreen("mrkt2", _g, GraphicsDevice);

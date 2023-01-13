@@ -32,8 +32,9 @@ namespace Braver {
 
         private Dictionary<string, string> _prefs;
 
-        public FGame(Microsoft.Xna.Framework.Graphics.GraphicsDevice graphics, string data, string bdata) {
+        public FGame(Microsoft.Xna.Framework.Graphics.GraphicsDevice graphics, string root, string bdata) {
             _graphics = graphics;
+            string data = Path.Combine(root, "data");
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "char.lgp"))),
@@ -51,6 +52,9 @@ namespace Braver {
             };
             _data["kernel"] = new List<DataSource> {
                 new FileDataSource(Path.Combine(data, "kernel"))
+            };
+            _data["root"] = new List<DataSource> {
+                new FileDataSource(root),
             };
             foreach (string dir in Directory.GetDirectories(bdata)) {
                 string category = Path.GetFileName(dir);

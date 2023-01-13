@@ -119,4 +119,19 @@ namespace Braver {
             _materia = new MateriaCollection(kernel.Kernel);
         }
     }
+
+    public class Shops : Cacheable {
+
+        private ShopData _shops;
+
+        public Shop this[int index] => _shops.Shops[index];
+        public int Count => _shops.Shops.Count;
+
+        public override void Init(BGame g) {
+            using(var s = g.Open("root", "ff7.exe")) {
+                s.Position = 0x521E18;
+                _shops = new ShopData(s);
+            }
+        }
+    }
 }

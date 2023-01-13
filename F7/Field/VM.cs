@@ -286,6 +286,8 @@ namespace Braver.Field {
 
         public int OpcodeAttempts { get; private set; }
 
+        public object ResumeState { get; set; }
+
         public byte ReadU8() {
             return _script[_ip++];
         }
@@ -312,6 +314,7 @@ namespace Braver.Field {
             _ip = ip;
             Active = true;
             OpcodeAttempts = 0;
+            ResumeState = null;
         }
 
         public void Pause() {
@@ -336,9 +339,11 @@ namespace Braver.Field {
             while (Active) {
                 int opIP = _ip;
                 OpCode op = (OpCode)ReadU8();
+                //System.Diagnostics.Debug.WriteLine($"Entity {_entity.Name} executing {op}");
                 switch (VM.Execute(op, this, _entity, _screen)) {
                     case OpResult.Continue:
                         OpcodeAttempts = 0;
+                        ResumeState = null;
                         break;
                     case OpResult.Restart:
                         OpcodeAttempts++;
@@ -691,10 +696,15 @@ namespace Braver.Field {
 
             e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(remaining.X, -remaining.Y) * 180f / Math.PI));
 
+            if ((f.ResumeState == null) && (e.Model.AnimationState.Animation != 1))
+                f.ResumeState = e.Model.AnimationState;
+
             if (remaining.Length() <= (e.MoveSpeed * 4)) {
-                if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), true))
+                if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), true)) {
+                    if (f.ResumeState != null)
+                        e.Model.AnimationState = (AnimationState)f.ResumeState;
                     return OpResult.Continue;
-                else
+                } else
                     return OpResult.Restart;
                 //TODO: Do we need to stop animating?
             } else {

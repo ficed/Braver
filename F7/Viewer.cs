@@ -70,6 +70,7 @@ namespace Braver {
                 CameraPosition = CameraPosition,
                 CameraUp = CameraUp,
                 CameraForwards = CameraForwards,
+                FOV = FOV,
             };
         }
 

@@ -34,11 +34,7 @@ namespace Braver.Field {
             if (!Active)
                 return false;
 
-            var dist =
-                ((P1.X - P0.X) * (P0.Y - entity.Y) - (P0.X - entity.X) * (P1.Y - P0.Y))
-                /
-                (P1.XY() - P0.XY()).Length();
-            return dist < entityRadius;
+            return GraphicsUtil.LineCircleIntersect(P0.XY(), P1.XY(), entity.XY(), entityRadius);
         }
     }
 
@@ -58,6 +54,7 @@ namespace Braver.Field {
 
         //private OrthoView3D _view3D; 
         private PerspView3D _view3D;
+        private Vector3 _camRight;
         private View2D _view2D;
         private FieldDebug _debug;
         private FieldInfo _info;
@@ -68,6 +65,8 @@ namespace Braver.Field {
         private float _controlRotation;
 
         private List<WalkmeshTriangle> _walkmesh;
+
+        private TriggersAndGateways _triggersAndGateways;
 
         public override Color ClearColor => Color.Black;
 
@@ -118,8 +117,8 @@ namespace Braver.Field {
                     })
                     .ToList();
 
-                var tg = field.GetTriggersAndGateways();
-                _controlRotation = 360f * tg.ControlDirection / 256f;
+                _triggersAndGateways = field.GetTriggersAndGateways();
+                _controlRotation = 360f * _triggersAndGateways.ControlDirection / 256f;
 
                 _walkmesh = field.GetWalkmesh().Triangles;
 
@@ -221,6 +220,7 @@ namespace Braver.Field {
                     CameraForwards = cam.Forwards.ToX(),
                     CameraUp = cam.Up.ToX(),
                 };
+                _camRight = cam.Right.ToX();
 
                 var vp = System.Numerics.Matrix4x4.CreateLookAt(
                     cam.CameraPosition * 4096f, cam.CameraPosition * 4096f + cam.Forwards, cam.Up
@@ -264,6 +264,8 @@ namespace Braver.Field {
                 ZNear = 0,
                 ZFar = -1,
             };
+
+            BringPlayerIntoView();
 
             Entity.DEBUG_OUT = false;
         }
@@ -330,13 +332,25 @@ namespace Braver.Field {
             BGScrollOffset(x - (_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
         }
         public void BGScrollOffset(float ox, float oy) {
-            /*
-            var _3dScrollAmount = new Vector2(_view3D.Width / 427f, _view3D.Height / 240f);
+
+            var up = _view3D.Clone();
+            up.CameraPosition += up.CameraUp;
+            var right = _view3D.Clone();
+            right.CameraPosition += _camRight;
+
+            var testPos = _walkmesh[0].V0.ToX();
+            var initial = ModelToBGPosition(testPos, _view3D.View * _view3D.Projection);
+            var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
+            var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
+
+            System.Diagnostics.Debug.WriteLine($"Moving camera up one unit changes BG by {offsetUp.Y - initial.Y}");
+            System.Diagnostics.Debug.WriteLine($"Moving camera right one unit changes BG by {offsetRight.X - initial.X}");
+
+            _view3D.CameraPosition += _view3D.CameraUp * -oy / (offsetUp.Y - initial.Y);
+            _view3D.CameraPosition += _camRight * -ox / (offsetRight.X - initial.X);
+
             _view2D.CenterX += 3 * ox;
-            _view3D.CenterX += _3dScrollAmount.X * ox;
             _view2D.CenterY += 3 * oy;
-            _view3D.CenterY += _3dScrollAmount.Y * oy;
-            */ //TODO!!!
         }
 
         private void ReportAllModelPositions() {
@@ -368,9 +382,30 @@ namespace Braver.Field {
             );
         }
 
-        public Vector2 ModelToBGPosition(Vector3 modelPosition) {
-            var vp = _view3D.View * _view3D.Projection;
-            var screenPos = Vector3.Transform(modelPosition, vp);
+        private void BringPlayerIntoView() {
+            if (Player != null) {
+                var posOnBG = ModelToBGPosition(Player.Model.Translation);
+                var scroll = GetBGScroll();
+                var newScroll = scroll;
+                if (posOnBG.X > (scroll.x + 150))
+                    newScroll.x = (int)posOnBG.X - 150;
+                else if (posOnBG.X < (scroll.x - 150))
+                    newScroll.x = (int)posOnBG.X + 150;
+
+                if (posOnBG.Y > (scroll.y + 100))
+                    newScroll.y = (int)posOnBG.Y - 100;
+                else if (posOnBG.Y < (scroll.y - 110))
+                    newScroll.y = (int)posOnBG.Y + 110;
+
+                if (newScroll != scroll)
+                    BGScroll(newScroll.x, newScroll.y);
+            }
+        }
+
+        public Vector2 ModelToBGPosition(Vector3 modelPosition, Matrix? transformMatrix = null) {
+            transformMatrix ??= _view3D.View * _view3D.Projection;
+            var screenPos = Vector4.Transform(modelPosition, transformMatrix.Value);
+            screenPos = screenPos / screenPos.W;
 
             float tx = (_view2D.CenterX / 3) + screenPos.X * 0.5f * (1280f / 3),
                   ty = (_view2D.CenterY / 3) + screenPos.Y * 0.5f * (720f / 3);
@@ -546,23 +581,17 @@ namespace Braver.Field {
                                 left.Call(3, 6, null); //TODO PRIORITY!?!
                             }
 
-                            if (Options.HasFlag(FieldOptions.CameraTracksPlayer)) {
-                                var posOnBG = ModelToBGPosition(Player.Model.Translation);
-                                var scroll = GetBGScroll();
-                                var newScroll = scroll;
-                                if (posOnBG.X > (scroll.x + 150))
-                                    newScroll.x = (int)posOnBG.X - 150;
-                                else if (posOnBG.X < (scroll.x - 150))
-                                    newScroll.x = (int)posOnBG.X + 150;
-
-                                if (posOnBG.Y > (scroll.y + 100))
-                                    newScroll.y = (int)posOnBG.Y - 100;
-                                else if (posOnBG.Y < (scroll.y - 110))
-                                    newScroll.y = (int)posOnBG.Y + 110;
-
-                                if (newScroll != scroll)
-                                    BGScroll(newScroll.x, newScroll.y);
+                            foreach (var gateway in _triggersAndGateways.Gateways) {
+                                if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
+                                    Options &= ~FieldOptions.PlayerControls;
+                                    FadeOut(() => {
+                                        Game.ChangeScreen(this, new FieldScreen(gateway.Destination));
+                                    });
+                                }
                             }
+
+                            if (Options.HasFlag(FieldOptions.CameraTracksPlayer))
+                                BringPlayerIntoView();
                         } else {
                             //
                         }
@@ -716,6 +745,9 @@ namespace Braver.Field {
 
         public void SetPlayer(int whichEntity) {
             Player = Entities[whichEntity]; //TODO: also center screen etc.
+            //TODO - is this reasonable...? Probably?!
+            if (Player.CollideDistance == 0)
+                Player.CollideDistance = 20;
             CheckPendingPlayerSetup();
         }
 
