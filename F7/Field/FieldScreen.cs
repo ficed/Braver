@@ -87,7 +87,8 @@ namespace Braver.Field {
             base.Init(g, graphics);
             var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
             string file = mapList.Items[_destination.DestinationFieldID];
-    
+
+            g.Net.Send(new Net.FieldScreenMessage { Destination = _destination });
 
             using (var s = g.Open("field", file)) {
                 var field = new FieldFile(s);
@@ -343,8 +344,8 @@ namespace Braver.Field {
             var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
             var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
 
-            System.Diagnostics.Debug.WriteLine($"Moving camera up one unit changes BG by {offsetUp.Y - initial.Y}");
-            System.Diagnostics.Debug.WriteLine($"Moving camera right one unit changes BG by {offsetRight.X - initial.X}");
+            //System.Diagnostics.Debug.WriteLine($"Moving camera up one unit changes BG by {offsetUp.Y - initial.Y}");
+            //System.Diagnostics.Debug.WriteLine($"Moving camera right one unit changes BG by {offsetRight.X - initial.X}");
 
             _view3D.CameraPosition += _view3D.CameraUp * -oy / (offsetUp.Y - initial.Y);
             _view3D.CameraPosition += _camRight * -ox / (offsetRight.X - initial.X);

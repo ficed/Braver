@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Braver": {
+      "commandName": "Project",
+      "commandLineArgs": "_host=localhost port=12508 key=ficedula"
+    }
+  }
+}

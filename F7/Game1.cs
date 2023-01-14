@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -37,7 +38,17 @@ namespace Braver {
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "Quit"));
             //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
             //_g.ChangeScreen(null, new WorldMap.WMScreen(_g, GraphicsDevice, 139348, 126329));
-            _g.ChangeScreen(null, new UI.Splash());
+
+            Dictionary<string, string> parms = Environment.GetCommandLineArgs()
+                .Select(s => s.Split('='))
+                .Where(sa => sa.Length == 2)
+                .ToDictionary(sa => sa[0], sa => sa[1], StringComparer.InvariantCultureIgnoreCase);
+
+            if (parms.ContainsKey("host")) {
+                _g.ChangeScreen(null, new UI.Splash(parms["host"], int.Parse(parms["port"]), parms["key"]));
+            } else {
+                _g.ChangeScreen(null, new UI.Splash());
+            }
         }
 
         private static Dictionary<Keys, InputKey> _keyMap = new Dictionary<Keys, InputKey> {

@@ -12,8 +12,10 @@ namespace Braver {
         private string _ff7Dir;
         private Channel<string> _channel;
         private Ficedula.FF7.Audio _sfxSource;
+        private FGame _game;
 
-        public Audio(string ff7dir) {
+        public Audio(FGame game, string ff7dir) {
+            _game = game;
             _ff7Dir = ff7dir;
             _channel = Channel.CreateBounded<string>(8);
             Task.Run(RunMusic);
@@ -61,9 +63,11 @@ namespace Braver {
 
         public void PlayMusic(string name) {
             _channel.Writer.TryWrite(name);
+            _game.Net.Send(new Net.MusicMessage { Track = name });
         }
         public void StopMusic() {
             _channel.Writer.TryWrite(string.Empty);
+            _game.Net.Send(new Net.MusicMessage { Track = string.Empty });
         }
 
         private Dictionary<int, WeakReference<SoundEffect>> _sfx = new();
@@ -97,6 +101,7 @@ namespace Braver {
                 _recent0 = new();
             }
             _recent0.Add(fx);
+            _game.Net.Send(new Net.SfxMessage { Which = which, Volume = volume, Pan = pan });
         }
 
         public void Quit() {

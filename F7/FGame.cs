@@ -24,7 +24,9 @@ namespace Braver {
     public class FGame : BGame {
 
         private Stack<Screen> _screens = new();
-        private Microsoft.Xna.Framework.Graphics.GraphicsDevice _graphics;
+        private GraphicsDevice _graphics;
+
+        public Net.Net Net { get; set; }
 
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
@@ -32,7 +34,7 @@ namespace Braver {
 
         private Dictionary<string, string> _prefs;
 
-        public FGame(Microsoft.Xna.Framework.Graphics.GraphicsDevice graphics, string root, string bdata) {
+        public FGame(GraphicsDevice graphics, string root, string bdata) {
             _graphics = graphics;
             string data = Path.Combine(root, "data");
             _data["field"] = new List<DataSource> {
@@ -63,7 +65,7 @@ namespace Braver {
                 L.Add(new FileDataSource(dir));
             }
 
-            Audio = new Audio(data);
+            Audio = new Audio(this, data);
 
             Audio.Precache(Sfx.Cursor, true);
             Audio.Precache(Sfx.Cancel, true);
@@ -142,6 +144,7 @@ namespace Braver {
 
             Screen.Step(gameTime);
 
+            Net.Update();
         }
 
     }
