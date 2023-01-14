@@ -646,7 +646,7 @@ namespace Braver.Field {
         public static OpResult PC(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
             e.Character = s.Game.SaveData.Characters[parm];
-            if (!s.Game.SaveData.Party.Contains(e.Character)) {
+            if ((e.Character?.CharIndex ?? -1) != s.Game.SaveData.FieldAvatarCharID) {
                 e.Model.Visible = false;
                 e.Flags = EntityFlags.None;
             }

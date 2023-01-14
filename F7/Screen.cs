@@ -79,14 +79,14 @@ namespace Braver {
 
         public void FadeOut(Action then) {
             _transition = new FadeTransition(
-                60, Color.Black, 0, 255,
+                30, Color.Black, 0, 255,
                 Game.Singleton(() => new UI.CompositeImages(Graphics, Game))
             );
             _transitionAction = then;
         }
         public void FadeIn(Action then) {
             _transition = new FadeTransition(
-                60, Color.Black, 255, 0,
+                30, Color.Black, 255, 0,
                 Game.Singleton(() => new UI.CompositeImages(Graphics, Game))
             );
             _transitionAction = then;

@@ -10,19 +10,9 @@ using System.Xml.Serialization;
 
 namespace Braver.Field {
 
-    public class FieldCameraInfo {
-        [XmlAttribute]
-        public float Width { get; set; }
-        [XmlAttribute]
-        public float Height { get; set; }
-        [XmlAttribute]
-        public float CenterX { get; set; }
-        [XmlAttribute]
-        public float CenterY { get; set; }
-    }
     public class FieldInfo {
-        [XmlElement("Camera")]
-        public List<FieldCameraInfo> Cameras { get; set; } = new();
+        public float BGZFrom { get; set; }
+        public float BGZTo { get; set; }
     }
 
     public class FieldLine {
@@ -58,7 +48,7 @@ namespace Braver.Field {
         private View2D _view2D;
         private FieldDebug _debug;
         private FieldInfo _info;
-        private Vector2 _base3DOffset;
+        private float _bgZFrom = 1025f, _bgZTo = 1092f;
 
         private bool _debugMode = false;
         private bool _renderBG = true, _renderDebug = true, _renderModels = true;
@@ -213,11 +203,19 @@ namespace Braver.Field {
 
                 double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
 
+                var camPosition = cam.CameraPosition.ToX() * 4096f;
+
+                var camDistances = _walkmesh
+                    .SelectMany(tri => new[] { tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX() })
+                    .Select(v => (camPosition - v).Length());
+
+                float nearest = camDistances.Min(), furthest = camDistances.Max();
+
                 _view3D = new PerspView3D {
                     FOV = (float)fovy,
-                    ZNear = 0.001f * 4096f,
-                    ZFar = 1000f * 4096f,
-                    CameraPosition = cam.CameraPosition.ToX() * 4096,
+                    ZNear = nearest * 0.75f,
+                    ZFar = furthest * 1.25f,
+                    CameraPosition = camPosition,
                     CameraForwards = cam.Forwards.ToX(),
                     CameraUp = cam.Up.ToX(),
                 };
@@ -229,6 +227,7 @@ namespace Braver.Field {
                     (float)(fovy * Math.PI / 180.0), 1280f / 720f, 0.001f * 4096f, 1000f * 4096f
                 );
 
+                float minZ = 1f, maxZ = 0f;
                 foreach (var wTri in _walkmesh) {
                     System.Numerics.Vector4 v0 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V0.X  , wTri.V0.Y , wTri.V0.Z , 1), vp),
                         v1 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V1.X , wTri.V1.Y , wTri.V1.Z , 1), vp),
@@ -236,9 +235,24 @@ namespace Braver.Field {
                     System.Diagnostics.Debug.WriteLine(v0 / v0.W);
                     System.Diagnostics.Debug.WriteLine(v1 / v1.W);
                     System.Diagnostics.Debug.WriteLine(v2 / v2.W);
-                }
 
+                    minZ = Math.Min(minZ, v0.Z / v0.W);
+                    minZ = Math.Min(minZ, v1.Z / v1.W);
+                    minZ = Math.Min(minZ, v2.Z / v2.W);
+                    maxZ = Math.Max(maxZ, v0.Z / v0.W);
+                    maxZ = Math.Max(maxZ, v1.Z / v1.W);
+                    maxZ = Math.Max(maxZ, v2.Z / v2.W);
+                }
+                System.Diagnostics.Debug.WriteLine($"Walkmesh Z varies from {minZ}-{maxZ} (recip {1f / minZ} to {1f / maxZ}");
                 _debug = new FieldDebug(graphics, field);
+            }
+
+            if (_info.BGZFrom != 0) {
+                _bgZFrom = _info.BGZFrom;
+                _bgZTo = _info.BGZTo;
+            } else {
+                _bgZFrom = Background.AutoDetectZFrom;
+                _bgZTo = Background.AutoDetectZTo;
             }
 
             Dialog = new Dialog(g, graphics);
@@ -268,6 +282,8 @@ namespace Braver.Field {
 
             BringPlayerIntoView();
 
+            FadeIn(null);
+
             Entity.DEBUG_OUT = false;
         }
 
@@ -280,7 +296,7 @@ namespace Braver.Field {
             Graphics.DepthStencilState = DepthStencilState.Default;
             Graphics.BlendState = BlendState.AlphaBlend;
             if (_renderBG)
-                Background.Render(_view2D);
+                Background.Render(_view2D, _bgZFrom, _bgZTo);
 
             if (_renderDebug)
                 _debug.Render(_view3D);
@@ -585,6 +601,7 @@ namespace Braver.Field {
                             foreach (var gateway in _triggersAndGateways.Gateways) {
                                 if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
                                     Options &= ~FieldOptions.PlayerControls;
+                                    desiredAnim = 0; //stop player walking as they won't move any more!
                                     FadeOut(() => {
                                         Game.ChangeScreen(this, new FieldScreen(gateway.Destination));
                                     });

@@ -34,13 +34,17 @@ namespace Braver.Field {
             public int Parameter;
             public int Mask;
             public int OffsetX, OffsetY;
+            public bool FixedZ;
         }
 
         private List<TexLayer> _layers = new();
         private Ficedula.FF7.Field.Background _bg;
         private GraphicsDevice _graphics;
-        private BasicEffect _effect;
+        private AlphaTestEffect _effect;
         private Dictionary<int, int> _parameters = new();
+
+        public float AutoDetectZFrom { get; private set; }
+        public float AutoDetectZTo { get; private set; }
 
         private void Draw(IEnumerable<Ficedula.FF7.Field.Sprite> sprites, List<uint[]> data, int offsetX, int offsetY, bool clear) {
             foreach(var tile in sprites) {
@@ -61,15 +65,19 @@ namespace Braver.Field {
         public Background(GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
             _bg = bg;
             _graphics = graphics;
-            _effect = new BasicEffect(graphics) {
-                TextureEnabled = true,
-                LightingEnabled = false,
+            _effect = new AlphaTestEffect(graphics) {
                 VertexColorEnabled = false,
                 FogEnabled = false,
             };
 
             MinX = bg.AllSprites.Min(s => s.DestX);
             MinY = bg.AllSprites.Min(s => s.DestY);
+
+            var zCoords = bg.AllSprites
+                .Select(spr => spr.ID)
+                .Where(z => z > 1 && z < 4095);
+            AutoDetectZFrom = zCoords.Min();
+            AutoDetectZTo = zCoords.Max();
 
             foreach (var layer in bg.Layers.Where(L => L.Any())) {
 
@@ -89,41 +97,48 @@ namespace Braver.Field {
                     float maxS = 1f * (maxX - minX) / texWidth,
                         maxT = 1f * (maxY - minY) / texHeight;
 
+                    float zcoord;
+                    if (group.First().ID == 4095)
+                        zcoord = 1f;
+                    else
+                        zcoord = group.First().ID;
+
                     TexLayer tl = new TexLayer {
                         Tex = new Texture2D(graphics, texWidth, texHeight, false, SurfaceFormat.Color),
                         OffsetX = -minX,
                         OffsetY = -minY,
                         Blend = (BlendType)group.First().TypeTrans,
-                        Sprites = group.OrderBy(t => t.ID).ToArray(),
+                        Sprites = group.ToArray(),
                         Data = Enumerable.Range(0, texHeight)
                             .Select(_ => new uint[texWidth])
                             .ToList(),
                         Parameter = group.First().Param,
                         Mask = group.First().State,
+                        FixedZ = group.First().ID == 4095,
                         Verts = new[] {
                             new VertexPositionTexture {
-                                Position = new Vector3(minX, -minY, 0),
+                                Position = new Vector3(minX, -minY, zcoord),
                                 TextureCoordinate = new Vector2(0, 0)
                             },
                             new VertexPositionTexture {
-                                Position = new Vector3(maxX, -minY, 0),
+                                Position = new Vector3(maxX, -minY, zcoord),
                                 TextureCoordinate = new Vector2(maxS, 0)
                             },
                             new VertexPositionTexture {
-                                Position = new Vector3(maxX, -maxY, 0),
+                                Position = new Vector3(maxX, -maxY, zcoord),
                                 TextureCoordinate = new Vector2(maxS, maxT)
                             },
 
                             new VertexPositionTexture {
-                                Position = new Vector3(minX, -minY, 0),
+                                Position = new Vector3(minX, -minY, zcoord),
                                 TextureCoordinate = new Vector2(0, 0)
                             },
                             new VertexPositionTexture {
-                                Position = new Vector3(maxX, -maxY, 0),
+                                Position = new Vector3(maxX, -maxY, zcoord),
                                 TextureCoordinate = new Vector2(maxS, maxT)
                             },
                             new VertexPositionTexture {
-                                Position = new Vector3(minX, -maxY, 0),
+                                Position = new Vector3(minX, -maxY, zcoord),
                                 TextureCoordinate = new Vector2(0, maxT)
                             },
                         }
@@ -148,9 +163,9 @@ namespace Braver.Field {
         public void Step() {
         }
 
-        public void Render(Viewer viewer) {
+        public void Render(Viewer viewer, float zFrom, float zTo) {
 
-            using (var state = new GraphicsState(_graphics, BlendState.AlphaBlend, DepthStencilState.None)) {
+            using (var state = new GraphicsState(_graphics, BlendState.AlphaBlend, DepthStencilState.Default)) {
 
                 _effect.Projection = viewer.Projection;
                 _effect.View = viewer.View;
@@ -176,8 +191,10 @@ namespace Braver.Field {
                             break;
                     }
 
-                    _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, L++ * 0.01f)
-                        * Matrix.CreateScale(3);
+                    float zs = layer.FixedZ ? 1f : 1f / (zTo - zFrom);
+
+                    _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, layer.FixedZ ? 0 : -zFrom)
+                        * Matrix.CreateScale(3f, 3f, zs);
                     _effect.Texture = layer.Tex;
 
                     foreach (var pass in _effect.CurrentTechnique.Passes) {

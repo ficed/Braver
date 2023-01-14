@@ -212,6 +212,7 @@ namespace Braver {
         public List<int> KeyItems { get; set; }
         public List<OwnedMateria> MateriaStock { get; set; }
 
+        public int FieldAvatarCharID { get; set; }
         public string WorldMapAvatar { get; set; }
         public float WorldMapX { get; set; }
         public float WorldMapY { get; set; }

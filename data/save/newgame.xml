@@ -233,6 +233,7 @@
 	</KeyItems>
 	<Location>Train Station</Location>
 	<WorldMapAvatar>cloud</WorldMapAvatar>
+	<FieldAvatarCharID>0</FieldAvatarCharID>
 	<Gil>1234</Gil>
 	<MateriaStock>
 		<OwnedMateria>
