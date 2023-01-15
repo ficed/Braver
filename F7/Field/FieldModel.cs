@@ -19,14 +19,51 @@ namespace Braver.Field {
     }
 
     public class FieldModel {
-        public Vector3 Rotation2 { get; set; }
-        public Vector3 Rotation { get; set; }
-        public Vector3 Translation { get; set; }
-        public Vector3 Translation2 { get; set; }
-        public float Scale { get; set; } = 1f;
-        public bool Visible { get; set; } = true;
+
+        private Vector3 _rotation, _rotation2, _translation, _translation2;
+        private float _scale;
+        private bool _visible = true;
+        private AnimationState _animationState;
+        private int _modelID;
+
+        private void DoSetNet<T>(ref T field, T value, Action<Net.FieldModelMessage> setNet) {
+            field = value;
+            var msg = new Net.FieldModelMessage {
+                ModelID = _modelID
+            };
+            setNet(msg);
+            _game.Net.Send(msg);
+        }
+
+        public Vector3 Rotation2 {
+            get => _rotation2;
+            set => DoSetNet(ref _rotation2, value, msg => msg.Rotation2 = value);
+        }
+        public Vector3 Rotation {
+            get => _rotation;
+            set => DoSetNet(ref _rotation, value, msg => msg.Rotation = value);
+        }
+        public Vector3 Translation {
+            get => _translation;
+            set => DoSetNet(ref _translation, value, msg => msg.Translation = value);
+        }
+        public Vector3 Translation2 {
+            get => _translation2;
+            set => DoSetNet(ref _translation2, value, msg => msg.Translation2 = value);
+        }
+        public float Scale {
+            get => _scale;
+            set => DoSetNet(ref _scale, value, msg => msg.Scale = value);
+        }
+        public bool Visible {
+            get => _visible;
+            set => DoSetNet(ref _visible, value, msg => msg.Visible = value);
+        }
+        public AnimationState AnimationState {
+            get => _animationState;
+            set => DoSetNet(ref _animationState, value, msg => msg.AnimationState = value);
+        }
         public float GlobalAnimationSpeed { get; set; } = 1f;
-        public AnimationState AnimationState { get; set; }
         public Vector3 MinBounds { get; }
         public Vector3 MaxBounds { get; }
         public bool ZUp { get; set; } = true;
@@ -42,11 +79,14 @@ namespace Braver.Field {
         private IndexBuffer _indexBuffer;
         private Ficedula.FF7.Field.HRCModel _hrcModel;
         private GraphicsDevice _graphics;
+        private FGame _game;
         private List<Ficedula.FF7.Field.FieldAnim> _animations = new();
 
         //TODO dedupe textures
-        public FieldModel(GraphicsDevice graphics, FGame g, string hrc, IEnumerable<string> animations, string category = "field") {
+        public FieldModel(GraphicsDevice graphics, FGame g, int modelID, string hrc, IEnumerable<string> animations, string category = "field") {
             _graphics = graphics;
+            _game = g;
+            _modelID = modelID;
             _hrcModel = new Ficedula.FF7.Field.HRCModel(s => g.Open(category, s), hrc);
 
             List<VertexPositionNormalColorTexture> verts = new();

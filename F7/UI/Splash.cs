@@ -25,16 +25,17 @@ namespace Braver.UI {
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
-            base.Init(g, graphics);
             if (_host != null) {
                 g.Net = new Net.Client(g, _host, _port, _key);
             } else {
                 g.Net = new Net.Server();
             }
+            base.Init(g, graphics);
             _ui = new UIBatch(graphics, g);
             FadeIn(null);
             Layout.LayoutScreen.BeginBackgroundLoad(g, "MainMenu");
-        }
+            _readyToRender = true;
+    }
 
         public override Color ClearColor => Color.Black;
 

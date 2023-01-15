@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -39,6 +40,7 @@ namespace Braver.Field {
 
         private List<TexLayer> _layers = new();
         private Ficedula.FF7.Field.Background _bg;
+        private FGame _game;
         private GraphicsDevice _graphics;
         private AlphaTestEffect _effect;
         private Dictionary<int, int> _parameters = new();
@@ -62,7 +64,8 @@ namespace Braver.Field {
             }
         }
 
-        public Background(GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
+        public Background(FGame game, GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
+            _game = game;
             _bg = bg;
             _graphics = graphics;
             _effect = new AlphaTestEffect(graphics) {
@@ -153,11 +156,13 @@ namespace Braver.Field {
 
         public void SetParameter(int parm, int value) {
             _parameters[parm] = value;
+            _game.Net.Send(new Net.FieldBGMessage { Parm = parm, Value = value });
         }
         public void ModifyParameter(int parm, Func<int, int> modify) {
             int value;
             _parameters.TryGetValue(parm, out value);
             _parameters[parm] = modify(value);
+            _game.Net.Send(new Net.FieldBGMessage { Parm = parm, Value = _parameters[parm] });
         }
 
         public void Step() {

@@ -21,6 +21,7 @@ namespace Braver.Net {
             _client.Connect(host, port, key);
             listener.NetworkReceiveEvent += Listener_NetworkReceiveEvent;
             new ClientAudio(game, this);
+            new ClientScreens(game, this);
         }
 
         private void Listener_NetworkReceiveEvent(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
@@ -48,6 +49,22 @@ namespace Braver.Net {
             _client.PollEvents();
         }
     }
+
+    public class ClientScreens : IListen<FieldScreenMessage> {
+        private FGame _game;
+
+        public ClientScreens(FGame game, Net net) {
+            _game = game;
+            net.Listen<FieldScreenMessage>(this);
+        }
+
+        public void Received(FieldScreenMessage message) {
+            while (!(_game.Screen is UI.Splash))
+                _game.PopScreen(_game.Screen);
+            _game.PushScreen(new Field.FieldScreen(message.Destination));
+        }
+    }
+
 
     public class ClientAudio : IListen<SfxMessage>, IListen<MusicMessage> {
 

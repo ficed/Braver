@@ -295,7 +295,7 @@ namespace Braver.WorldMap {
                 _avatar = Serialisation.Deserialise<Avatar>(s);
 
             _avatarModel = new Field.FieldModel(
-                graphics, g, _avatar.HRC + ".hrc", 
+                graphics, g, 0, _avatar.HRC + ".hrc", 
                 _avatar.Animations.Select(a => a.File),
                 "wm"
             );

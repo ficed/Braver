@@ -41,7 +41,8 @@ namespace Braver.Field {
         DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer,  
     }
 
-    public class FieldScreen : Screen {
+    public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
+        Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage> {
 
         //private OrthoView3D _view3D; 
         private PerspView3D _view3D;
@@ -78,6 +79,12 @@ namespace Braver.Field {
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
+
+            g.Net.Listen<Net.FieldModelMessage>(this);
+            g.Net.Listen<Net.FieldBGMessage>(this);
+            g.Net.Listen<Net.FieldEntityModelMessage>(this);
+            g.Net.Listen<Net.FieldBGScrollMessage>(this);
+
             var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
             string file = mapList.Items[_destination.DestinationFieldID];
 
@@ -85,7 +92,7 @@ namespace Braver.Field {
 
             using (var s = g.Open("field", file)) {
                 var field = new FieldFile(s);
-                Background = new Background(graphics, field.GetBackground());
+                Background = new Background(g, graphics, field.GetBackground());
                 FieldDialog = field.GetDialogEvent();
 
                 Entities = FieldDialog.Entities
@@ -94,9 +101,9 @@ namespace Braver.Field {
 
                 FieldModels = field.GetModels()
                     .Models
-                    .Select(m => {
+                    .Select((m, index) => {
                         var model = new FieldModel(
-                            graphics, g, m.HRC,
+                            graphics, g, index, m.HRC,
                             m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
                         ) {
                             Scale = float.Parse(m.Scale) / 128f,
@@ -262,20 +269,6 @@ namespace Braver.Field {
 
             g.Memory.ResetScratch();
 
-            foreach (var entity in Entities) {
-                entity.Call(0, 0, null);
-                entity.Run(9999, true);
-            }
-
-            if (Player == null) {
-                var autoPlayer = Entities
-                    .Where(e => e.Character != null)
-                    .Where(e => e.Model?.Visible == true)
-                    .FirstOrDefault();
-                if (autoPlayer != null)
-                    SetPlayer(Entities.IndexOf(autoPlayer));
-            }
-
             _view2D = new View2D {
                 Width = 1280,
                 Height = 720,
@@ -283,10 +276,25 @@ namespace Braver.Field {
                 ZFar = -1,
             };
 
-            BringPlayerIntoView();
+            if (g.Net is Net.Server) {
+                foreach (var entity in Entities) {
+                    entity.Call(0, 0, null);
+                    entity.Run(9999, true);
+                }
 
-            FadeIn(null);
+                if (Player == null) {
+                    var autoPlayer = Entities
+                        .Where(e => e.Character != null)
+                        .Where(e => e.Model?.Visible == true)
+                        .FirstOrDefault();
+                    if (autoPlayer != null)
+                        SetPlayer(Entities.IndexOf(autoPlayer));
+                }
 
+                BringPlayerIntoView();
+                FadeIn(null);
+                g.Net.Send(new Net.ScreenReadyMessage());
+            }
             Entity.DEBUG_OUT = false;
         }
 
@@ -325,21 +333,29 @@ namespace Braver.Field {
 
         int frame = 0;
         protected override void DoStep(GameTime elapsed) {
-            if ((frame++ % 2) == 0) {
-                foreach (var entity in Entities) {
-                    entity.Run(1000);
-                    entity.Model?.FrameStep();
+            if (Game.Net is Net.Server) {
+                if ((frame % 2) == 0) {
+                    foreach (var entity in Entities) {
+                        entity.Run(1000);
+                        entity.Model?.FrameStep();
+                    }
+                }
+
+                for (int i = _processes.Count - 1; i >= 0; i--) {
+                    var process = _processes[i];
+                    if (process.Process(process.Frames++))
+                        _processes.RemoveAt(i);
+                }
+
+                Dialog.Step();
+                Background.Step();
+            } else {
+                if ((frame % 2) == 0) {
+                    foreach (var entity in Entities)
+                        entity.Model?.FrameStep();
                 }
             }
-
-            for (int i = _processes.Count - 1; i >= 0; i--) {
-                var process = _processes[i];
-                if (process.Process(process.Frames++))
-                    _processes.RemoveAt(i);
-            }
-
-            Dialog.Step();
-            Background.Step();
+            frame++;
         }
 
         public (int x, int y) GetBGScroll() {
@@ -371,6 +387,11 @@ namespace Braver.Field {
 
             _view2D.CenterX += 3 * ox;
             _view2D.CenterY += 3 * oy;
+
+            Game.Net.Send(new Net.FieldBGScrollMessage {
+                X = _view2D.CenterX / 3,
+                Y = _view2D.CenterY / 3,
+            });
         }
 
         private void ReportAllModelPositions() {
@@ -439,6 +460,8 @@ namespace Braver.Field {
 
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
+            if (!(Game.Net is Net.Server)) return;
+
             _lastInput = input;
             if (input.IsJustDown(InputKey.Start))
                 _debugMode = !_debugMode;
@@ -826,6 +849,35 @@ namespace Braver.Field {
                 //TODO - is this reasonable? Disable current (walking) animation when we take control away from the player? 
                 //(We don't want e.g. walk animation to be continuing after our control is disabled and we're not moving any more!)
             }
+        }
+
+        public void Received(Net.FieldModelMessage message) {
+            var model = FieldModels[message.ModelID];
+            if (message.Visible.HasValue)
+                model.Visible = message.Visible.Value;
+            if (message.Translation.HasValue)
+                model.Translation = message.Translation.Value;
+            if (message.Translation2.HasValue)
+                model.Translation2 = message.Translation2.Value;
+            if (message.Rotation.HasValue)
+                model.Rotation = message.Rotation.Value;
+            if (message.Rotation2.HasValue)
+                model.Rotation2 = message.Rotation2.Value;
+            if (message.Scale.HasValue)
+                model.Scale = message.Scale.Value;
+            if (message.AnimationState != null)
+                model.AnimationState = message.AnimationState;
+        }
+
+        public void Received(Net.FieldBGMessage message) {
+            Background.SetParameter(message.Parm, message.Value);
+        }
+        public void Received(Net.FieldBGScrollMessage message) {
+            BGScroll(message.X, message.Y);
+        }
+
+        public void Received(Net.FieldEntityModelMessage message) {
+            Entities[message.EntityID].Model = FieldModels[message.ModelID];
         }
     }
 }

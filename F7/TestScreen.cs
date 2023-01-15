@@ -25,7 +25,7 @@ namespace Braver {
 
             graphics.BlendState = BlendState.AlphaBlend;
 
-            _model = new Field.FieldModel(graphics, g, "BBE.hrc", _anims, "wm");
+            _model = new Field.FieldModel(graphics, g, 0, "BBE.hrc", _anims, "wm");
             _model.PlayAnimation(_anim, true, 1f, null);
 
             _viewer = new PerspView3D {

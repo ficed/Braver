@@ -34,16 +34,63 @@ namespace Braver.Net {
         }
     }
 
+    public class FieldBGScrollMessage : ServerMessage {
+        public float X { get; set; }
+        public float Y { get; set; }
 
-    public class FieldModelMessage : NetMessage {
+        public override void Load(NetDataReader reader) {
+            X = reader.GetFloat();
+            Y = reader.GetFloat();
+        }
+
+        public override void Save(NetDataWriter writer) {
+            writer.Put(X);
+            writer.Put(Y);
+        }
+    }
+
+    public class FieldBGMessage : ServerMessage {
+        public int Parm { get; set; }
+        public int Value { get; set; }
+
+        public override void Load(NetDataReader reader) {
+            Parm = reader.GetInt();
+            Value = reader.GetInt();
+        }
+
+        public override void Save(NetDataWriter writer) {
+            writer.Put(Parm);
+            writer.Put(Value);
+        }
+    }
+
+    public class FieldEntityModelMessage : ServerMessage {
         public int EntityID { get; set; }
-        public bool? Visible { get; set; }
-        public Vector3? Translation { get; set; }
-        public Vector3? Rotation { get; set; }
-        public Field.AnimationState AnimationState { get; set; }
+        public int ModelID { get; set; }
 
         public override void Load(NetDataReader reader) {
             EntityID = reader.GetInt();
+            ModelID = reader.GetInt();
+        }
+
+        public override void Save(NetDataWriter writer) {
+            writer.Put(EntityID);
+            writer.Put(ModelID);
+        }
+    }
+
+    public class FieldModelMessage : ServerMessage {
+        public int ModelID { get; set; }
+        public bool? Visible { get; set; }
+        public Vector3? Translation { get; set; }
+        public Vector3? Translation2 { get; set; }
+        public Vector3? Rotation { get; set; }
+        public Vector3? Rotation2 { get; set; }
+        public float? Scale { get; set; }
+        public Field.AnimationState AnimationState { get; set; }
+
+        public override void Load(NetDataReader reader) {
+            ModelID = reader.GetInt();
             foreach(int index in SetBits(reader.GetInt())) {
                 switch (index) {
                     case 0:
@@ -51,8 +98,14 @@ namespace Braver.Net {
                     case 1:
                         Translation = reader.GetVec3(); break;
                     case 2:
-                        Rotation = reader.GetVec3(); break;
+                        Translation2 = reader.GetVec3(); break;
                     case 3:
+                        Rotation = reader.GetVec3(); break;
+                    case 4:
+                        Rotation2 = reader.GetVec3(); break;
+                    case 5:
+                        Scale = reader.GetFloat(); break;
+                    case 6:
                         AnimationState = new Field.AnimationState {
                             Animation = reader.GetInt(),
                             AnimationLoop = reader.GetBool(),
@@ -67,14 +120,23 @@ namespace Braver.Net {
         }
 
         public override void Save(NetDataWriter writer) {
-            writer.Put(EntityID);
-            writer.Put(GenerateMask(Visible.HasValue, Translation.HasValue, Rotation.HasValue, AnimationState != null));
+            writer.Put(ModelID);
+            writer.Put(GenerateMask(
+                Visible.HasValue, Translation.HasValue, Translation2.HasValue,
+                Rotation.HasValue, Rotation2.HasValue, Scale.HasValue, AnimationState != null
+            ));
             if (Visible.HasValue)
                 writer.Put(Visible.Value);
             if (Translation.HasValue)
                 writer.Put(Translation.Value);
+            if (Translation2.HasValue)
+                writer.Put(Translation2.Value);
             if (Rotation.HasValue)
                 writer.Put(Rotation.Value);
+            if (Rotation2.HasValue)
+                writer.Put(Rotation2.Value);
+            if (Scale.HasValue)
+                writer.Put(Scale.Value);
             if (AnimationState != null) {
                 writer.Put(AnimationState.Animation);
                 writer.Put(AnimationState.AnimationLoop);

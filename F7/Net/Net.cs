@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualBasic;
+﻿using LiteNetLib.Utils;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,8 +11,13 @@ namespace Braver.Net {
     public enum MessageType {
         Unknown = 0,
 
+        ScreenReady = 1,
+
         FieldScreen = 100,
         FieldModel = 101,
+        FieldBG = 102,        
+        FieldEntityModel = 103,
+        FieldBGScroll = 104,
 
         SfxMessage = 9001,
         MusicMessage = 9002, 
@@ -32,8 +38,14 @@ namespace Braver.Net {
         }
 
         static Net() {
+            Register<ScreenReadyMessage>(MessageType.ScreenReady);
+
             Register<FieldScreenMessage>(MessageType.FieldScreen);
             Register<FieldModelMessage>(MessageType.FieldModel);
+            Register<FieldBGMessage>(MessageType.FieldBG);
+            Register<FieldEntityModelMessage>(MessageType.FieldEntityModel);
+            Register<FieldBGScrollMessage>(MessageType.FieldBGScroll);
+
             Register<SfxMessage>(MessageType.SfxMessage);
             Register<MusicMessage>(MessageType.MusicMessage);   
         }
@@ -65,6 +77,7 @@ namespace Braver.Net {
         }
 
         protected void Dispatch(NetMessage message) {
+            System.Diagnostics.Debug.WriteLine($"Dispatching message {message.GetType()}");
             if (_listeners.TryGetValue(message.GetType(), out var list)) {
                 foreach(var listener in list.ToArray())
                     listener.dispatch(message);
@@ -113,6 +126,14 @@ namespace Braver.Net {
     public abstract class ChangeScreenMessage : ServerMessage {
 
         public abstract Screen GetScreen();
+    }
+
+    public class ScreenReadyMessage : ServerMessage {
+        public override void Load(NetDataReader reader) {
+        }
+
+        public override void Save(NetDataWriter writer) {
+        }
     }
 
 }

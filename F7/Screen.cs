@@ -52,7 +52,7 @@ namespace Braver {
         }
     }
 
-    public abstract class Screen {
+    public abstract class Screen : Net.IListen<Net.ScreenReadyMessage> {
 
         public FGame Game { get; private set; }
         public GraphicsDevice Graphics { get; private set; }
@@ -65,10 +65,16 @@ namespace Braver {
         private Transition _transition;
         private Action _transitionAction;
 
+        protected bool _readyToRender;
+
         public virtual void Init(FGame g, GraphicsDevice graphics) {
             Game = g;
             Graphics = graphics;
             _fxBatch = new SpriteBatch(graphics);
+            g.Net.Listen<Net.ScreenReadyMessage>(this);
+
+            if (g.Net is Net.Server)
+                _readyToRender = true;
         }
 
         protected abstract void DoStep(GameTime elapsed);
@@ -103,11 +109,17 @@ namespace Braver {
         }
 
         public void Render() {
-            DoRender();
-            if (_transition != null)
-                _transition.Render(_fxBatch);
+            if (_readyToRender) {
+                DoRender();
+                if (_transition != null)
+                    _transition.Render(_fxBatch);
+            }
         }
 
         public virtual void ProcessInput(InputState input) { }
+
+        public void Received(Net.ScreenReadyMessage message) {
+            _readyToRender = true;
+        }
     }
 }

@@ -640,6 +640,10 @@ namespace Braver.Field {
             e.Model = s.FieldModels[modelIndex];
             if (s.Player == e)
                 s.CheckPendingPlayerSetup();
+            s.Game.Net.Send(new Net.FieldEntityModelMessage {
+                EntityID = s.Entities.IndexOf(e),
+                ModelID = modelIndex,
+            });
             return OpResult.Continue;
         }
 
