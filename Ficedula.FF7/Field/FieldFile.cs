@@ -54,7 +54,12 @@ namespace Ficedula.FF7.Field {
     }
 
     public enum TriggerBehaviour : byte {
-
+        OnNone = 0,
+        OffNone = 1,
+        OnOff = 2,
+        OffOn = 3,
+        OnOffPlus = 4,
+        OffOnPlus = 5,
     }
     public class Trigger {
         public FieldVertex V0 { get; private set; }

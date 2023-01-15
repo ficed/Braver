@@ -334,9 +334,9 @@ namespace Braver.Field {
             _ip = ip;
         }
 
-        public void Run(bool isInit = false) {
+        public void Run(int maxOps, bool isInit = false) {
             _inInit = isInit;
-            while (Active) {
+            while (Active && (maxOps-- > 0)) {
                 int opIP = _ip;
                 OpCode op = (OpCode)ReadU8();
                 //System.Diagnostics.Debug.WriteLine($"Entity {_entity.Name} executing {op}");
@@ -686,7 +686,7 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
-        public static OpResult MOVE(Fiber f, Entity e, FieldScreen s) {
+        private static OpResult DoMove(Fiber f, Entity e, FieldScreen s, bool doAnimation) {
             byte banks = f.ReadU8();
             short sx = f.ReadS16(), sy = f.ReadS16();
             int x = s.Game.Memory.Read(banks >> 4, sx),
@@ -696,7 +696,7 @@ namespace Braver.Field {
 
             e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(remaining.X, -remaining.Y) * 180f / Math.PI));
 
-            if ((f.ResumeState == null) && (e.Model.AnimationState.Animation != 1))
+            if (doAnimation && (f.ResumeState == null) && (e.Model.AnimationState.Animation != 1))
                 f.ResumeState = e.Model.AnimationState;
 
             if (remaining.Length() <= (e.MoveSpeed * 4)) {
@@ -711,10 +711,17 @@ namespace Braver.Field {
                 remaining.Normalize();
                 remaining *= e.MoveSpeed * 4;
                 s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0), true);
-                if (e.Model.AnimationState.Animation != 1)
+                if (doAnimation && (e.Model.AnimationState.Animation != 1))
                     e.Model.PlayAnimation(1, true, 1f, null);
                 return OpResult.Restart;
             }
+        }
+
+        public static OpResult MOVE(Fiber f, Entity e, FieldScreen s) {
+            return DoMove(f, e, s, true);
+        }
+        public static OpResult FMOVE(Fiber f, Entity e, FieldScreen s) {
+            return DoMove(f, e, s, false);
         }
 
         public static OpResult LINON(Fiber f, Entity e, FieldScreen s) {
@@ -877,6 +884,13 @@ namespace Braver.Field {
                 P0 = new Vector3(f.ReadS16(), f.ReadS16(), f.ReadS16()),
                 P1 = new Vector3(f.ReadS16(), f.ReadS16(), f.ReadS16()),
             };
+            return OpResult.Continue;
+        }
+
+        public static OpResult GETAI(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), entity = f.ReadU8(), address = f.ReadU8();
+            ushort value = (ushort)s.Entities[entity].WalkmeshTri;
+            s.Game.Memory.Write(bank, address, value);
             return OpResult.Continue;
         }
     }

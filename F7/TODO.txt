@@ -13,6 +13,8 @@ IFKEYON etc not fully working - prob. due to IsJustPressed one-frame check confl
 
 Shops!
 
+ASK opcode
+
 Compressed/single file saves
 
 Music looping

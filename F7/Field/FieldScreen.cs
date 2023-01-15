@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -67,6 +68,8 @@ namespace Braver.Field {
         public DialogEvent FieldDialog { get; private set; }
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
         public Dialog Dialog { get; private set; }
+
+        private HashSet<Trigger> _activeTriggers = new();
 
         private FieldDestination _destination;
         public FieldScreen(FieldDestination destination) {
@@ -261,7 +264,7 @@ namespace Braver.Field {
 
             foreach (var entity in Entities) {
                 entity.Call(0, 0, null);
-                entity.Run(true);
+                entity.Run(9999, true);
             }
 
             if (Player == null) {
@@ -324,7 +327,7 @@ namespace Braver.Field {
         protected override void DoStep(GameTime elapsed) {
             if ((frame++ % 2) == 0) {
                 foreach (var entity in Entities) {
-                    entity.Run();
+                    entity.Run(1000);
                     entity.Model?.FrameStep();
                 }
             }
@@ -607,6 +610,48 @@ namespace Braver.Field {
                                     });
                                 }
                             }
+                            foreach(var trigger in _triggersAndGateways.Triggers) {
+                                bool active = GraphicsUtil.LineCircleIntersect(trigger.V0.ToX().XY(), trigger.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance);
+                                if (active != _activeTriggers.Contains(trigger)) {
+
+                                    bool setOn = false, setOff = false;
+                                    switch (trigger.Behaviour) {
+                                        case TriggerBehaviour.OnNone:
+                                            if (active) 
+                                                setOn = true;
+                                            break;
+                                        case TriggerBehaviour.OffNone:
+                                            if (active)
+                                                setOff = true;
+                                            break;
+                                        case TriggerBehaviour.OnOff:
+                                        case TriggerBehaviour.OnOffPlus: //TODO - plus side only
+                                            setOn = active;
+                                            setOff = !active;
+                                            break;
+                                        case TriggerBehaviour.OffOn:
+                                        case TriggerBehaviour.OffOnPlus: //TODO - plus side only
+                                            setOn = !active;
+                                            setOff = active;
+                                            break;
+                                        default:
+                                            throw new NotImplementedException();
+                                    }
+
+                                    if (setOn)
+                                        Background.ModifyParameter(trigger.BackgroundID, i => i | (1 << trigger.BackgroundState));
+                                    if (setOff)
+                                        Background.ModifyParameter(trigger.BackgroundID, i => i & ~(1 << trigger.BackgroundState));
+
+                                    if ((setOn || setOff) && (trigger.SoundID != 0))
+                                        Game.Audio.PlaySfx(trigger.SoundID, 1f, 0f);
+
+                                    if (active)
+                                        _activeTriggers.Add(trigger);
+                                    else
+                                        _activeTriggers.Remove(trigger);
+                                }
+                            }
 
                             if (Options.HasFlag(FieldOptions.CameraTracksPlayer))
                                 BringPlayerIntoView();
@@ -647,6 +692,7 @@ namespace Braver.Field {
 
             if (doCollide) {
                 eMove.CollidingWith.Clear();
+                Entities.ForEach(e => e.CollidingWith.Remove(eMove));
 
                 var toCheck = Entities
                     .Where(e => e.Flags.HasFlag(EntityFlags.CanCollide))
@@ -660,6 +706,7 @@ namespace Braver.Field {
                         if (dist <= collision) {
                             System.Diagnostics.Debug.WriteLine($"Entity {eMove} is now colliding with {entity}");
                             eMove.CollidingWith.Add(entity);
+                            entity.CollidingWith.Add(eMove);
                         }
                     }
                 }
