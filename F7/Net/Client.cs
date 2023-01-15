@@ -50,18 +50,42 @@ namespace Braver.Net {
         }
     }
 
-    public class ClientScreens : IListen<FieldScreenMessage> {
+    public class ClientScreens : IListen<FieldScreenMessage>, IListen<UIScreenMessage>, 
+        IListen<PopScreenMessage>, IListen<TransitionMessage> {
         private FGame _game;
 
         public ClientScreens(FGame game, Net net) {
             _game = game;
             net.Listen<FieldScreenMessage>(this);
+            net.Listen<UIScreenMessage>(this);
+            net.Listen<PopScreenMessage>(this);
+            net.Listen<TransitionMessage>(this);
         }
 
         public void Received(FieldScreenMessage message) {
-            while (!(_game.Screen is UI.Splash))
-                _game.PopScreen(_game.Screen);
             _game.PushScreen(new Field.FieldScreen(message.Destination));
+        }
+
+        public void Received(UIScreenMessage message) {
+            _game.PushScreen(new UI.Layout.ClientScreen());
+        }
+
+        public void Received(PopScreenMessage message) {
+            if (!(_game.Screen is UI.Splash))
+                _game.PopScreen(_game.Screen);
+        }
+
+        public void Received(TransitionMessage message) {
+            switch (message.Kind) {
+                case TransitionKind.FadeIn:
+                    _game.Screen.FadeIn(null);
+                    break;
+                case TransitionKind.FadeOut:
+                    _game.Screen.FadeOut(null);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 

@@ -110,6 +110,7 @@ namespace Braver {
             Debug.Assert(_screens.Pop() == current);
             Net.Unlisten(current);
             current.Dispose();
+            Net.Send(new Net.PopScreenMessage());
             Screen.Reactivated();
         }
 
@@ -120,6 +121,7 @@ namespace Braver {
                 _screens.Pop();
                 Net.Unlisten(current);
                 current.Dispose();
+                Net.Send(new Net.PopScreenMessage());
             }
             PushScreen(to);
         }

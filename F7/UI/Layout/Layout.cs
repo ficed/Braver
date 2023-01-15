@@ -490,6 +490,7 @@ namespace Braver.UI.Layout {
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
+            g.Net.Send(new Net.UIScreenMessage());
             _model.Created(Game, this);
 
             if (_backgroundLoad != null) {
@@ -499,6 +500,7 @@ namespace Braver.UI.Layout {
             _layout = g.Singleton(() => new RazorLayoutCache(g)).Apply(_layoutFile, false, _model.IsRazorModel ? _model : null);
             _model.Init(_layout);
             _ui = new UIBatch(graphics, g);
+            g.Net.Send(new Net.ScreenReadyMessage());
         }
 
         public void Reload(bool forceReload = false) {
@@ -510,6 +512,9 @@ namespace Braver.UI.Layout {
         protected override void DoRender() {
             _ui.Render();
         }
+
+
+        private string _lastState;
 
         protected override void DoStep(GameTime elapsed) {
             _ui.Reset();
@@ -534,6 +539,12 @@ namespace Braver.UI.Layout {
                         pos.Y += sized.H / 2;
                     _ui.DrawImage("pointer", pos.X - 5, pos.Y, z + UIBatch.Z_ITEM_OFFSET, Alignment.Right);
                 }
+            }
+
+            string state = _ui.SaveState();
+            if (!state.Equals(_lastState)) {
+                Game.Net.Send(new Net.UIStateMessage { ClearColour = ClearColor.PackedValue, State = state });
+                _lastState = state;
             }
         }
 

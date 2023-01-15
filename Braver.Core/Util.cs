@@ -20,15 +20,20 @@ namespace Braver {
     }
 
     public static class Serialisation {
-        public static void Serialise(object o, System.IO.Stream s) {
+        public static void Serialise(object o, Stream s) {
             new System.Xml.Serialization.XmlSerializer(o.GetType()).Serialize(s, o);
         }
+        public static string SerialiseString(object o) {
+            var sw = new StringWriter();
+            new System.Xml.Serialization.XmlSerializer(o.GetType()).Serialize(sw, o);
+            return sw.ToString();
+        }
 
-        public static T Deserialise<T>(System.IO.Stream s) {
+        public static T Deserialise<T>(Stream s) {
             return (T)(new System.Xml.Serialization.XmlSerializer(typeof(T)).Deserialize(s));
         }
         public static T Deserialise<T>(string s) {
-            return (T)(new System.Xml.Serialization.XmlSerializer(typeof(T)).Deserialize(new System.IO.StringReader(s)));
+            return (T)(new System.Xml.Serialization.XmlSerializer(typeof(T)).Deserialize(new StringReader(s)));
         }
     }
 }

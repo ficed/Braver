@@ -223,6 +223,38 @@ namespace Braver.UI {
         Right,
     }
 
+    public struct TextItem {
+        public string fontSet;
+        public string text;
+        public int x;
+        public int y;
+        public float z;
+        public Color colour;
+        public Alignment Alignment;
+        public float Size;
+    }
+
+    public struct ImageItem {
+        public int X, Y;
+        public float Z;
+        public string Image;
+        public Alignment Alignment;
+        public float Scale;
+        public Point? DestSize;
+        public Color Color;
+    }
+
+    public struct BoxItem {
+        public Rectangle Rectangle { get; set; }
+        public float Z { get; set; }
+    }
+
+    public class UIBatchState {
+        public List<TextItem> Items { get; } = new();
+        public List<BoxItem> BoxItems { get; } = new();
+        public List<ImageItem> ImageItems { get; } = new();
+    }
+
     public class UIBatch {
         private GraphicsDevice _graphics;
         private Font _font;
@@ -238,30 +270,7 @@ namespace Braver.UI {
             _spriteBatch = new SpriteBatch(graphics);
         }
 
-        private struct TextItem {
-            public string fontSet;
-            public string text;
-            public int x;
-            public int y;
-            public float z;
-            public Color colour;
-            public Alignment Alignment;
-            public float Size;
-        }
-
-        private struct ImageItem {
-            public int X, Y;
-            public float Z;
-            public string Image;
-            public Alignment Alignment;
-            public float Scale;
-            public Point? DestSize;
-            public Color Color;
-        }
-
-        private List<TextItem> _items = new();
-        private List<(Rectangle, float)> _boxItems = new();
-        private List<ImageItem> _imageItems = new();
+        private UIBatchState _state = new();
 
         private static Color[] _colours = new[] {
             Color.Gray, Color.Blue, Color.Red, Color.HotPink, Color.Green,
@@ -270,25 +279,25 @@ namespace Braver.UI {
 
         public void DrawImage(string image, int x, int y, float z, Alignment alignment = Alignment.Left, 
             float scale = 1f, Color? color = null) {
-            _imageItems.Add(new ImageItem {
+            _state.ImageItems.Add(new ImageItem {
                 X = x, Y = y, Z = z, Image = image, Alignment = alignment, Scale = scale,
                 Color = color ?? Color.White,
             });
         }
         public void DrawImage(string image, int x, int y, float z, Point destSize, Alignment alignment = Alignment.Left,
             Color? color = null) {
-            _imageItems.Add(new ImageItem {
+            _state.ImageItems.Add(new ImageItem {
                 X = x, Y = y, Z = z, Image = image, Alignment = alignment, DestSize = destSize,
                 Color = color ?? Color.White,
             });
         }
 
         public void DrawBox(Rectangle location, float z) {
-            _boxItems.Add((location, z));
+            _state.BoxItems.Add(new BoxItem { Rectangle = location, Z = z });
         }
 
         public void DrawText(string fontSet, string text, int x, int y, float z, Color colour, Alignment alignment = Alignment.Left, float size = 1f) {
-            _items.Add(new TextItem {
+            _state.Items.Add(new TextItem {
                 fontSet = fontSet,
                 text = text,
                 x = x,
@@ -352,7 +361,7 @@ namespace Braver.UI {
                 transformMatrix: Matrix.CreateScale(scale, scale, 1f),
                 sortMode: SpriteSortMode.FrontToBack
             );
-            foreach (var item in _items) {
+            foreach (var item in _state.Items) {
                 var f = _font.FontSets[item.fontSet];
                 int dx = item.x;
                 switch (item.Alignment) {
@@ -405,7 +414,7 @@ namespace Braver.UI {
                 }
             }
 
-            foreach(var image in _imageItems) {
+            foreach(var image in _state.ImageItems) {
                 _images.Find(image.Image, out var tex, out var source, out bool flip);
 
                 int x;
@@ -438,17 +447,17 @@ namespace Braver.UI {
                 );
             }
 
-            foreach(var box in _boxItems) {
+            foreach(var box in _state.BoxItems) {
                 _spriteBatch.Draw(_boxes.GradientTex,
-                    new Rectangle(box.Item1.X + 6, box.Item1.Y + 6, box.Item1.Width - 12, box.Item1.Height - 12),
-                    null, Color.White, 0, Vector2.Zero, SpriteEffects.None, box.Item2
+                    new Rectangle(box.Rectangle.X + 6, box.Rectangle.Y + 6, box.Rectangle.Width - 12, box.Rectangle.Height - 12),
+                    null, Color.White, 0, Vector2.Zero, SpriteEffects.None, box.Z
                 );
 
                 int[] xCoords = new[] {
-                    box.Item1.X, box.Item1.X + 6, box.Item1.Right - 6, box.Item1.Right,
+                    box.Rectangle.X, box.Rectangle.X + 6, box.Rectangle.Right - 6, box.Rectangle.Right,
                 };
                 int[] yCoords = new[] {
-                    box.Item1.Y, box.Item1.Y + 6, box.Item1.Bottom - 6, box.Item1.Bottom,
+                    box.Rectangle.Y, box.Rectangle.Y + 6, box.Rectangle.Bottom - 6, box.Rectangle.Bottom,
                 };
 
                 foreach (int c in Enumerable.Range(0, 8)) {
@@ -460,7 +469,7 @@ namespace Braver.UI {
                     _spriteBatch.Draw(_boxes.BoxTex,
                         dest,
                         _sourceBox[c], 
-                        Color.White, 0, Vector2.Zero, SpriteEffects.None, box.Item2 + Z_ITEM_OFFSET * 0.5f
+                        Color.White, 0, Vector2.Zero, SpriteEffects.None, box.Z + Z_ITEM_OFFSET * 0.5f
                     );
                 }
             }
@@ -469,13 +478,18 @@ namespace Braver.UI {
         }
 
         public void Reset() {
-            _items.Clear();
-            _boxItems.Clear();
-            _imageItems.Clear();
+            _state.Items.Clear();
+            _state.BoxItems.Clear();
+            _state.ImageItems.Clear();
         }
 
         public const float Z_ITEM_OFFSET = 1f / 1024f;
 
+        public string SaveState() => Serialisation.SerialiseString(_state);
+
+        public void LoadState(string data) {
+            _state = Serialisation.Deserialise<UIBatchState>(data);
+        }
     }
 
 }

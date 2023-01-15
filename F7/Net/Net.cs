@@ -12,12 +12,17 @@ namespace Braver.Net {
         Unknown = 0,
 
         ScreenReady = 1,
+        PopScreen = 2,
+        Transition = 3,
 
         FieldScreen = 100,
         FieldModel = 101,
         FieldBG = 102,        
         FieldEntityModel = 103,
         FieldBGScroll = 104,
+
+        UIScreen = 200,
+        UIState = 201,
 
         SfxMessage = 9001,
         MusicMessage = 9002, 
@@ -39,12 +44,17 @@ namespace Braver.Net {
 
         static Net() {
             Register<ScreenReadyMessage>(MessageType.ScreenReady);
+            Register<PopScreenMessage>(MessageType.PopScreen);
+            Register<TransitionMessage>(MessageType.Transition);
 
             Register<FieldScreenMessage>(MessageType.FieldScreen);
             Register<FieldModelMessage>(MessageType.FieldModel);
             Register<FieldBGMessage>(MessageType.FieldBG);
             Register<FieldEntityModelMessage>(MessageType.FieldEntityModel);
             Register<FieldBGScrollMessage>(MessageType.FieldBGScroll);
+
+            Register<UIScreenMessage>(MessageType.UIScreen);
+            Register<UIStateMessage>(MessageType.UIState);
 
             Register<SfxMessage>(MessageType.SfxMessage);
             Register<MusicMessage>(MessageType.MusicMessage);   
@@ -136,4 +146,28 @@ namespace Braver.Net {
         }
     }
 
+    public class PopScreenMessage : ServerMessage {
+        public override void Load(NetDataReader reader) {
+        }
+
+        public override void Save(NetDataWriter writer) {
+        }
+    }
+
+
+    public enum TransitionKind {
+        FadeIn,
+        FadeOut,
+    }
+    public class TransitionMessage : ServerMessage {
+        public TransitionKind Kind { get; set; }
+
+        public override void Load(NetDataReader reader) {
+            Kind = (TransitionKind)reader.GetInt();
+        }
+
+        public override void Save(NetDataWriter writer) {
+            writer.Put((int)Kind);
+        }
+    }
 }

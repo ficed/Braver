@@ -12,6 +12,7 @@ namespace Braver {
         private int _frames, _total;
         
         public Action OnComplete { get; private set; }
+        public virtual bool RetainAtEnd { get => false; }
 
         protected Transition(int frames) {
             _total = frames;
@@ -34,6 +35,8 @@ namespace Braver {
         private byte _from, _to;
         private UI.CompositeImages _images;
 
+        public override bool RetainAtEnd => _to != 0;
+
         public FadeTransition(int frames, Color color, byte from, byte to, UI.CompositeImages images) : base(frames) {
             _color = color;
             _from = from;
@@ -45,7 +48,7 @@ namespace Braver {
             fxBatch.Begin(sortMode: SpriteSortMode.Immediate, blendState: BlendState.AlphaBlend);
 
             _images.Find("white", out var tex, out var source, out bool flip);
-            byte alpha = (byte)(_from + (_to - _from) * progress);
+            byte alpha = progress >= 1f ? _to : (byte)(_from + (_to - _from) * progress);
             fxBatch.Draw(tex, new Rectangle(0, 0, 9000, 9000), source, _color.WithAlpha(alpha));
 
             fxBatch.End();
@@ -89,6 +92,7 @@ namespace Braver {
                 Game.Singleton(() => new UI.CompositeImages(Graphics, Game))
             );
             _transitionAction = then;
+            Game.Net.Send(new Net.TransitionMessage { Kind = Net.TransitionKind.FadeOut });
         }
         public void FadeIn(Action then) {
             _transition = new FadeTransition(
@@ -96,13 +100,15 @@ namespace Braver {
                 Game.Singleton(() => new UI.CompositeImages(Graphics, Game))
             );
             _transitionAction = then;
+            Game.Net.Send(new Net.TransitionMessage { Kind = Net.TransitionKind.FadeIn });
         }
 
         public void Step(GameTime elapsed) {
             DoStep(elapsed);
             if (_transition != null) {
                 if (_transition.Step()) {
-                    _transition = null;
+                    if (!_transition.RetainAtEnd)
+                        _transition = null;
                     _transitionAction?.Invoke();
                 }
             }
