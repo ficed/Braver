@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -62,6 +63,7 @@ namespace Braver.Field {
 
         public override Color ClearColor => Color.Black;
 
+        public HashSet<int> DisabledWalkmeshTriangles { get; } = new HashSet<int>();
         public Background Background { get; private set; }
         public List<Entity> Entities { get; private set; }
         public Entity Player { get; private set; }
@@ -69,6 +71,8 @@ namespace Braver.Field {
         public DialogEvent FieldDialog { get; private set; }
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
         public Dialog Dialog { get; private set; }
+
+        public string OverrideBattleMusic { get; set; }
 
         private HashSet<Trigger> _activeTriggers = new();
 
@@ -242,10 +246,11 @@ namespace Braver.Field {
                     System.Numerics.Vector4 v0 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V0.X  , wTri.V0.Y , wTri.V0.Z , 1), vp),
                         v1 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V1.X , wTri.V1.Y , wTri.V1.Z , 1), vp),
                         v2 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V2.X , wTri.V2.Y , wTri.V2.Z , 1), vp);
+                    /*
                     System.Diagnostics.Debug.WriteLine(v0 / v0.W);
                     System.Diagnostics.Debug.WriteLine(v1 / v1.W);
                     System.Diagnostics.Debug.WriteLine(v2 / v2.W);
-
+                    */
                     minZ = Math.Min(minZ, v0.Z / v0.W);
                     minZ = Math.Min(minZ, v1.Z / v1.W);
                     minZ = Math.Min(minZ, v2.Z / v2.W);
@@ -710,6 +715,45 @@ namespace Braver.Field {
             return (aDist >= 0 && aDist <= 1) && (s >= 0 && s <= 1);
         }
 
+        private bool DoesLeaveTri(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, out float dist, out short? newTri) {
+            if (LineIntersect(
+                startPos,
+                endPos,
+                tri.V0.ToX().XY(),
+                tri.V1.ToX().XY(),
+                out dist
+            )) {
+                newTri = tri.V01Tri;
+                return true;
+            }
+
+            if (LineIntersect(
+                startPos,
+                endPos,
+                tri.V1.ToX().XY(),
+                tri.V2.ToX().XY(),
+                out dist
+            )) {
+                newTri = tri.V12Tri;
+                return true;
+            }
+
+            if (LineIntersect(
+                startPos,
+                endPos,
+                tri.V2.ToX().XY(),
+                tri.V0.ToX().XY(),
+                out dist
+            )) {
+                newTri = tri.V20Tri;
+                return true;
+            }
+
+            newTri = null;
+            return false;
+        }
+
+
         public bool TryWalk(Entity eMove, Vector3 newPosition, bool doCollide) {
             //TODO: Collision detection against other models!
 
@@ -744,38 +788,13 @@ namespace Braver.Field {
                 eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
                 return true;
             } else {
-                short? newTri;
-                if (LineIntersect(
-                    currentTri.V0.ToX().XY(),
-                    currentTri.V1.ToX().XY(),
-                    eMove.Model.Translation.XY(),
-                    newPosition.XY(),
-                    out float dist
-                    )) {
-                    newTri = currentTri.V01Tri;
-                } else if (LineIntersect(
-                    currentTri.V1.ToX().XY(),
-                    currentTri.V2.ToX().XY(),
-                    eMove.Model.Translation.XY(),
-                    newPosition.XY(),
-                    out dist
-                    )) {
-                    newTri = currentTri.V12Tri;
-                } else if (LineIntersect(
-                    currentTri.V2.ToX().XY(),
-                    currentTri.V0.ToX().XY(),
-                    eMove.Model.Translation.XY(),
-                    newPosition.XY(),
-                    out dist
-                    )) {
-                    newTri = currentTri.V20Tri;
-                } else {
+                if (!DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, out float dist, out short? newTri)) { 
                     System.Diagnostics.Debug.WriteLine($"Moving from {eMove.Model.Translation} to {newPosition}");
                     System.Diagnostics.Debug.WriteLine($"V0 {currentTri.V0}, V1 {currentTri.V1}, V2 {currentTri.V2}");
                     throw new Exception($"Reality failure: Can't find route out of triangle");
                 }
 
-                if (newTri == null) {
+                if ((newTri == null) || DisabledWalkmeshTriangles.Contains(newTri.Value)) {
                     //Just can't leave by this side, oh well
                     return false;
                 } else {
@@ -784,14 +803,33 @@ namespace Braver.Field {
                         movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
                         newPosition.X, newPosition.Y
                     );
-                    if (newHeight == null) {
-                        //Argh, we've moved straight through a triangle? TODO: HANDLE THIS!
-                        throw new Exception($"This needs handling");
-                    } else {
-                        eMove.WalkmeshTri = newTri.Value;
-                        eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
-                        return true;
+                    Vector2 testLocation = eMove.Model.Translation.XY();
+                    while (newHeight == null) {
+                        //Our destination triangle isn't directly connected to our start location -
+                        //we need to loop through and check all the intermediate points are within
+                        //(walkable) triangles
+                        var vector = newPosition.XY() - testLocation;
+                        var testFrom = testLocation + vector * (dist * 1.05f);
+                        if (!DoesLeaveTri(testFrom, newPosition.XY(), movingToTri, out dist, out newTri)) {
+                            throw new Exception($"Reality failure: Can't find route out of triangle");
+                        }
+                        if ((newTri == null) || DisabledWalkmeshTriangles.Contains(newTri.Value)) {
+                            //Just can't leave by this side, oh well
+                            return false;
+                        }
+                        testLocation = testFrom;
+
+                        movingToTri = _walkmesh[newTri.Value];
+                        newHeight = HeightInTriangle(
+                            movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
+                            newPosition.X, newPosition.Y
+                        );
                     }
+
+                    eMove.WalkmeshTri = newTri.Value;
+                    eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
+                    return true;
+                    
                 }
             }
         }

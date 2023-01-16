@@ -87,7 +87,7 @@ namespace Braver.Net {
         }
 
         protected void Dispatch(NetMessage message) {
-            System.Diagnostics.Debug.WriteLine($"Dispatching message {message.GetType()}");
+            //System.Diagnostics.Debug.WriteLine($"Dispatching message {message.GetType()}");
             if (_listeners.TryGetValue(message.GetType(), out var list)) {
                 foreach(var listener in list.ToArray())
                     listener.dispatch(message);

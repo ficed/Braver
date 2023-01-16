@@ -339,7 +339,8 @@ namespace Braver.Field {
             while (Active && (maxOps-- > 0)) {
                 int opIP = _ip;
                 OpCode op = (OpCode)ReadU8();
-                //System.Diagnostics.Debug.WriteLine($"Entity {_entity.Name} executing {op}");
+                //if (_entity.Name == "FURYOA")
+                //    System.Diagnostics.Debug.WriteLine($"Entity {_entity.Name} executing {op} ({(byte)op}) at IP {opIP}");
                 switch (VM.Execute(op, this, _entity, _screen)) {
                     case OpResult.Continue:
                         OpcodeAttempts = 0;
@@ -620,6 +621,19 @@ namespace Braver.Field {
 
     internal static class FieldModels {
 
+        
+        public static OpResult IDLCK(Fiber f, Entity e, FieldScreen s) {
+            ushort triID = f.ReadU16();
+            byte enabled = f.ReadU8();
+
+            if (enabled != 0)
+                s.DisabledWalkmeshTriangles.Add(triID);
+            else
+                s.DisabledWalkmeshTriangles.Remove(triID);
+
+            return OpResult.Continue;
+        }
+
         public static OpResult SLIP(Fiber f, Entity e, FieldScreen s) {
             byte parm = f.ReadU8();
             //TODO!
@@ -807,7 +821,7 @@ namespace Braver.Field {
         }
 
         private static OpResult DoTurn(Entity e, float rotation, float rotationSteps, byte rotateDir, byte rotateType) {
-            float rotationAmount = 360f * rotationSteps / 255f;
+            float rotationAmount = rotationSteps == 0 ? 360f : 360f * rotationSteps / 255f;
 
             float ccwAmount = rotation > e.Model.Rotation.Z ? (e.Model.Rotation.Z + 360 - rotation) : e.Model.Rotation.Z - rotation,
                 cwAmount = rotation < e.Model.Rotation.Z ? (rotation + 360 - e.Model.Rotation.Z) : rotation - e.Model.Rotation.Z;
@@ -847,7 +861,7 @@ namespace Braver.Field {
 
         public static OpResult TURA(Fiber f, Entity e, FieldScreen s) {
             byte targetEntityID = f.ReadU8();
-            ushort rotateDir = f.ReadU16(), steps = f.ReadU16();
+            byte rotateDir = f.ReadU8(), steps = f.ReadU8();
 
             var target = s.Entities[targetEntityID];
             float rotation = (float)(Math.Atan2(target.Model.Translation.X - e.Model.Translation.X, -(target.Model.Translation.Y - e.Model.Translation.Y)) * 180 / Math.PI);
@@ -1019,6 +1033,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         public static OpResult MUSIC(Fiber f, Entity e, FieldScreen s) {
             byte track = f.ReadU8();
             s.Game.Audio.PlayMusic(_trackNames[s.FieldDialog.AkaoMusicIDs[track]]);
+            return OpResult.Continue;
+        }
+        public static OpResult BMUSC(Fiber f, Entity e, FieldScreen s) {
+            byte track = f.ReadU8();
+            s.OverrideBattleMusic = _trackNames[s.FieldDialog.AkaoMusicIDs[track]];
             return OpResult.Continue;
         }
 
