@@ -27,6 +27,9 @@ namespace Braver.Field {
             public WindowState State = WindowState.Hidden;
             public int FrameProgress, ScreenProgress;
             public Action OnClosed;
+            public Action<int> OnChoice;
+            public int Choice;
+            public int[] ChoiceLines;
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
@@ -52,8 +55,7 @@ namespace Braver.Field {
             _windows[window].Height = height * 3 / 2 + 8;
         }
 
-        public void Show(int window, string text, Action onClosed) {
-
+        private void PrepareWindow(int window, string text) {
             var chars = _game.SaveData.Characters.Select(c => c?.Name).ToArray();
             var party = _game.SaveData.Party.Select(c => c?.Name).ToArray();
 
@@ -62,23 +64,55 @@ namespace Braver.Field {
                 .ToArray();
             _windows[window].FrameProgress = _windows[window].ScreenProgress = 0;
             _windows[window].State = WindowState.Expanding;
+        }
+
+        public void Show(int window, string text, Action onClosed) {
+            PrepareWindow(window, text);
             _windows[window].OnClosed = onClosed;
+            _windows[window].OnChoice = null;
+            _windows[window].ChoiceLines = null;
+        }
+        public void Ask(int window, string text, IEnumerable<int> choices, Action<int> onChoice) {
+            PrepareWindow(window, text);
+            _windows[window].ChoiceLines = choices.ToArray();
+            _windows[window].OnClosed = null;
+            _windows[window].OnChoice = onChoice;
+            _windows[window].Choice = 0;
         }
 
         public void ProcessInput(InputState input) { 
             foreach(var window in _windows) {
-                if (window.State == WindowState.Wait) {
-                    if (input.IsJustDown(InputKey.OK)) {
-                        _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
-                        if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
-                            window.ScreenProgress++;
-                            window.FrameProgress = 0;
-                            window.State = WindowState.Displaying;
-                        } else { //we're done
-                            window.State = WindowState.Hiding;
-                            window.FrameProgress = 0;
+                switch (window.State) {
+                    case WindowState.Displaying:
+                        if (input.IsJustDown(InputKey.OK)) {
+                            _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                            window.FrameProgress = 9999;
                         }
-                    }
+                        break;
+
+                    case WindowState.Wait:
+                        if (input.IsJustDown(InputKey.OK)) {
+                            _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                            if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
+                                window.ScreenProgress++;
+                                window.FrameProgress = 0;
+                                window.State = WindowState.Displaying;
+                            } else { //we're done
+                                window.State = WindowState.Hiding;
+                                window.FrameProgress = 0;
+                            }
+                        } else if (input.IsJustDown(InputKey.Down)) {
+                            if (window.ChoiceLines != null) {
+                                window.Choice = (window.Choice + 1) % window.ChoiceLines.Length;
+                                _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                            }
+                        } else if (input.IsJustDown(InputKey.Up)) {
+                            if (window.ChoiceLines != null) {
+                                window.Choice = (window.Choice + window.ChoiceLines.Length + 1) % window.ChoiceLines.Length;
+                                _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                            }
+                        }
+                        break;
                 }
             }
         }
@@ -96,6 +130,7 @@ namespace Braver.Field {
                         } else {
                             window.State = WindowState.Hidden;
                             window.OnClosed?.Invoke();
+                            window.OnChoice?.Invoke(window.ChoiceLines[window.Choice]);
                         }
                         break;
 
@@ -115,13 +150,23 @@ namespace Braver.Field {
             void DrawText(Window w, ref int count) {
                 int y = w.Y + 10;
                 float tz = NextZ();
+                int lineCount = 0;
                 foreach (string line in w.Text[w.ScreenProgress].Split('\r')) {
                     string s = count < line.Length ? line.Substring(0, count) : line;
                     _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);
+
+                    if (w.ChoiceLines != null) {
+                        if (w.ChoiceLines[0] == lineCount)
+                            count = 99999;
+                        if (lineCount == w.ChoiceLines[w.Choice])
+                            _ui.DrawImage("pointer", w.X + 10, y, NextZ(), UI.Alignment.Right);
+                    }
+
                     count -= s.Length;
                     if (count <= 0)
                         break;
                     y += 25;
+                    lineCount++;
                 }
             }
 

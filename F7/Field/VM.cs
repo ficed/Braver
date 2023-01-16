@@ -1,10 +1,15 @@
 ﻿using Microsoft.Xna.Framework;
+using NAudio.Gui;
 using SharpDX.Direct2D1;
+using SharpDX.Direct3D9;
+using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Braver.Field {
     public enum OpCode {
@@ -973,6 +978,20 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             return OpResult.Continue;
         }
+        public static OpResult ASK(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), win = f.ReadU8(), msg = f.ReadU8(),
+                firstChoice = f.ReadU8(), lastChoice = f.ReadU8(),
+                addr = f.ReadU8();
+
+            f.Pause();
+            s.Dialog.Ask(win, s.FieldDialog.Dialogs[msg], Enumerable.Range(firstChoice, lastChoice - firstChoice + 1), ch => {
+                s.Game.Memory.Write(bank, addr, (ushort)ch);
+                f.Resume();
+            });
+
+            return OpResult.Continue;
+        }
+
         public static OpResult MESSAGE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8(), dlg = f.ReadU8();
             f.Pause();

@@ -317,6 +317,7 @@ namespace Braver.UI {
                     case ' ':
                         dx += f.GlyphsDict['i'].W * 1;
                         break;
+                    case '\xE000': //TODO - is this OK for now?
                     case '\t':
                         dx += f.GlyphsDict['i'].W * 3;
                         break;
@@ -394,6 +395,7 @@ namespace Braver.UI {
                         case ' ':
                             dx += (int)(f.GlyphsDict['i'].W * 1 * item.Size);
                             break;
+                        case '\xE000': //TODO - is this OK for now?
                         case '\t':
                             dx += (int)(f.GlyphsDict['i'].W * 3 * item.Size);
                             break;
