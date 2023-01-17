@@ -33,6 +33,23 @@ namespace Braver {
 
     public static class GraphicsUtil {
 
+        public static readonly BlendState BlendSubtractive = new BlendState {
+            AlphaBlendFunction = BlendFunction.ReverseSubtract,
+            AlphaDestinationBlend = Blend.One,
+            AlphaSourceBlend = Blend.SourceAlpha,
+            ColorBlendFunction = BlendFunction.ReverseSubtract,
+            ColorDestinationBlend = Blend.One,
+            ColorSourceBlend = Blend.SourceAlpha,
+        };
+        public static readonly BlendState BlendDarken = new BlendState {
+            AlphaBlendFunction = BlendFunction.ReverseSubtract,
+            AlphaDestinationBlend = Blend.One,
+            AlphaSourceBlend = Blend.One,
+            ColorBlendFunction = BlendFunction.ReverseSubtract,
+            ColorDestinationBlend = Blend.One,
+            ColorSourceBlend = Blend.InverseSourceColor,
+        };
+
         public static int MakePowerOfTwo(int i) {
             int n = 1;
             while (n < i)

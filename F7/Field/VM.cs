@@ -1,15 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using NAudio.Gui;
-using SharpDX.Direct2D1;
-using SharpDX.Direct3D9;
-using SixLabors.ImageSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Braver.Field {
     public enum OpCode {
@@ -383,6 +375,7 @@ namespace Braver.Field {
             Register(typeof(PartyInventory));
             Register(typeof(FieldModels));
             Register(typeof(Maths));
+            Register(typeof(SystemControl));
         }
 
         public static OpResult Execute(OpCode op, Fiber f, Entity e, FieldScreen s) {
@@ -783,6 +776,17 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult CANIM2(Fiber f, Entity e, FieldScreen s) {
+            byte anim = f.ReadU8(), first = f.ReadU8(), last = f.ReadU8(), speed = f.ReadU8();
+            f.Pause();
+            var state = e.Model.AnimationState;
+            Action onComplete = () => {
+                f.Resume();
+                e.Model.AnimationState = state;
+            };
+            e.Model.PlayAnimation(anim, false, 1f / speed, onComplete, first, last); //TODO is this speed even vaguely correct?
+            return OpResult.Continue;
+        }
         public static OpResult ANIME1(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
             f.Pause();
@@ -937,6 +941,11 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult MMBLK(Fiber f, Entity e, FieldScreen s) {
+            byte charID = f.ReadU8();
+            s.Game.SaveData.Characters[charID].Flags |= CharFlags.Locked;
+            return OpResult.Continue;
+        }
     }
 
     internal static class WindowMenu {
@@ -1051,14 +1060,76 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
         public static OpResult MUSIC(Fiber f, Entity e, FieldScreen s) {
             byte track = f.ReadU8();
-            s.Game.Audio.PlayMusic(_trackNames[s.FieldDialog.AkaoMusicIDs[track]]);
+            if (!s.Options.HasFlag(FieldOptions.MusicLocked))
+                s.Game.Audio.PlayMusic(_trackNames[s.FieldDialog.AkaoMusicIDs[track]]);
             return OpResult.Continue;
         }
         public static OpResult BMUSC(Fiber f, Entity e, FieldScreen s) {
             byte track = f.ReadU8();
-            s.OverrideBattleMusic = _trackNames[s.FieldDialog.AkaoMusicIDs[track]];
+            s.BattleOptions.OverrideMusic = _trackNames[s.FieldDialog.AkaoMusicIDs[track]];
             return OpResult.Continue;
         }
+        public static OpResult FMUSC(Fiber f, Entity e, FieldScreen s) {
+            byte track = f.ReadU8();
+            s.BattleOptions.PostBattleMusic = _trackNames[s.FieldDialog.AkaoMusicIDs[track]];
+            return OpResult.Continue;
+        }
+        public static OpResult MULCK(Fiber f, Entity e, FieldScreen s) {
+            byte locked = f.ReadU8();
+            if (locked != 0)
+                s.Options |= FieldOptions.MusicLocked;
+            else
+                s.Options &= ~FieldOptions.MusicLocked;
+            return OpResult.Continue;
+        }
+
+        private static OpResult DoAKAO(Fiber f, Entity e, FieldScreen s, byte op, int parm1, int parm2, int parm3, int parm4, int parm5) {
+            switch (op) {
+                case 0xc8:
+                case 0xc9:
+                case 0xca:
+                    //Music pan - Not implemented in original FF7 (but maybe we could?)
+                    break;
+                
+                case 0xf0:
+                    if (!s.Options.HasFlag(FieldOptions.MusicLocked))
+                        s.Game.Audio.StopMusic();
+                    break;
+
+                default: //TODO - all ops!
+                    throw new NotImplementedException();
+            }
+
+            return OpResult.Continue;
+        }
+
+        public static OpResult AKAO(Fiber f, Entity e, FieldScreen s) {
+            byte bank12 = f.ReadU8(), bank34 = f.ReadU8(), bank5 = f.ReadU8(),
+                op = f.ReadU8(), p1 = f.ReadU8();
+            ushort p2 = f.ReadU16(), p3 = f.ReadU16(), p4 = f.ReadU16(), p5 = f.ReadU16();
+
+            int parm1 = s.Game.Memory.Read(bank12 >> 4, p1),
+                parm2 = s.Game.Memory.Read(bank12 & 0xf, p2),
+                parm3 = s.Game.Memory.Read(bank34 >> 4, p3),
+                parm4 = s.Game.Memory.Read(bank34 & 0xf, p4),
+                parm5 = s.Game.Memory.Read(bank5 >> 4, p5);
+
+            return DoAKAO(f, e, s, op, parm1, parm2, parm3, parm4, parm5);
+        }
+        public static OpResult AKAO2(Fiber f, Entity e, FieldScreen s) {
+            byte bank12 = f.ReadU8(), bank34 = f.ReadU8(), bank5 = f.ReadU8(),
+                op = f.ReadU8();
+            ushort p1 = f.ReadU16(), p2 = f.ReadU16(), p3 = f.ReadU16(), p4 = f.ReadU16(), p5 = f.ReadU16();
+
+            int parm1 = s.Game.Memory.Read(bank12 >> 4, p1),
+                parm2 = s.Game.Memory.Read(bank12 & 0xf, p2),
+                parm3 = s.Game.Memory.Read(bank34 >> 4, p3),
+                parm4 = s.Game.Memory.Read(bank34 & 0xf, p4),
+                parm5 = s.Game.Memory.Read(bank5 >> 4, p5);
+
+            return DoAKAO(f, e, s, op, parm1, parm2, parm3, parm4, parm5);
+        }
+
 
         public static OpResult SOUND(Fiber f, Entity e, FieldScreen s) {
             byte banks = f.ReadU8();
@@ -1069,6 +1140,23 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64);
             return OpResult.Continue;
         }
+
+        public static OpResult PMVIE(Fiber f, Entity e, FieldScreen s) {
+            byte which = f.ReadU8();
+            s.Movie.Prepare(which);
+            return OpResult.Continue;
+        }
+        public static OpResult MOVIE(Fiber f, Entity e, FieldScreen s) {
+            f.Pause();
+            s.Movie.Play(f.Resume);
+            return OpResult.Continue;
+        }
+        public static OpResult MVIEF(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), addr = f.ReadU8();
+            s.Game.Memory.Write(bank, addr, (ushort)Math.Max(0, s.Movie.Frame));
+            return OpResult.Continue;
+        }
+
 
         public static OpResult SCRLW(Fiber f, Entity e, FieldScreen s) {
             if (s.Options.HasFlag(FieldOptions.CameraIsAsyncScrolling))
@@ -1085,6 +1173,41 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             s.BGScroll(x, y);
             return OpResult.Continue;
+        }
+
+        private class ScrollState {
+            public Vector2 Start;
+            public int Frame;
+        }
+        public static OpResult SCR2DC(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), bankS = f.ReadU8();
+            short sx = f.ReadS16(), sy = f.ReadS16(), ss = f.ReadS16();
+            int x = s.Game.Memory.Read(banks & 0xf, sx),
+                y = s.Game.Memory.Read(banks >> 4, sy),
+                speed = s.Game.Memory.Read(bankS, ss);
+
+            ScrollState state;
+            if (f.ResumeState == null) {
+                var scroll = s.GetBGScroll();
+                state = new ScrollState {
+                    Start = new Vector2(scroll.x, scroll.y),
+                };
+                f.ResumeState = state;
+            } else
+                state = (ScrollState)f.ResumeState;
+            
+            Vector2 end = new Vector2(x, y);
+            var progress = Easings.QuadraticInOut(1f * state.Frame / speed); //TODO - is interpreting speed as framecount vaguely correct?
+
+            if (progress >= 1f) {
+                s.BGScroll(x, y);
+                return OpResult.Continue;
+            } else {
+                var pos = state.Start + (end - state.Start) * progress;
+                s.BGScroll(pos.X, pos.Y);
+                state.Frame++;
+                return OpResult.Restart;
+            }
         }
 
         public static OpResult SCRLC(Fiber f, Entity e, FieldScreen s) {
@@ -1157,6 +1280,42 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             return OpResult.Continue;
         }
+
+        private static OpResult DoFade(Fiber f, Entity e, FieldScreen s, byte bankRG, byte bankB, 
+            byte r, byte g, byte b, byte frames, byte fadeType, byte adjust) {
+
+            int cR = (byte)s.Game.Memory.Read(bankRG >> 4, r),
+                 cG = (byte)s.Game.Memory.Read(bankRG & 0xf, g),
+                 cB = (byte)s.Game.Memory.Read(bankB, b);
+
+            Color cStandard = new Color(cR, cG, cB, 0xff),
+                cInverse = new Color(0xff - cR, 0xff - cG, 0xff - cB, 0xff),
+                cInverse4 = new Color(4 * (0xff - cR), 4 * (0xff - cG), 4 * (0xff - cB), 0xff);
+
+            switch (fadeType) {
+                case 0: //NFADE type 0
+                case 4: //FADE type 4 - both basically the same...?
+                    s.Overlay.Fade(0, BlendState.Additive, Color.Black, Color.Black, null);
+                    return OpResult.Continue;
+                default: //TODO - other types!
+                    throw new NotImplementedException();
+            }
+        }
+
+        public static OpResult NFADE(Fiber f, Entity e, FieldScreen s) {
+            byte bankRG = f.ReadU8(), bankB = f.ReadU8(), fadeType = f.ReadU8(), 
+                r = f.ReadU8(), g = f.ReadU8(), b = f.ReadU8(),
+                speed = f.ReadU8(), adjust = f.ReadU8();
+
+            return DoFade(f, e, s, bankRG, bankB, r, g, b, speed, fadeType, adjust);
+        }
+        public static OpResult FADE(Fiber f, Entity e, FieldScreen s) {
+            byte bankRG = f.ReadU8(), bankB = f.ReadU8(), r = f.ReadU8(), g = f.ReadU8(), b = f.ReadU8(),
+                speed = f.ReadU8(), fadeType = f.ReadU8(), adjust = f.ReadU8();
+
+            return DoFade(f, e, s, bankRG, bankB, r, g, b, (byte)(240 / speed), fadeType, adjust);
+        }
+
     }
 
     internal static class Maths {
@@ -1211,6 +1370,18 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int value = s.Game.Memory.Read(banks & 0xf, src);
             int current = s.Game.Memory.Read(banks >> 4, dest);
             s.Game.Memory.Write(banks >> 4, dest, (ushort)(current | value));
+            return OpResult.Continue;
+        }
+    }
+
+    public static class SystemControl {
+        public static OpResult BTLON(Fiber f, Entity e, FieldScreen s) {
+            s.BattleOptions.BattlesEnabled = f.ReadU8() == 0;
+            return OpResult.Continue;
+        }
+
+        public static OpResult BTLMD(Fiber f, Entity e, FieldScreen s) {
+            s.BattleOptions.Flags = (BattleFlags)f.ReadU16();
             return OpResult.Continue;
         }
     }

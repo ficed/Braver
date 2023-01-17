@@ -1,16 +1,28 @@
 ﻿using Ficedula.FF7.Field;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace Braver.Field {
+
+    [Flags]
+    public enum BattleFlags {
+        None = 0,
+        TimedBattle = 0x2,
+        Preemptive = 0x4,
+        NoEscape = 0x8,
+        NoVictoryMusic = 0x20,
+        BattleArena = 0x40,
+        NoVictoryScreens = 0x80,
+        NoGameOver = 0x100,
+    }
+
+    public class BattleOptions {
+        public string OverrideMusic { get; set; }
+        public string PostBattleMusic { get; set; } //will play in field
+        public bool BattlesEnabled { get; set; } = false; //TODO - reasonable default?
+        public BattleFlags Flags { get; set; } = BattleFlags.None;
+    }
 
     public class FieldInfo {
         public float BGZFrom { get; set; }
@@ -38,6 +50,7 @@ namespace Braver.Field {
         MenuEnabled = 0x4, 
         CameraTracksPlayer = 0x8,
         CameraIsAsyncScrolling = 0x10,
+        MusicLocked = 0x20,
 
         DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer,  
     }
@@ -65,14 +78,16 @@ namespace Braver.Field {
 
         public HashSet<int> DisabledWalkmeshTriangles { get; } = new HashSet<int>();
         public Background Background { get; private set; }
+        public Movie Movie { get; private set; }
         public List<Entity> Entities { get; private set; }
         public Entity Player { get; private set; }
         public List<FieldModel> FieldModels { get; private set; }
         public DialogEvent FieldDialog { get; private set; }
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
         public Dialog Dialog { get; private set; }
+        public Overlay Overlay { get; private set; }
 
-        public string OverrideBattleMusic { get; set; }
+        public BattleOptions BattleOptions { get; } = new();
 
         private HashSet<Trigger> _activeTriggers = new();
 
@@ -89,6 +104,8 @@ namespace Braver.Field {
             g.Net.Listen<Net.FieldEntityModelMessage>(this);
             g.Net.Listen<Net.FieldBGScrollMessage>(this);
 
+            Overlay = new Overlay(g, graphics);
+
             var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
             string file = mapList.Items[_destination.DestinationFieldID];
 
@@ -97,6 +114,7 @@ namespace Braver.Field {
             using (var s = g.Open("field", file)) {
                 var field = new FieldFile(s);
                 Background = new Background(g, graphics, field.GetBackground());
+                Movie = new Movie(g, graphics);
                 FieldDialog = field.GetDialogEvent();
 
                 Entities = FieldDialog.Entities
@@ -297,7 +315,10 @@ namespace Braver.Field {
                 }
 
                 BringPlayerIntoView();
-                FadeIn(null);
+
+                if (!Overlay.HasTriggered)
+                    Overlay.Fade(30, GraphicsUtil.BlendSubtractive, Color.White, Color.Black, null);
+
                 g.Net.Send(new Net.ScreenReadyMessage());
             }
             Entity.DEBUG_OUT = false;
@@ -311,8 +332,12 @@ namespace Braver.Field {
         protected override void DoRender() {
             Graphics.DepthStencilState = DepthStencilState.Default;
             Graphics.BlendState = BlendState.AlphaBlend;
-            if (_renderBG)
-                Background.Render(_view2D, _bgZFrom, _bgZTo);
+            if (_renderBG) {
+                if (Movie.Active)
+                    Movie.Render();
+                else
+                    Background.Render(_view2D, _bgZFrom, _bgZTo);
+            }
 
             if (_renderDebug)
                 _debug.Render(_view3D);
@@ -321,6 +346,8 @@ namespace Braver.Field {
                 foreach (var entity in Entities)
                     if ((entity.Model != null) && entity.Model.Visible)
                         entity.Model.Render(_view3D);
+
+            Overlay.Render();
 
             Dialog.Render();
         }
@@ -340,6 +367,7 @@ namespace Braver.Field {
         protected override void DoStep(GameTime elapsed) {
             if (Game.Net is Net.Server) {
                 if ((frame % 2) == 0) {
+                    Overlay.Step();
                     foreach (var entity in Entities) {
                         entity.Run(1000);
                         entity.Model?.FrameStep();
@@ -353,6 +381,7 @@ namespace Braver.Field {
                 }
 
                 Dialog.Step();
+                Movie.Step();
                 Background.Step();
             } else {
                 if ((frame % 2) == 0) {
@@ -786,6 +815,8 @@ namespace Braver.Field {
             if (newHeight != null) {
                 //We're staying in the same tri, so just update height
                 eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
+                if (eMove.Name == "ba")
+                    System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} to {eMove.Model.Translation}");
                 return true;
             } else {
                 if (!DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, out float dist, out short? newTri)) { 
@@ -819,6 +850,8 @@ namespace Braver.Field {
                         }
                         testLocation = testFrom;
 
+                        if (eMove.Name == "ba")
+                            System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} from wmtri {eMove.WalkmeshTri} to {newTri.Value}");
                         movingToTri = _walkmesh[newTri.Value];
                         newHeight = HeightInTriangle(
                             movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
@@ -828,8 +861,9 @@ namespace Braver.Field {
 
                     eMove.WalkmeshTri = newTri.Value;
                     eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
-                    return true;
-                    
+                    if (eMove.Name == "ba")
+                        System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} to {eMove.Model.Translation}");
+                    return true;                    
                 }
             }
         }

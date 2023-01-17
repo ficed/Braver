@@ -56,6 +56,7 @@ namespace Braver {
         Party3 = 0x40,
 
         Available = 0x100,
+        Locked = 0x200,
 
         ANY_PARTY_SLOT = Party1 | Party2 | Party3,
     }

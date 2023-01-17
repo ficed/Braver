@@ -18,20 +18,12 @@ namespace Braver.Field {
         public int MinX { get; private set; }
         public int MinY { get; private set; }
 
-        private enum BlendType {
-            Blend,
-            Additive,
-            Subtractive,
-            QuarterAdd,
-            None = 0xff,
-        }
-
         private class TexLayer {
             public Texture2D Tex;
             public VertexPositionTexture[] Verts;
             public IEnumerable<Ficedula.FF7.Field.Sprite> Sprites;
             public List<uint[]> Data;
-            public BlendType Blend;
+            public Ficedula.FF7.Field.BlendType Blend;
             public int Parameter;
             public int Mask;
             public int OffsetX, OffsetY;
@@ -110,7 +102,7 @@ namespace Braver.Field {
                         Tex = new Texture2D(graphics, texWidth, texHeight, false, SurfaceFormat.Color),
                         OffsetX = -minX,
                         OffsetY = -minY,
-                        Blend = (BlendType)group.First().TypeTrans,
+                        Blend = (Ficedula.FF7.Field.BlendType)group.First().TypeTrans,
                         Sprites = group.ToArray(),
                         Data = Enumerable.Range(0, texHeight)
                             .Select(_ => new uint[texWidth])
@@ -184,11 +176,11 @@ namespace Braver.Field {
                         continue;
 
                     switch (layer.Blend) {
-                        case BlendType.None:
-                        case BlendType.Blend:
+                        case Ficedula.FF7.Field.BlendType.None:
+                        case Ficedula.FF7.Field.BlendType.Blend:
                             _graphics.BlendState = BlendState.AlphaBlend;
                             break;
-                        case BlendType.Additive:
+                        case Ficedula.FF7.Field.BlendType.Additive:
                             _graphics.BlendState = BlendState.Additive;
                             break;
                         default: //TODO NO

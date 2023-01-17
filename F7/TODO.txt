@@ -6,17 +6,17 @@
 Background load razor engine - do other templates? Automatically load all of them after any specified
 	"priority" templates like MainMenu?
 
-Moving through walkmap triangles on field is still broken, esp. when running
-
 IFKEYON etc not fully working - prob. due to IsJustPressed one-frame check conflicting with field scripts
 	not running every frame?
 
 Shops!
-
-ASK opcode
 
 Compressed/single file saves
 
 Music looping
 
 Item menu: Icons, actually do arrange
+
+Field Fade network msg, movie msg
+
+NEED TO IMPLEMENT field walkmesh tri sliding for first map to complete!

@@ -31,6 +31,7 @@ namespace Braver {
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
 
+        public string FFMpegPath { get; private set; } //TODO - better place to put/calculate this?
 
         private Dictionary<string, string> _prefs;
 
@@ -64,6 +65,7 @@ namespace Braver {
                     L = _data[category] = new();
                 L.Add(new FileDataSource(dir));
             }
+            FFMpegPath = Path.Combine(bdata, "ffmpeg.exe");
 
             Audio = new Audio(this, data);
 
