@@ -1,11 +1,6 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.Field {
     public class Background {
@@ -93,10 +88,15 @@ namespace Braver.Field {
                         maxT = 1f * (maxY - minY) / texHeight;
 
                     float zcoord;
-                    if (group.First().ID == 4095)
-                        zcoord = 1f;
-                    else
-                        zcoord = group.First().ID;
+                    switch (group.First().ID) {
+                        case 4095:
+                            zcoord = 1f; break;
+                        case 0:
+                        case 1:
+                            zcoord = 0f; break;
+                        default:
+                            zcoord = group.First().ID; break;
+                    }
 
                     TexLayer tl = new TexLayer {
                         Tex = new Texture2D(graphics, texWidth, texHeight, false, SurfaceFormat.Color),
@@ -109,7 +109,6 @@ namespace Braver.Field {
                             .ToList(),
                         Parameter = group.First().Param,
                         Mask = group.First().State,
-                        FixedZ = group.First().ID == 4095,
                         Verts = new[] {
                             new VertexPositionTexture {
                                 Position = new Vector3(minX, -minY, zcoord),
@@ -138,10 +137,21 @@ namespace Braver.Field {
                             },
                         }
                     };
+
+                    switch (group.First().ID) {
+                        case 4095:
+                        case 1:
+                        case 0:
+                            tl.FixedZ = true;
+                            break;
+                    }
+
                     _layers.Add(tl);
                     Draw(tl.Sprites, tl.Data, -minX, -minY, false);
                     foreach (int y in Enumerable.Range(0, tl.Tex.Height))
                         tl.Tex.SetData(0, new Rectangle(0, y, tl.Tex.Width, 1), tl.Data[y], 0, tl.Tex.Width);
+                    using (var fs = new System.IO.FileStream($@"C:\temp\BG{_layers.Count}.png", System.IO.FileMode.Create))
+                        tl.Tex.SaveAsPng(fs, tl.Tex.Width, tl.Tex.Height);
                 }
             }
         }
@@ -167,13 +177,13 @@ namespace Braver.Field {
                 _effect.Projection = viewer.Projection;
                 _effect.View = viewer.View;
 
-                int L = 0;
-
                 _graphics.SamplerStates[0] = SamplerState.PointClamp;
 
                 foreach (var layer in _layers) {
                     if ((layer.Mask != 0) && (_parameters[layer.Parameter] & layer.Mask) == 0)
                         continue;
+
+                    if (layer.FixedZ)
 
                     switch (layer.Blend) {
                         case Ficedula.FF7.Field.BlendType.None:

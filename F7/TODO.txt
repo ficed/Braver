@@ -19,4 +19,6 @@ Item menu: Icons, actually do arrange
 
 Field Fade network msg, movie msg
 
-NEED TO IMPLEMENT field walkmesh tri sliding for first map to complete!
+Field walkmesh sliding still pretty hacky
+	Should it operate only on integer coordinates?
+	Presumably that might be how the original game worked...

@@ -177,7 +177,16 @@ namespace Braver.Field {
             if (_frame >= 0) {
                 _spriteBatch.Begin(depthStencilState: DepthStencilState.None);
 
-                _spriteBatch.Draw(_texture, new Rectangle(0, 0, _graphics.Viewport.Width, _graphics.Viewport.Height), Color.White);
+                float srcRatio = 1f * _texture.Width / _texture.Height,
+                    destRatio = 1f * _graphics.Viewport.Width / _graphics.Viewport.Height;
+
+                if (srcRatio <= destRatio) {
+                    int widthUsed = (int)(_graphics.Viewport.Height * srcRatio);
+                    _spriteBatch.Draw(_texture, new Rectangle((_graphics.Viewport.Width - widthUsed) / 2, 0, widthUsed, _graphics.Viewport.Height), Color.White);
+                } else {
+                    int heightUsed = (int)(_texture.Width / srcRatio);
+                    _spriteBatch.Draw(_texture, new Rectangle(0, (_graphics.Viewport.Height - heightUsed) / 2, _graphics.Viewport.Width, heightUsed), Color.White);
+                }
 
                 _spriteBatch.End();
             }

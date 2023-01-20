@@ -148,7 +148,11 @@ namespace Braver {
             foreach (var action in actions)
                 action();
 
-            Screen.Step(gameTime);
+            Screen last = null;
+            while (Screen != last) {
+                last = Screen;
+                last.Step(gameTime);
+            }
 
             Net.Update();
         }
