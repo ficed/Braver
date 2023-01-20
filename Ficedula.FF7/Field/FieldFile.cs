@@ -175,7 +175,7 @@ namespace Ficedula.FF7.Field {
         }
     }
 
-    public struct FieldVertex {
+    public struct FieldVertex : IEquatable<FieldVertex> {
         public short X { get; set; }
         public short Y { get; set; }
         public short Z { get; set; }
@@ -189,6 +189,26 @@ namespace Ficedula.FF7.Field {
         }
 
         public override string ToString() => $"X:{X} Y:{Y} Z:{Z}";
+
+        public bool Equals(FieldVertex other) {
+            return (X == other.X) && (Y == other.Y) && (Z == other.Z);
+        }
+
+        public override bool Equals(object obj) {
+            return obj is FieldVertex && Equals((FieldVertex)obj);
+        }
+
+        public override int GetHashCode() {
+            return HashCode.Combine(X, Y, Z);
+        }
+
+        public static bool operator ==(FieldVertex left, FieldVertex right) {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(FieldVertex left, FieldVertex right) {
+            return !(left == right);
+        }
     }
 
     public class WalkmeshTriangle {
@@ -198,6 +218,12 @@ namespace Ficedula.FF7.Field {
         public short? V01Tri { get; set; }
         public short? V12Tri { get; set; }
         public short? V20Tri { get; set; }
+
+        public IEnumerable<FieldVertex> AllVerts() {
+            yield return V0;
+            yield return V1;
+            yield return V2;
+        }
     }
 
     public class Walkmesh {

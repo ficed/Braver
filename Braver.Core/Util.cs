@@ -13,6 +13,12 @@ namespace Braver {
                 if ((value & (1 << i)) != 0)
                     yield return i;
         }
+
+        public static void Swap<T>(ref T t1, ref T t2) {
+            T t = t1;
+            t1 = t2;
+            t2 = t;
+        }
     }
 
     public class F7Exception : Exception {

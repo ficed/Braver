@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 
 namespace Braver.Field {
 
@@ -728,9 +729,9 @@ namespace Braver.Field {
         }
 
         private static bool LineIntersect(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1, out float aDist) {
-            float denominator = ((a1.X - a0.X) * (b1.Y - b0.Y)) - ((a1.Y - a0.Y) * (b1.X - b0.X));
-            float numerator1 = ((a0.Y - b0.Y) * (b1.X - b0.X)) - ((a0.X - b0.X) * (b1.Y - b0.Y));
-            float numerator2 = ((a0.Y - b0.Y) * (a1.X - a0.X)) - ((a0.X - b0.X) * (a1.Y - a0.Y));
+            double denominator = ((a1.X - a0.X) * (b1.Y - b0.Y)) - ((a1.Y - a0.Y) * (b1.X - b0.X));
+            double numerator1 = 1.0 * ((a0.Y - b0.Y) * (b1.X - b0.X)) - 1.0 * ((a0.X - b0.X) * (b1.Y - b0.Y));
+            double numerator2 = 1.0 * ((a0.Y - b0.Y) * (a1.X - a0.X)) - 1.0 * ((a0.X - b0.X) * (a1.Y - a0.Y));
 
 
             if (denominator == 0) {
@@ -738,48 +739,181 @@ namespace Braver.Field {
                 return numerator1 == 0 && numerator2 == 0;
             }
 
-            aDist = numerator1 / denominator;
-            float s = numerator2 / denominator;
+            aDist = (float)Math.Round(numerator1 / denominator, 4);
+            double s = Math.Round(numerator2 / denominator, 4);
 
             return (aDist >= 0 && aDist <= 1) && (s >= 0 && s <= 1);
         }
 
-        private bool DoesLeaveTri(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, out float dist, out short? newTri) {
-            if (LineIntersect(
-                startPos,
-                endPos,
-                tri.V0.ToX().XY(),
-                tri.V1.ToX().XY(),
-                out dist
-            )) {
+        private bool CalculateTriLeave(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, out float dist, out short? newTri, out Vector2 tv0, out Vector2 tv1) {
+            tv0 = tri.V0.ToX().XY();
+            tv1 = tri.V1.ToX().XY();
+            if (LineIntersect(startPos, endPos, tv0, tv1, out dist)) { 
                 newTri = tri.V01Tri;
                 return true;
             }
 
-            if (LineIntersect(
-                startPos,
-                endPos,
-                tri.V1.ToX().XY(),
-                tri.V2.ToX().XY(),
-                out dist
-            )) {
+            tv0 = tri.V1.ToX().XY();
+            tv1 = tri.V2.ToX().XY();
+            if (LineIntersect(startPos, endPos, tv0, tv1, out dist)) {
                 newTri = tri.V12Tri;
                 return true;
             }
 
-            if (LineIntersect(
-                startPos,
-                endPos,
-                tri.V2.ToX().XY(),
-                tri.V0.ToX().XY(),
-                out dist
-            )) {
+            tv0 = tri.V2.ToX().XY();
+            tv1 = tri.V0.ToX().XY();
+            if (LineIntersect(startPos, endPos, tv0, tv1, out dist)) {
                 newTri = tri.V20Tri;
                 return true;
             }
 
             newTri = null;
             return false;
+        }
+
+        private enum LeaveTriResult {
+            Failure,
+            Success,
+            SlideCurrentTri,
+            SlideNewTri,
+        }
+
+        private void FindOtherVerts(WalkmeshTriangle tri, FieldVertex v, out FieldVertex v1, out FieldVertex v2) {
+            if (tri.V0 == v) {
+                v1 = tri.V1;
+                v2 = tri.V2;
+            } else if (tri.V1 == v) {
+                v1 = tri.V0;
+                v2 = tri.V2;
+            } else if (tri.V2 == v) {
+                v1 = tri.V0;
+                v2 = tri.V1;
+            } else
+                throw new NotImplementedException();
+        }
+
+        private void FindAdjacentTris(WalkmeshTriangle tri, FieldVertex v, out short? t0, out short? t1) {
+            if (tri.V0 == v) {
+                t0 = tri.V01Tri;
+                t1 = tri.V20Tri;
+            } else if (tri.V1 == v) {
+                t0 = tri.V01Tri;
+                t1 = tri.V12Tri;
+            } else if (tri.V2 == v) {
+                t0 = tri.V12Tri;
+                t1 = tri.V20Tri;
+            } else
+                throw new NotImplementedException();
+        }
+
+        private double AngleBetweenVectors(Vector2 v0, Vector2 v1) {
+            double angle = Math.Atan2(v0.Y, v0.X) - Math.Atan2(v1.Y, v1.X);
+            while (angle > Math.PI) angle -= 2 * Math.PI;
+            while (angle <= -Math.PI) angle += 2 * Math.PI;
+            return angle;
+        }
+
+        private static Random _r = new();
+
+        private LeaveTriResult DoesLeaveTri(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, bool allowSlide, out float dist, out short? newTri, out Vector2 newDestination) {
+            newDestination = Vector2.Zero;
+
+            var origDir = (endPos - startPos);
+            var origDistance = origDir.Length();
+            origDir.Normalize();
+
+            //Now see if we're exactly on a vert. If so, find ALL the tris which join that vert.
+            //We'll try and shift into one of them and then when the move is retried, we'll hopefully make some progress... :/
+
+            foreach (var vert in tri.AllVerts()) {
+                if ((vert.X == (short)startPos.X) && (vert.Y == (short)startPos.Y)) {
+
+                    var candidates = _walkmesh
+                        .SelectMany((t, index) => t.AllVerts()
+                            .Where(v => v != vert)
+                            .Select(otherV => {
+                                var dir = otherV.ToX().XY() - vert.ToX().XY();
+                                dir.Normalize();
+                                return new {
+                                    Tri = t,
+                                    TIndex = index,
+                                    VStart = vert.ToX().XY(),
+                                    VEnd = otherV.ToX().XY(),
+                                    Angle = AngleBetweenVectors(dir, origDir)
+                                };
+                            })
+                        )
+                        .Where(a => a.Tri.AllVerts().Any(v => v == vert))
+                        .OrderBy(a => Math.Abs(a.Angle));
+
+                    if (candidates.Any()) {
+                        var choice = candidates.First();
+                        if (choice.Tri != tri) {
+                            dist = 0;
+                            newDestination = choice.VStart;
+                            newTri = (short)choice.TIndex;
+                            return LeaveTriResult.SlideNewTri;
+                        } else {
+                            var edge = choice.VEnd - choice.VStart;
+                            var distance = edge.Length();
+                            edge.Normalize();
+                            if (distance < origDistance)
+                                newDestination = choice.VEnd;
+                            else
+                                newDestination = startPos + edge * origDistance;
+                            newTri = null;
+                            dist = 0;
+                            return LeaveTriResult.SlideCurrentTri;
+                        }
+                    }
+                }
+            }
+
+
+            if (!CalculateTriLeave(startPos, endPos, tri, out dist, out newTri, out Vector2 tv0, out Vector2 tv1))
+                return LeaveTriResult.Failure;
+
+            if (newTri != null)
+                return LeaveTriResult.Success;
+
+            if (allowSlide) {
+
+                //If we get here, we're not exactly on one of the current tri's verts, but may be able
+                //to slide along an edge to end up closer to our desired end point.
+                //Calculate angles from end-start-v0 and end-start-v1 to find which vert we can slide towards
+                //while minimising the change in direction from our original heading.
+                //Only slide if the edge is < 90 degrees off our original heading as it's weird otherwise!
+
+                var v0dir = (tv0 - startPos);
+                var v0Distance = v0dir.Length();
+                v0dir.Normalize();
+                
+                var v1dir = (tv1 - startPos);
+                var v1Distance = v1dir.Length();
+                v1dir.Normalize();                
+
+                double v0angle = AngleBetweenVectors(v0dir, origDir), 
+                    v1angle = AngleBetweenVectors(v1dir, origDir);
+
+                if ((Math.Abs(v0angle) < Math.Abs(v1angle)) && (v0angle < (Math.PI / 2))) {
+                    //Try to slide towards v0
+                    if (v0Distance < origDistance)
+                        newDestination = tv0;
+                    else
+                        newDestination = startPos + v0dir * origDistance;
+                    return LeaveTriResult.SlideCurrentTri;
+                } else if (Math.Abs(v1angle) < (Math.PI / 2)) {
+                    //Try to slide towards v1
+                    if (v1Distance < origDistance)
+                        newDestination = tv1;
+                    else
+                        newDestination = startPos + v1dir * origDistance;
+                    return LeaveTriResult.SlideCurrentTri;
+                }
+
+            }
+
+            return LeaveTriResult.Failure;
         }
 
 
@@ -819,10 +953,26 @@ namespace Braver.Field {
                     System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} to {eMove.Model.Translation}");
                 return true;
             } else {
-                if (!DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, out float dist, out short? newTri)) { 
-                    System.Diagnostics.Debug.WriteLine($"Moving from {eMove.Model.Translation} to {newPosition}");
-                    System.Diagnostics.Debug.WriteLine($"V0 {currentTri.V0}, V1 {currentTri.V1}, V2 {currentTri.V2}");
-                    throw new Exception($"Reality failure: Can't find route out of triangle");
+                switch (DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, true, out float dist, out short? newTri, out Vector2 newDest)) {
+                    case LeaveTriResult.Failure:
+                        System.Diagnostics.Debug.WriteLine($"Moving from {eMove.Model.Translation} to {newPosition}");
+                        System.Diagnostics.Debug.WriteLine($"V0 {currentTri.V0}, V1 {currentTri.V1}, V2 {currentTri.V2}");
+                        throw new Exception($"Reality failure: Can't find route out of triangle");
+                    case LeaveTriResult.Success:
+                        break; //Woo
+                    case LeaveTriResult.SlideCurrentTri:
+                        newHeight = HeightInTriangle(currentTri.V0.ToX(), currentTri.V1.ToX(), currentTri.V2.ToX(), newDest.X, newDest.Y);
+                        if (newHeight == null)
+                            throw new Exception();
+                        eMove.Model.Translation = new Vector3(newDest.X, newDest.Y, newHeight.Value);
+                        if (eMove.Name == "ba")
+                            System.Diagnostics.Debug.WriteLine($"Sliding {eMove.Name} to {eMove.Model.Translation}");
+                        return true;
+                    case LeaveTriResult.SlideNewTri:
+                        newPosition = new Vector3(newDest, 0);
+                        break; //Treat same as success, code below will move us into the new tri
+                    default:
+                        throw new NotImplementedException();
                 }
 
                 if ((newTri == null) || DisabledWalkmeshTriangles.Contains(newTri.Value)) {
@@ -841,8 +991,9 @@ namespace Braver.Field {
                         //(walkable) triangles
                         var vector = newPosition.XY() - testLocation;
                         var testFrom = testLocation + vector * (dist * 1.05f);
-                        if (!DoesLeaveTri(testFrom, newPosition.XY(), movingToTri, out dist, out newTri)) {
-                            throw new Exception($"Reality failure: Can't find route out of triangle");
+                        switch(DoesLeaveTri(testFrom, newPosition.XY(), movingToTri, false, out dist, out newTri, out newDest)) {
+                            case LeaveTriResult.Failure:
+                                throw new Exception($"Reality failure: Can't find route out of triangle");
                         }
                         if ((newTri == null) || DisabledWalkmeshTriangles.Contains(newTri.Value)) {
                             //Just can't leave by this side, oh well
@@ -869,9 +1020,12 @@ namespace Braver.Field {
         }
 
         private static float? HeightInTriangle(Vector3 p0, Vector3 p1, Vector3 p2, float x, float y) {
-            var denominator = (p1.Y - p2.Y) * (p0.X - p2.X) + (p2.X - p1.X) * (p0.Y - p2.Y);
+            double denominator = (p1.Y - p2.Y) * (p0.X - p2.X) + (p2.X - p1.X) * (p0.Y - p2.Y);
             var a = ((p1.Y - p2.Y) * (x - p2.X) + (p2.X - p1.X) * (y - p2.Y)) / denominator;
             var b = ((p2.Y - p0.Y) * (x - p2.X) + (p0.X - p2.X) * (y - p2.Y)) / denominator;
+
+            a = Math.Round(a, 4);
+            b = Math.Round(b, 4);
             var c = 1 - a - b;
 
             if (a < 0) return null;
@@ -881,7 +1035,7 @@ namespace Braver.Field {
             if (b > 1) return null;
             if (c > 1) return null;
 
-            return p0.Z * a + p1.Z * b + p2.Z * c;
+            return (float)(p0.Z * a + p1.Z * b + p2.Z * c);
         }
 
         public void DropToWalkmesh(Entity e, Vector2 position, int walkmeshTri) {
