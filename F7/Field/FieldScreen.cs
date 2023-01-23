@@ -6,23 +6,11 @@ using System.Reflection.Metadata;
 
 namespace Braver.Field {
 
-    [Flags]
-    public enum BattleFlags {
-        None = 0,
-        TimedBattle = 0x2,
-        Preemptive = 0x4,
-        NoEscape = 0x8,
-        NoVictoryMusic = 0x20,
-        BattleArena = 0x40,
-        NoVictoryScreens = 0x80,
-        NoGameOver = 0x100,
-    }
-
     public class BattleOptions {
         public string OverrideMusic { get; set; }
         public string PostBattleMusic { get; set; } //will play in field
         public bool BattlesEnabled { get; set; } = false; //TODO - reasonable default?
-        public BattleFlags Flags { get; set; } = BattleFlags.None;
+        public Battle.BattleFlags Flags { get; set; } = Battle.BattleFlags.None;
     }
 
     public class FieldInfo {
@@ -739,8 +727,8 @@ namespace Braver.Field {
                 return numerator1 == 0 && numerator2 == 0;
             }
 
-            aDist = (float)Math.Round(numerator1 / denominator, 4);
-            double s = Math.Round(numerator2 / denominator, 4);
+            aDist = (float)Math.Round(numerator1 / denominator, 2);
+            double s = Math.Round(numerator2 / denominator, 2);
 
             return (aDist >= 0 && aDist <= 1) && (s >= 0 && s <= 1);
         }
@@ -1076,6 +1064,11 @@ namespace Braver.Field {
                 //(We don't want e.g. walk animation to be continuing after our control is disabled and we're not moving any more!)
             }
         }
+
+        public void TriggerBattle(int which) {
+            Battle.BattleScreen.Launch(Game, which, BattleOptions.Flags | Battle.BattleFlags.Debug); //TODO!!!
+        }
+
 
         public void Received(Net.FieldModelMessage message) {
             var model = FieldModels[message.ModelID];

@@ -89,7 +89,7 @@ namespace Braver.UI {
 
                         case 2:
                             Game.NewGame();
-                            Game.ChangeScreen(this, new Battle.BattleScreen(100));
+                            //Battle.BattleScreen.Launch(Game, 100, Battle.BattleFlags.None);
                             break;
 
                         case 3:

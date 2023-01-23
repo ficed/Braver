@@ -1381,7 +1381,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         }
 
         public static OpResult BTLMD(Fiber f, Entity e, FieldScreen s) {
-            s.BattleOptions.Flags = (BattleFlags)f.ReadU16();
+            s.BattleOptions.Flags = (Battle.BattleFlags)f.ReadU16();
+            return OpResult.Continue;
+        }
+
+        public static OpResult BATTLE(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8();
+            ushort id = f.ReadU16();
+            s.TriggerBattle(s.Game.Memory.Read(bank, id));
             return OpResult.Continue;
         }
     }

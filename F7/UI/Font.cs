@@ -135,6 +135,9 @@ namespace Braver.UI {
         public int Width { get; set; }
         public int Height { get; set; }
 
+        [XmlAttribute]
+        public bool Deferred { get; set; }
+
         public List<SourceImage> Images { get; set; } = new List<SourceImage>();
     }
 
@@ -144,6 +147,7 @@ namespace Braver.UI {
             public Texture2D Texture { get; set; }
             public CompositeTexture.SourceImage Image { get; set; }
             public CompositeTexture.SourceChunk Chunk { get; set; }
+            public Action EnsureLoaded { get; set; }
         }
 
         private Dictionary<string, LoadedChunk> _chunks = new Dictionary<string, LoadedChunk>(StringComparer.InvariantCultureIgnoreCase);
@@ -157,35 +161,48 @@ namespace Braver.UI {
                     var images = Serialisation.Deserialise<CompositeTexture>(s);
                     var texture = new Texture2D(graphics, images.Width, images.Height);
 
-                    foreach (var image in images.Images) {
-                        string[] parts = image.Texture.Split(',', '\\');
-                        using (var ts = g.Open(parts[0], parts[1])) {
-                            if (System.IO.Path.GetExtension(parts[1]).Equals(".tex")) {
-                                var t = new Ficedula.FF7.TexFile(ts);
-                                int pal = int.Parse(parts.ElementAtOrDefault(2) ?? "0");
-                                var pixels = t.ApplyPalette(pal);
-                                texture.SetData(
-                                    0, new Rectangle(image.X, image.Y, t.Width, t.Height),
-                                    pixels.SelectMany(row => row).ToArray(),
-                                    0, t.Width * t.Height
-                                );
-                            } else if (System.IO.Path.GetExtension(parts[1]).Equals(".png")) {
-                                using (var png = SixLabors.ImageSharp.Image.Load<Rgba32>(ts)) {
-                                    byte[] pixels = new byte[png.Width * png.Height * 4];
-                                    png.CopyPixelDataTo(new Span<byte>(pixels));
+                    bool loaded = false;
+                    Action ensureLoaded = () => {
+                        if (loaded) return;
+
+                        loaded = true;
+                        foreach (var image in images.Images) {
+                            string[] parts = image.Texture.Split(',', '\\');
+                            using (var ts = g.Open(parts[0], parts[1])) {
+                                if (System.IO.Path.GetExtension(parts[1]).Equals(".tex")) {
+                                    var t = new Ficedula.FF7.TexFile(ts);
+                                    int pal = int.Parse(parts.ElementAtOrDefault(2) ?? "0");
+                                    var pixels = t.ApplyPalette(pal);
                                     texture.SetData(
-                                        0, new Rectangle(image.X, image.Y, png.Width, png.Height),
-                                        pixels,
-                                        0, png.Width * png.Height * 4
+                                        0, new Rectangle(image.X, image.Y, t.Width, t.Height),
+                                        pixels.SelectMany(row => row).ToArray(),
+                                        0, t.Width * t.Height
                                     );
+                                } else if (System.IO.Path.GetExtension(parts[1]).Equals(".png")) {
+                                    using (var png = SixLabors.ImageSharp.Image.Load<Rgba32>(ts)) {
+                                        byte[] pixels = new byte[png.Width * png.Height * 4];
+                                        png.CopyPixelDataTo(new Span<byte>(pixels));
+                                        texture.SetData(
+                                            0, new Rectangle(image.X, image.Y, png.Width, png.Height),
+                                            pixels,
+                                            0, png.Width * png.Height * 4
+                                        );
+                                    }
                                 }
                             }
                         }
+                    };
+
+                    if (!images.Deferred) 
+                        ensureLoaded();
+
+                    foreach (var image in images.Images) {
                         foreach(var chunk in image.Chunks) {
                             _chunks[chunk.Name] = new LoadedChunk {
                                 Chunk = chunk,
                                 Image = image,
-                                Texture = texture
+                                Texture = texture,
+                                EnsureLoaded = ensureLoaded,
                             };
                         }
                     }
@@ -195,6 +212,7 @@ namespace Braver.UI {
 
         public void Find(string name, out Texture2D texture, out Rectangle rect, out bool flip) {
             var chunk = _chunks[name];
+            chunk.EnsureLoaded();
             texture = chunk.Texture;
             flip = chunk.Chunk.Flip;
             rect = new Rectangle(

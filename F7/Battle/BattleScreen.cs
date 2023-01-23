@@ -1,6 +1,4 @@
 ﻿using Ficedula.FF7.Battle;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +26,7 @@ namespace Braver.Battle {
         NormalAgain = 5,
     }
 
-    public class BattleScreen : Screen {
+    public class RealBattleScreen : BattleScreen {
 
         private class Callbacks : AICallbacks {
             public Callbacks(VMM vmm) {
@@ -126,7 +124,7 @@ namespace Braver.Battle {
         }
 
         private void LoadBackground() {
-            string prefix = Ficedula.FF7.Battle.SceneDecoder.LocationIDToFileName(_scene.LocationID);
+            string prefix = SceneDecoder.LocationIDToFileName(_scene.LocationID);
 
             string NumToFile(int num) {
                 char c1 = (char)('a' + (num / 26)),
@@ -200,8 +198,9 @@ namespace Braver.Battle {
         };
 
         private int _formationID;
-        public BattleScreen(int formationID) {
+        public RealBattleScreen(int formationID, BattleFlags flags) {
             _formationID = formationID;
+            _flags = flags;
         }
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
@@ -317,5 +316,42 @@ namespace Braver.Battle {
             }
         }
 
+    }
+
+    public abstract class BattleScreen : Screen {
+        
+        protected BattleFlags _flags;
+
+        protected void TriggerBattleWin() {
+            Game.PopScreen(this);
+        }
+        protected void TriggerBattleLose() {
+            if (_flags.HasFlag(BattleFlags.NoGameOver)) {
+                Game.PopScreen(this);
+            } else {
+                Game.PushScreen(new UI.Layout.LayoutScreen("GameOver"));
+            }
+        }
+
+        public static void Launch(FGame game, int battleID, BattleFlags flags) {
+            if (flags.HasFlag(BattleFlags.Debug))
+                game.PushScreen(new BattleDebug(flags));
+            else
+                game.PushScreen(new RealBattleScreen(battleID, flags));
+        }
+    }
+
+    [Flags]
+    public enum BattleFlags {
+        None = 0,
+        TimedBattle = 0x2,
+        Preemptive = 0x4,
+        NoEscape = 0x8,
+        NoVictoryMusic = 0x20,
+        BattleArena = 0x40,
+        NoVictoryScreens = 0x80,
+        NoGameOver = 0x100,
+
+        Debug = 0x8000,
     }
 }

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<CompositeTexture xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Deferred="true">
+	<Width>1024</Width>
+	<Height>512</Height>
+	<Images>
+		<SourceImage>
+			<Texture>cd\e_over_a.tex,0</Texture>
+			<X>0</X>
+			<Y>0</Y>
+			<Chunk X="0" Y="0" W="576" H="432">game_over</Chunk>
+		</SourceImage>
+		<SourceImage>
+			<Texture>cd\e_over_b.tex,0</Texture>
+			<X>256</X>
+			<Y>0</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>cd\e_over_c.tex,0</Texture>
+			<X>512</X>
+			<Y>0</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>cd\e_over_d.tex,0</Texture>
+			<X>0</X>
+			<Y>256</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>cd\e_over_e.tex,0</Texture>
+			<X>256</X>
+			<Y>256</Y>
+		</SourceImage>
+		<SourceImage>
+			<Texture>cd\e_over_f.tex,0</Texture>
+			<X>512</X>
+			<Y>256</Y>
+		</SourceImage>
+	</Images>
+</CompositeTexture>

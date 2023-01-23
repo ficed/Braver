@@ -27,6 +27,7 @@ namespace Braver {
         Debug4,
         Debug5,
 
+        DebugEffect,
         DebugSpeed,
     }
 

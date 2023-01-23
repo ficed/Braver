@@ -19,7 +19,7 @@ namespace Braver.UI.Layout {
         protected override void OnInit() {
             base.OnInit();
             if (Focus == null) {
-                PushFocus(Menu, lItem);
+                PushFocus(Menu, Menu.Children[0]);
             }
         }
 

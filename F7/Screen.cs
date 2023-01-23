@@ -34,10 +34,11 @@ namespace Braver {
         private Color _color;
         private byte _from, _to;
         private UI.CompositeImages _images;
+        private bool _retain;
 
-        public override bool RetainAtEnd => _to != 0;
+        public override bool RetainAtEnd => _retain;
 
-        public FadeTransition(int frames, Color color, byte from, byte to, UI.CompositeImages images) : base(frames) {
+        public FadeTransition(int frames, Color color, byte from, byte to, UI.CompositeImages images, bool retain) : base(frames) {
             _color = color;
             _from = from;
             _to = to;
@@ -61,6 +62,7 @@ namespace Braver {
         public GraphicsDevice Graphics { get; private set; }
         public bool InputEnabled { get; protected set; } = true;
 
+        public virtual bool ShouldClear => true;
         public abstract Color ClearColor { get; }
 
         protected SpriteBatch _fxBatch;
@@ -86,18 +88,20 @@ namespace Braver {
         public virtual void Reactivated() { }
         public virtual void Dispose() { }
 
-        public void FadeOut(Action then) {
+        public void FadeOut(Action then, int frames = 30) {
             _transition = new FadeTransition(
-                30, Color.Black, 0, 255,
-                Game.Singleton(() => new UI.CompositeImages(Graphics, Game))
+                frames, Color.Black, 0, 255,
+                Game.Singleton(() => new UI.CompositeImages(Graphics, Game)),
+                then == null
             );
             _transitionAction = then;
             Game.Net.Send(new Net.TransitionMessage { Kind = Net.TransitionKind.FadeOut });
         }
-        public void FadeIn(Action then) {
+        public void FadeIn(Action then, int frames = 30) {
             _transition = new FadeTransition(
-                30, Color.Black, 255, 0,
-                Game.Singleton(() => new UI.CompositeImages(Graphics, Game))
+                frames, Color.Black, 255, 0,
+                Game.Singleton(() => new UI.CompositeImages(Graphics, Game)),
+                false
             );
             _transitionAction = then;
             Game.Net.Send(new Net.TransitionMessage { Kind = Net.TransitionKind.FadeIn });

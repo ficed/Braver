@@ -135,10 +135,12 @@ namespace Braver.Field {
                 LightingEnabled = false,
             };
 
-            _vertexBuffer = new VertexBuffer(graphics, typeof(VertexPositionNormalColorTexture), verts.Count, BufferUsage.WriteOnly);
-            _vertexBuffer.SetData(verts.ToArray());
-            _indexBuffer = new IndexBuffer(graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
-            _indexBuffer.SetData(indices.ToArray());
+            if (verts.Any()) {
+                _vertexBuffer = new VertexBuffer(graphics, typeof(VertexPositionNormalColorTexture), verts.Count, BufferUsage.WriteOnly);
+                _vertexBuffer.SetData(verts.ToArray());
+                _indexBuffer = new IndexBuffer(graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
+                _indexBuffer.SetData(indices.ToArray());
+            }
 
             _animations = animations
                 .Select(a => new Ficedula.FF7.Field.FieldAnim(g.Open(category, a)))
@@ -204,6 +206,8 @@ namespace Braver.Field {
         }
 
         public void Render(Viewer viewer) {
+            if (_vertexBuffer == null) return;
+
             _texEffect.View = viewer.View;
             _texEffect.Projection = viewer.Projection;
             _colEffect.View = viewer.View;

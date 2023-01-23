@@ -71,7 +71,8 @@ namespace Braver {
             [Keys.F7] = InputKey.Debug3,
             [Keys.F8] = InputKey.Debug4,
             [Keys.F9] = InputKey.Debug5,
-            
+
+            [Keys.F11] = InputKey.DebugEffect,
             [Keys.F12] = InputKey.DebugSpeed,
         };
 
@@ -105,13 +106,16 @@ namespace Braver {
                 _g.Step(gameTime, _input);
             }
 
+            if (_input.IsJustDown(InputKey.DebugEffect))
+                _g.PushScreen(new Battle.Swirl());
+
             base.Update(gameTime);
         }
 
         protected override void Draw(GameTime gameTime) {
-            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, _g.Screen.ClearColor, 1f, 0);
+            if (_g.Screen.ShouldClear)
+                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, _g.Screen.ClearColor, 1f, 0);
             base.Draw(gameTime);
-
             _g.Screen.Render();
         }
     }

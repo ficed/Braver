@@ -45,6 +45,10 @@ namespace Braver {
             _data["menu"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "menu", "menu_us.lgp"))),
             };
+            _data["cd"] = new List<DataSource> {
+                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "disc_us.lgp"))),
+                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "cr_us.lgp"))),
+            };
             _data["wm"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "wm", "world_us.lgp"))),
                 new FileDataSource(Path.Combine(data, "wm"))
