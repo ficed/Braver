@@ -89,6 +89,16 @@ namespace Braver {
             };
         }
 
+        public Vector3 ProjectTo2D(Vector3 pos3D) {
+            var pos = Vector4.Transform(pos3D, View * Projection);
+            pos /= pos.W;
+            return new Vector3(
+                (pos.X + 1) * 1280f / 2f,
+                720f - (pos.Y + 1) * 720f / 2f,
+                pos.Z
+            );
+        }
+
         public override string ToString() {
             return $"Persp Z-range {ZNear}:{ZFar} Pos {CameraPosition} Fwd {CameraForwards} Up {CameraUp}";
         }

@@ -124,6 +124,26 @@
 				<Glyph X="24" Y="192" W="24" H="24" Layer="1">8230</Glyph>
 			</Glyphs>
 		</FontSet>
+
+		<FontSet>
+			<Name>batm</Name>
+			<DefaultSize>2</DefaultSize>
+			<Glyphs>
+				<Glyph X="48" Y="16" W="16" H="22" Layer="2">48</Glyph>
+				<Glyph X="64" Y="16" W="16" H="22" Layer="2">49</Glyph>
+				<Glyph X="80" Y="16" W="16" H="22" Layer="2">50</Glyph>
+				<Glyph X="96" Y="16" W="16" H="22" Layer="2">51</Glyph>
+				<Glyph X="112" Y="16" W="16" H="22" Layer="2">52</Glyph>
+				<Glyph X="128" Y="16" W="16" H="22" Layer="2">53</Glyph>
+				<Glyph X="144" Y="16" W="16" H="22" Layer="2">54</Glyph>
+				<Glyph X="160" Y="16" W="16" H="22" Layer="2">55</Glyph>
+				<Glyph X="176" Y="16" W="16" H="22" Layer="2">56</Glyph>
+				<Glyph X="192" Y="16" W="16" H="22" Layer="2">57</Glyph>
+
+				<Glyph X="0" Y="16" W="48" H="22" Layer="2">57856</Glyph> <!-- Miss -->
+				<Glyph X="0" Y="38" W="32" H="11" Layer="2">57857</Glyph> <!-- MP -->
+			</Glyphs>
+		</FontSet>
 		<FontSet>
 			<Name>bats</Name>
 			<DefaultSize>2</DefaultSize>

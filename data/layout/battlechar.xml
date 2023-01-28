@@ -1,4 +1,4 @@
-<Component xsi:type="Label" Y="5" X="20">@Model.Character.Name</Component>
+<Component xsi:type="Label" Y="5" X="20" ID='@("lName" + Model.Character.PartyIndex)'>@Model.Character.Name</Component>
 
 
 <Component xsi:type="Label" X="720" Y="5" Font="bats" Alignment="Right" ID='@("lHP" + Model.Character.PartyIndex)'>@Model.Character.CurrentHP</Component>
@@ -16,10 +16,3 @@
 <Component xsi:type="Gauge" X="1050" Y="5" W="100" H="24" ID='@("gLimit" + Model.Character.PartyIndex)' Style="Limit" Current="@Model.Character.LimitBar" Max="255" />
 
 <Component xsi:type="Gauge" X="1150" Y="5" W="100" H="24" ID='@("gTime" + Model.Character.PartyIndex)' Style="Limit" Current="0" Max="255" />
-
-<Component xsi:type="Box" X="200" Y="-200" H="250" W="100" ID='@("bMenu" + Model.Character.PartyIndex)' Visible="false">
-	<Component xsi:type="Label" X="10" Y="10">Attack</Component>
-	<Component xsi:type="Label" X="10" Y="30">Magic</Component>
-
-	<Component xsi:type="Label" X="10" Y="70">Item</Component>
-</Component>

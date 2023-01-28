@@ -1,15 +1,5 @@
 ﻿using Ficedula.FF7;
 using Ficedula.FF7.Battle;
-using Ficedula.FF7.Field;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Reflection.PortableExecutable;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 namespace Braver.Battle {
 
@@ -70,14 +60,25 @@ namespace Braver.Battle {
         void Hit(QueuedAction hitBy);
     }
 
-    public class CharacterActionItem {
-        public int ID { get; set; }
-        public Ability Ability { get; set; }
-        public string Name { get; set; }
+    public interface ICharacterAction {
+        Ability? Ability { get; }
+        string Name { get; }
+        TargettingFlags TargetFlags { get; }
     }
 
-    public class CharacterAction {
+    public class CharacterActionItem : ICharacterAction {
+        public int ID { get; set; }
+        public Ability Ability { get; set; }
+        public TargettingFlags TargetFlags { get; set; }
+        public string Name { get; set; }
+        public Func<int> Annotation { get; set; }
+
+        Ability? ICharacterAction.Ability => this.Ability;
+    }
+
+    public class CharacterAction : ICharacterAction {
         public Ability? Ability { get; set; }
+        public TargettingFlags TargetFlags { get; set; }
         public string Name { get; set; }
         public List<CharacterActionItem> SubMenu { get; set; }
     }
@@ -122,7 +123,8 @@ namespace Braver.Battle {
                     LongRange = !weapon.TargettingFlags.HasFlag(TargettingFlags.ShortRange),
                     InflictStatus = weapon.Statuses,
                     Formula = AttackFormula.Physical, //TODO                    
-                }
+                },
+                TargetFlags = weapon.TargettingFlags,
             });
 
             var kernel = g.Singleton<KernelCache>();
@@ -145,7 +147,9 @@ namespace Braver.Battle {
                     magic.SubMenu.Add(new CharacterActionItem {
                         ID = m,
                         Ability = attacks[m].ToAbility(this),
+                        TargetFlags = attacks[m].TargetFlags,
                         Name = mText.Get(m),
+                        Annotation = () => attacks[m].CastingCost,
                     });
                 }
             }
@@ -155,19 +159,22 @@ namespace Braver.Battle {
                 SubMenu = g.SaveData
                     .Inventory
                     .Where(inv => inv.Kind == InventoryItemKind.Item)
-                    .Select(inv => g.Singleton<Items>()[inv.ItemID])
-                    .Where(item => item.Restrictions.HasFlag(EquipRestrictions.CanUseInBattle))
-                    .Select(item => {
+                    .Select(inv => new { Item = g.Singleton<Items>()[inv.ItemID], Inv = inv })
+                    .Where(a => a.Item.Restrictions.HasFlag(EquipRestrictions.CanUseInBattle))
+                    .Select(a => {
                         return new CharacterActionItem {
-                            ID = item.ID,
+                            ID = a.Item.ID,
                             Ability = new Ability {
-                                Power = item.Power,
-                                Elements = new HashSet<Element>(item.Elements.Split()),
-                                StatusChance = item.StatusChance,
-                                InflictStatus = item.StatusType == AttackStatusType.Inflict ? item.Statuses : Statuses.None,
-                                RemoveStatus = item.StatusType == AttackStatusType.Cure ? item.Statuses : Statuses.None,
-                                ToggleStatus = item.StatusType == AttackStatusType.Toggle ? item.Statuses : Statuses.None,                                
-                            }
+                                Power = a.Item.Power,
+                                Elements = new HashSet<Element>(a.Item.Elements.Split()),
+                                StatusChance = a.Item.StatusChance,
+                                InflictStatus = a.Item.StatusType == AttackStatusType.Inflict ? a.Item.Statuses : Statuses.None,
+                                RemoveStatus = a.Item.StatusType == AttackStatusType.Cure ? a.Item.Statuses : Statuses.None,
+                                ToggleStatus = a.Item.StatusType == AttackStatusType.Toggle ? a.Item.Statuses : Statuses.None,                                
+                            },
+                            TargetFlags = a.Item.TargettingFlags,
+                            Name = a.Item.Name,
+                            Annotation = () => a.Inv.Quantity,
                         };
                     })
                     .ToList()

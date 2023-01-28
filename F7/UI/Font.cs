@@ -11,6 +11,9 @@ using System.Xml.Serialization;
 namespace Braver.UI {
     public class Font {
 
+        public const char BATTLE_MISS = '\xE200';
+        public const char BATTLE_MP = '\xE201';
+
         public class Glyph {
             [XmlText]
             public char Character { get; set; }

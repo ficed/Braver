@@ -9,6 +9,7 @@ using SharpDX.X3DAudio;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -37,6 +38,9 @@ namespace Braver.Battle {
         public bool Visible { get; set; } = true;
         public float GlobalAnimationSpeed { get; set; } = 1f;
         public AnimationState AnimationState { get; set; }
+
+        public Vector3 MinBounds { get; private set; }
+        public Vector3 MaxBounds { get; private set; }
 
         private Model(GraphicsDevice graphics, FGame game, string folder, string skeleton, string anims, IEnumerable<string> texs, Func<System.IO.Stream> NextData) {
             _graphics = graphics;
@@ -100,6 +104,29 @@ namespace Braver.Battle {
             _vertexBuffer.SetData(verts.ToArray());
             _indexBuffer = new IndexBuffer(graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
             _indexBuffer.SetData(indices.ToArray());
+
+            PlayAnimation(0, true, 1f, null);
+
+            Vector3 minBounds = Vector3.Zero, maxBounds = Vector3.Zero;
+            Descend(_root, Matrix.Identity,
+                (chunk, m) => {
+                    var transformed = chunk.Verts
+                        .Select(v => Vector3.Transform(v.Position.ToX(), m));
+                    minBounds = new Vector3(
+                        Math.Min(minBounds.X, transformed.Min(v => v.X)),
+                        Math.Min(minBounds.Y, transformed.Min(v => v.Y)),
+                        Math.Min(minBounds.Z, transformed.Min(v => v.Z))
+                    );
+                    maxBounds = new Vector3(
+                        Math.Max(maxBounds.X, transformed.Max(v => v.X)),
+                        Math.Max(maxBounds.Y, transformed.Max(v => v.Y)),
+                        Math.Max(maxBounds.Z, transformed.Max(v => v.Z))
+                    );
+                }
+            );
+            MinBounds = minBounds;
+            MaxBounds = maxBounds;
+            System.Diagnostics.Debug.WriteLine($"Model {skeleton} with min bounds {minBounds}, max {maxBounds}");
         }
 
         private void Descend(BBone bone, Matrix m, Action<PFileChunk, Matrix> onChunk) {

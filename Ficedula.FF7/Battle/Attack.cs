@@ -5,20 +5,6 @@ using System.Linq;
 
 namespace Ficedula.FF7.Battle {
 
-    [Flags]
-    public enum TargetFlags : byte {
-        None = 0,
-        EnableSelection = 0x1,
-        StartWithEnemy = 0x2,
-        DefaultMultiTarget = 0x4,
-        ToggleMultiSingle = 0x8,
-        OneRowOnly = 0x10,
-        ShortRange = 0x20,
-        AllRows = 0x40,
-        RandomTarget = 0x80,
-    }
-
-
     public enum AttackCondition : byte {
         PartyHP = 0,
         PartyMP = 1,
@@ -61,7 +47,7 @@ namespace Ficedula.FF7.Battle {
         public short ImpactSound { get; set; }
         public short SingleTargetCameraID { get; set; }
         public short MultiTargetCameraID { get; set; }
-        public TargetFlags TargetFlags { get; set; }
+        public TargettingFlags TargetFlags { get; set; }
         public byte AttackEffectID { get; set; }
         public byte DamageType { get; set; } //TODO - decode
         public byte Power { get; set; }
@@ -89,7 +75,7 @@ namespace Ficedula.FF7.Battle {
             ImpactSound = s.ReadI16();
             SingleTargetCameraID = s.ReadI16();
             MultiTargetCameraID = s.ReadI16();
-            TargetFlags = (TargetFlags)s.ReadByte();
+            TargetFlags = (TargettingFlags)s.ReadByte();
             AttackEffectID = (byte)s.ReadByte();
             DamageType = (byte)s.ReadByte();
             Power = (byte)s.ReadByte();
