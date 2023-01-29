@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720" ID="Root">
+		<Component xsi:type="Box" X="0" Y="0" W="1280" H="90">
+			<Component xsi:type="Label" X="50" Y="30">Gained EXP and AP</Component>
+		</Component>
+		<Component xsi:type="Box" X="0" Y="90" W="640" H="90">
+			<Component xsi:type="Label" X="100" Y="30">EXP</Component>
+			<Component xsi:type="Label" X="540" Y="30" Font="bats" Alignment="Right">@Model.XP</Component>
+		</Component>
+		<Component xsi:type="Box" X="640" Y="90" W="640" H="90">
+			<Component xsi:type="Label" X="100" Y="30">AP</Component>
+			<Component xsi:type="Label" X="540" Y="30" Font="bats" Alignment="Right">@Model.AP</Component>
+		</Component>
+
+		@foreach(int i in Enumerable.Range(0, 3)) {
+			<Component xsi:type="Box" X="0" Y="@(180 * (i+1))" W="1280" H="180">
+				@if (i < Model.Game.SaveData.Party.Length) {
+					<Component xsi:type="Image" X="40" Y="10" Scale="1.5">@("portrait_" + @Model.Game.SaveData.Party[i].ID)</Component>
+					<Component xsi:type="Label" X="200" Y="30">@Model.Game.SaveData.Party[i].Name</Component>
+				}
+			</Component>
+		}
+
+	</Root>
+</Layout>

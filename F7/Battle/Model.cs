@@ -29,6 +29,7 @@ namespace Braver.Battle {
         private GraphicsDevice _graphics;
         private Animations _animations;
         private BBone _root;
+        private Texture2D _fadeTexture;
 
         public Vector3 Rotation2 { get; set; }
         public Vector3 Rotation { get; set; }
@@ -42,6 +43,8 @@ namespace Braver.Battle {
         public Vector3 MinBounds { get; private set; }
         public Vector3 MaxBounds { get; private set; }
 
+        public float? DeathFade { get; set; }
+
         private Model(GraphicsDevice graphics, FGame game, string folder, string skeleton, string anims, IEnumerable<string> texs, Func<System.IO.Stream> NextData) {
             _graphics = graphics;
             List<VertexPositionNormalColorTexture> verts = new();
@@ -54,6 +57,7 @@ namespace Braver.Battle {
                 })
                 .Where(tex => tex != null)
                 .ToArray();
+            _fadeTexture = new Texture2D(graphics, 2, 2, false, SurfaceFormat.Color);
 
             using (var s = game.Open(folder, anims))
                 _animations = new Animations(s);
@@ -181,29 +185,44 @@ namespace Braver.Battle {
             _graphics.Indices = _indexBuffer;
             _graphics.SetVertexBuffer(_vertexBuffer);
 
-            Descend(
-                _root,
-                  Matrix.CreateRotationX(0 * (float)Math.PI / 180)
-                * Matrix.CreateRotationZ((-Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
-                * Matrix.CreateRotationX((-Rotation.X + Rotation2.X) * (float)Math.PI / 180)
-                * Matrix.CreateRotationY((-Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
-                * Matrix.CreateScale(Scale, Scale, Scale)
-                * Matrix.CreateTranslation(Translation + Translation2)
-                ,
-                  (chunk, m) => {
-                      _texEffect.World = _colEffect.World = m;
-                      var rn = _nodes[chunk];
-                      _texEffect.Texture = rn.Texture;
+            GraphicsState graphicsState = null;
+            if (DeathFade.HasValue) {
+                _fadeTexture.SetData(Enumerable.Repeat(new Color(1f, 0f, 0f, DeathFade.Value), 4).ToArray());
+                graphicsState = new GraphicsState(_graphics, BlendState.Additive, DepthStencilState.DepthRead);
+            }
 
-                      var effect = rn.Texture == null ? _colEffect : _texEffect;
-                      foreach (var pass in effect.CurrentTechnique.Passes) {
-                          pass.Apply();
-                          _graphics.DrawIndexedPrimitives(
-                              PrimitiveType.TriangleList, rn.VertOffset, rn.IndexOffset, rn.TriCount
-                          );
+            using (graphicsState) {
+                Descend(
+                    _root,
+                      Matrix.CreateRotationX(0 * (float)Math.PI / 180)
+                    * Matrix.CreateRotationZ((-Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
+                    * Matrix.CreateRotationX((-Rotation.X + Rotation2.X) * (float)Math.PI / 180)
+                    * Matrix.CreateRotationY((-Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
+                    * Matrix.CreateScale(Scale, Scale, Scale)
+                    * Matrix.CreateTranslation(Translation + Translation2)
+                    ,
+                      (chunk, m) => {
+                          var rn = _nodes[chunk];
+                          BasicEffect effect;
+                          if (DeathFade.HasValue) {
+                              _texEffect.World = m;
+                              _texEffect.Texture = _fadeTexture;
+                              effect = _texEffect;
+                          } else {
+                              _texEffect.World = _colEffect.World = m;
+                              _texEffect.Texture = rn.Texture;
+                              effect = rn.Texture == null ? _colEffect : _texEffect;
+                          }
+
+                          foreach (var pass in effect.CurrentTechnique.Passes) {
+                              pass.Apply();
+                              _graphics.DrawIndexedPrimitives(
+                                  PrimitiveType.TriangleList, rn.VertOffset, rn.IndexOffset, rn.TriCount
+                              );
+                          }
                       }
-                  }
-            );
+                );
+            }
         }
 
         private float _animCountdown;
@@ -222,7 +241,13 @@ namespace Braver.Battle {
             }
         }
 
-        public void PlayAnimation(int animation, bool loop, float speed, Action onComplete, int startFrame = 0, int endFrame = -1) {
+        public void PlayAnimation(int animation, bool loop, float speed, Action onComplete, int startFrame = 0, int endFrame = -1, bool onlyIfDifferent = true) {
+            if ((AnimationState != null) && (AnimationState.Animation == animation) &&
+                (AnimationState.AnimationLoop == loop) && (AnimationState.AnimationSpeed == speed) &&
+                (AnimationState.StartFrame == startFrame) && (AnimationState.EndFrame == endFrame) &&
+                (AnimationState.AnimationComplete == onComplete))
+                return;
+
             AnimationState = new AnimationState {
                 Animation = animation,
                 AnimationLoop = loop,

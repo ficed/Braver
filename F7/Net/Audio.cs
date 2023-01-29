@@ -26,13 +26,19 @@ namespace Braver.Net {
 
     public class MusicMessage : ServerMessage {
         public string Track { get; set; }
+        public bool IsPush { get; set; }
+        public bool IsPop { get; set; }
 
         public override void Load(NetDataReader reader) {
             Track = reader.GetString();
+            IsPush = reader.GetBool();
+            IsPop = reader.GetBool();
         }
 
         public override void Save(NetDataWriter writer) {
             writer.Put(Track);
+            writer.Put(IsPush);
+            writer.Put(IsPop);
         }
     }
 }

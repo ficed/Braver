@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720" ID="Root">
+		<Component xsi:type="Box" X="0" Y="0" W="1280" H="90">
+			<Component xsi:type="Label" X="50" Y="30">Gained gil and item(s)</Component>
+		</Component>
+		<Component xsi:type="Box" X="0" Y="90" W="640" H="90">
+			<Component xsi:type="Label" X="100" Y="30">Gained gil</Component>
+			<Component xsi:type="Label" X="540" Y="30" Font="bats" Alignment="Right">@Model.GainedGil</Component>
+		</Component>
+		<Component xsi:type="Box" X="640" Y="90" W="640" H="90">
+			<Component xsi:type="Label" X="100" Y="30">Gil</Component>
+			<Component xsi:type="Label" X="540" Y="30" Font="bats" Alignment="Right">@Model.Game.SaveData.Gil</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="0" Y="180" W="1280" H="540">
+			<Component xsi:type="List" X="20" Y="20" W="1240" H="590">
+				@foreach(var item in Model.GainedItems) {
+					<Component xsi:type="Group" X="20" W="700">
+						<Component xsi:type="Label" Y="0" X="0">@(Braver.UI.Layout.ItemMenu.GetInventory(Model.Game, item).Item1)</Component>
+						<Component xsi:type="Label" Y="0" X="670">@(item.Quantity)</Component>
+					</Component>
+				}
+			</Component>
+
+		</Component>
+
+	</Root>
+</Layout>

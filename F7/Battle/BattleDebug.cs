@@ -29,9 +29,9 @@ namespace Braver.Battle {
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
             if (input.IsJustDown(InputKey.Up))
-                TriggerBattleWin();
+                TriggerBattleWin(new BattleResults());
             else if (input.IsJustDown(InputKey.Down))
-                TriggerBattleLose();
+                TriggerBattleLose(new BattleResults());
         }
 
         protected override void DoStep(GameTime elapsed) {

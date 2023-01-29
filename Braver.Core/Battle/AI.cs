@@ -1,11 +1,13 @@
 ﻿using Ficedula.FF7;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Braver.Battle {
 
@@ -145,7 +147,25 @@ namespace Braver.Battle {
                     getValue = (c, index) => (ushort)((int)c.Statuses & 0xffff); break;
                 case 0x010:
                     getValue = (c, index) => (ushort)((int)c.Statuses >> 16); break;
-                
+
+                case 0x020:
+                    getValue = (c, index) => {
+                        ushort v = 0;
+                        if (c.IsPlayer == _combatant.IsPlayer) v |= 0x2;
+                        if (c.IsDefending) v |= 0x20;
+                        if (c.IsBackRow) v |= 0x40;
+                        //TODO - 4027 Attack connects
+                        //TODO - 4028  Immune to physical damage
+                        //TODO - 4029  Immune to magical damage
+                        //TODO - 402B  Was covered / Defers damage
+                        //TODO - 402C  Immune to Death
+                        //TODO - 402D  Actor is dead
+                        //TODO - 402E  Actor is invisible
+                        if (!c.IsAlive()) v |= 0x2000;
+                        return v;
+                    };
+                    break;
+
                 case 0x040:
                     getValue = (c, index) => (ushort)((index << 8) | c.Level); break;
 

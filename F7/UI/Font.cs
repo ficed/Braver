@@ -268,6 +268,7 @@ namespace Braver.UI {
     public struct BoxItem {
         public Rectangle Rectangle { get; set; }
         public float Z { get; set; }
+        public float BackgroundAlpha { get; set; }
     }
 
     public class UIBatchState {
@@ -313,8 +314,8 @@ namespace Braver.UI {
             });
         }
 
-        public void DrawBox(Rectangle location, float z) {
-            _state.BoxItems.Add(new BoxItem { Rectangle = location, Z = z });
+        public void DrawBox(Rectangle location, float z, float backgroundAlpha = 1f) {
+            _state.BoxItems.Add(new BoxItem { Rectangle = location, Z = z, BackgroundAlpha = backgroundAlpha });
         }
 
         public void DrawText(string fontSet, string text, int x, int y, float z, Color colour, Alignment alignment = Alignment.Left, float size = 1f) {
@@ -473,7 +474,7 @@ namespace Braver.UI {
             foreach(var box in _state.BoxItems) {
                 _spriteBatch.Draw(_boxes.GradientTex,
                     new Rectangle(box.Rectangle.X + 6, box.Rectangle.Y + 6, box.Rectangle.Width - 12, box.Rectangle.Height - 12),
-                    null, Color.White, 0, Vector2.Zero, SpriteEffects.None, box.Z
+                    null, Color.White.WithAlpha((byte)(255 * box.BackgroundAlpha)), 0, Vector2.Zero, SpriteEffects.None, box.Z
                 );
 
                 int[] xCoords = new[] {

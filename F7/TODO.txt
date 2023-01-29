@@ -22,3 +22,10 @@ Field Fade network msg, movie msg
 Field walkmesh sliding still pretty hacky
 	Should it operate only on integer coordinates?
 	Presumably that might be how the original game worked...
+
+Battle
+	EXP/AP, Gil/items screens need finishing - actually update savedata as well!!!
+	Implement alternate music options
+	Targetting input is probably wrong - switch always, or based on camera angle...?
+	Animations?!?!?!?!?!
+	Hit effects...

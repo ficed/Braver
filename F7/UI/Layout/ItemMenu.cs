@@ -63,8 +63,10 @@ namespace Braver.UI.Layout {
 		}
 
 		public static (string Item, string Description) GetInventory(FGame game, int index) {
-			var inv = game.SaveData.Inventory[index];
-			switch (inv.Kind) {
+			return GetInventory(game, game.SaveData.Inventory[index]);
+		}
+        public static (string Item, string Description) GetInventory(FGame game, InventoryItem inv) {
+                switch (inv.Kind) {
 				case InventoryItemKind.Item:
 					var item = game.Singleton<Items>()[inv.ItemID];
 					return (item.Name, item.Description);

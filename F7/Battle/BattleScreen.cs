@@ -1,4 +1,5 @@
 ﻿using Braver.UI;
+using Braver.UI.Layout;
 using Ficedula.FF7;
 using Ficedula.FF7.Battle;
 using System;
@@ -138,6 +139,59 @@ namespace Braver.Battle {
             _models.Add(combatant, model);
         }
 
+        private void UpdateVisualState(ICombatant combatant) {
+            var model = _models[combatant];
+            switch(combatant) {
+                case CharacterCombatant chr:
+                    if (chr.HP <= 0)
+                        model.PlayAnimation(6, true, 1f, null);
+                    else if (chr.HP <= (chr.MaxHP / 4))
+                        model.PlayAnimation(1, true, 1f, null);
+                    else
+                        model.PlayAnimation(0, true, 1f, null);
+                    //TODO - much more than this!
+                    break;
+            }
+        }
+
+        private bool CheckForBattleEnd() {
+            if (_engine.AnyQueuedCounters) return false;
+            //TODO victory poses!
+
+            BattleResults GetResults() {
+                var results = new BattleResults();
+
+                void AddItem(int itemID, byte chance) {
+                    if (_engine.Random(64) <= chance) {
+                        var existing = results.Items.Find(inv => inv.ItemID == itemID);
+                        if (existing == null)
+                            results.Items.Add(new InventoryItem { ItemID = itemID, Quantity = 1, Kind = InventoryItemKind.Item });
+                        else
+                            existing.Quantity++;
+                    }
+                }
+
+                foreach (var defeated in _engine.Combatants.OfType<EnemyCombatant>().Where(c => !c.IsAlive())) {
+                    results.Gil += defeated.Enemy.Enemy.Gil;
+                    results.XP += defeated.Enemy.Enemy.Exp;
+                    results.AP += defeated.Enemy.Enemy.AP;
+                    foreach (var item in defeated.Enemy.Enemy.DropItems)
+                        AddItem(item.ItemID, item.Chance);
+                }
+
+                return results;
+            }
+
+            if (_engine.Combatants.OfType<CharacterCombatant>().All(c => !c.IsAlive()))
+                TriggerBattleLose(GetResults());
+            else if (_engine.Combatants.OfType<EnemyCombatant>().All(c => !c.IsAlive()))
+                TriggerBattleWin(GetResults());
+            else
+                return false;
+
+            return true;
+        }
+
         private void LoadBackground() {
             string prefix = SceneDecoder.LocationIDToFileName(_scene.LocationID);
 
@@ -254,7 +308,7 @@ namespace Braver.Battle {
 
             _menuUI = new UI.UIBatch(Graphics, Game);
 
-            g.Audio.PlayMusic("bat"); //TODO!
+            g.Audio.PlayMusic("bat", true); //TODO!
         }
 
         private void InitEngine() {
@@ -405,43 +459,78 @@ namespace Braver.Battle {
 
             if (_actionInProgress != null) {
                 if (_actionInProgress.Step(elapsed)) {
+                    System.Diagnostics.Debug.WriteLine($"Action {_actionInProgress} now complete");
                     _actionInProgress = null;
                     _actionComplete?.Invoke();
                     _actionComplete = null;
                 }
             } else {
-                if (_engine.ExecuteNextAction(out var nextAction, out var results)) {
-                    _actionInProgress = new ActionInProgress();
-                    _actionComplete += () => {
-                        foreach (var result in results)
-                            result.Apply(nextAction);
-                    };
+                /*
+* -If action in progress - continue it!
+ * -Or, If any counters queued - execute next counter!
+ * -Or, if any enemies now dead - execute death effect
+ * -Or, Check for battle end, and if not, execute any other queued action
+                  */
 
-                    //TODO all the animations!!
-                    foreach(var result in results) {
-                        if (result.Hit) {
-                            if (result.HPDamage != 0) {
-                                _actionInProgress.Add(new BattleResultText(
-                                    _menuUI, Math.Abs(result.HPDamage).ToString(), result.HPDamage < 0 ? Color.White : Color.Green,
-                                    () => GetModelScreenPos(result.Target), new Vector2(0, -1),
-                                    60
-                                ));
-                            }
-                            if (result.MPDamage != 0) {
-                                _actionInProgress.Add(new BattleResultText(
-                                    _menuUI, $"{Math.Abs(result.MPDamage)} {Font.BATTLE_MP}", result.MPDamage < 0 ? Color.White : Color.Green,
-                                    () => GetModelScreenPos(result.Target), new Vector2(0, -1),
-                                    60
-                                ));
-                            }
-                            //TODO anything else?!?!
-                        } else {
+                var pendingDeadEnemies = _models
+                    .Where(kv => !kv.Key.IsPlayer && !kv.Key.IsAlive())
+                    .Select(kv => kv.Value)
+                    .Where(m => m.Visible);
+
+                if (_engine.AnyQueuedCounters)
+                    DoExecuteNextQueuedAction();
+                else if (pendingDeadEnemies.Any()) {
+                    _actionInProgress = new ActionInProgress("FadeDeadEnemies");
+                    foreach (var enemy in pendingDeadEnemies) {
+                        _actionInProgress.Add(new EnemyDeath(60, enemy));
+                        Game.Audio.PlaySfx(Sfx.EnemyDeath, 1f, 0f); //TODO 3d position?!
+                    }
+                } else if (CheckForBattleEnd()) {
+                    //
+                } else
+                    DoExecuteNextQueuedAction();
+            }
+        }
+
+        private void DoExecuteNextQueuedAction() {
+            if (_engine.ExecuteNextAction(out var nextAction, out var results)) {
+                _actionInProgress = new ActionInProgress($"Action {nextAction.Name} by {nextAction.Source.Name}");
+                _actionComplete += () => {
+                    foreach (var result in results) {
+                        result.Apply(nextAction);
+                        UpdateVisualState(result.Target);
+                    }
+                };
+
+                //TODO this isn't always needed
+                _actionInProgress.Add(new BattleTitle(
+                    nextAction.Name, 60, _menuUI, 0.75f
+                ));
+
+                //TODO all the animations!!
+                foreach (var result in results) {
+                    if (result.Hit) {
+                        if (result.HPDamage != 0) {
                             _actionInProgress.Add(new BattleResultText(
-                                _menuUI, Font.BATTLE_MISS.ToString(), Color.White,
+                                _menuUI, Math.Abs(result.HPDamage).ToString(), result.HPDamage < 0 ? Color.White : Color.Green,
                                 () => GetModelScreenPos(result.Target), new Vector2(0, -1),
                                 60
                             ));
                         }
+                        if (result.MPDamage != 0) {
+                            _actionInProgress.Add(new BattleResultText(
+                                _menuUI, $"{Math.Abs(result.MPDamage)} {Font.BATTLE_MP}", result.MPDamage < 0 ? Color.White : Color.Green,
+                                () => GetModelScreenPos(result.Target), new Vector2(0, -1),
+                                60
+                            ));
+                        }
+                        //TODO anything else?!?!
+                    } else {
+                        _actionInProgress.Add(new BattleResultText(
+                            _menuUI, Font.BATTLE_MISS.ToString(), Color.White,
+                            () => GetModelScreenPos(result.Target), new Vector2(0, -1),
+                            60
+                        ));
                     }
                 }
             }
@@ -468,7 +557,8 @@ namespace Braver.Battle {
             }
 
             foreach (var model in _models.Values)
-                model.Render(_view);
+                if (model.Visible)
+                    model.Render(_view);
 
             _ui.Render();
             _menuUI.Render();
@@ -565,12 +655,18 @@ namespace Braver.Battle {
         
         protected BattleFlags _flags;
 
-        protected void TriggerBattleWin() {
+        protected void TriggerBattleWin(BattleResults results) {
             Game.PopScreen(this);
+            if (!_flags.HasFlag(BattleFlags.NoVictoryMusic))
+                Game.Audio.PlayMusic("fan2");
+            if (!_flags.HasFlag(BattleFlags.NoVictoryScreens)) {
+                Game.PushScreen(new LayoutScreen("BattleGilItems", parm: results));
+                Game.PushScreen(new LayoutScreen("BattleXPAP", parm: results));
+            }
         }
-        protected void TriggerBattleLose() {
+        protected void TriggerBattleLose(BattleResults results) {
             if (_flags.HasFlag(BattleFlags.NoGameOver)) {
-                Game.PopScreen(this);
+                Game.PopScreen(this); //TODO - XP/AP, or must always be skipped in this case?
             } else {
                 Game.PushScreen(new UI.Layout.LayoutScreen("GameOver"));
             }
@@ -582,6 +678,13 @@ namespace Braver.Battle {
             else
                 game.PushScreen(new RealBattleScreen(battleID, flags));
         }
+    }
+
+    public class BattleResults {
+        public int AP { get; set; }
+        public int XP { get; set; }
+        public int Gil { get; set; }
+        public List<InventoryItem> Items { get; set; } = new();
     }
 
     [Flags]
@@ -598,3 +701,22 @@ namespace Braver.Battle {
         Debug = 0x8000,
     }
 }
+
+/*
+ * Character battle animations?
+0=default
+1=neardeath
+2=victory
+3=changerow(fwd?)
+4=changerow(back?)
+5=block?
+6=dead
+7=runaway
+8=cover
+9=useitem
+10=alsouseitem??
+11=cast
+12=castinprogress?
+13=castend?
+14=injured
+*/

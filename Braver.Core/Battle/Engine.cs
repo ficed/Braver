@@ -53,10 +53,14 @@ namespace Braver.Battle {
             [ActionPriority.Normal] = new Queue<QueuedAction>(),
         };
 
+        public bool AnyQueuedCounters => _queuedActions[ActionPriority.Counter].Any();
+
         public Timer GTimer { get; }
         public BGame Game { get; private set; }
         public Action<ICombatant> ReadyForAction { get; set; }
         public Action<QueuedAction> ActionQueued { get; set; }
+
+        public int Random(int max) => _r.Next(max);
 
         public IReadOnlyList<ICombatant> Combatants => _combatants.AsReadOnly();
         public IEnumerable<ICombatant> ActiveCombatants => _combatants.Where(c => c != null);
