@@ -218,6 +218,7 @@ namespace Braver {
         public float WorldMapX { get; set; }
         public float WorldMapY { get; set; }
 
+        public Ficedula.FF7.Field.FieldDestination FieldDestination { get; set; }
         public Module Module { get; set; }
 
         public string Location { get; set; }
@@ -228,7 +229,7 @@ namespace Braver {
         public Character[] Party => CharactersInParty().ToArray(); //Array so we can interop
 
         public void CleanUp() {
-            Characters.Sort((c1, c2) => (c1?.CharIndex ?? 0).CompareTo(c2?.CharIndex ?? 0));
+            Characters.Sort((c1, c2) => (c1?.CharIndex ?? 999).CompareTo(c2?.CharIndex ?? 999));
             foreach (int i in Enumerable.Range(0, 8)) {
                 while (Characters.Count <= i)
                     Characters.Add(null);

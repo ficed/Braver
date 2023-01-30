@@ -18,7 +18,7 @@
 			<LckBonus>0</LckBonus>
 			<LimitLevel>1</LimitLevel>
 			<LimitBar>128</LimitBar>
-			<Name>Cloud</Name>
+			<Name>Ex-SOLDIER</Name>
 			<EquipWeapon>2</EquipWeapon>
 			<EquipArmour>0</EquipArmour>
 			<EquipAccessor>0</EquipAccessor>
@@ -47,6 +47,46 @@
 				</OwnedMateria>
 			</WeaponMateria>
 			<BattleModel>rt</BattleModel>
+		</Character>
+		<Character>
+			<CharIndex>1</CharIndex>
+			<ID>barret</ID>
+			<Level>8</Level>
+			<Strength>40</Strength>
+			<Vitality>42</Vitality>
+			<Magic>38</Magic>
+			<Spirit>35</Spirit>
+			<Dexterity>40</Dexterity>
+			<Luck>30</Luck>
+			<StrBonus>0</StrBonus>
+			<VitBonus>0</VitBonus>
+			<MagBonus>0</MagBonus>
+			<SprBonus>0</SprBonus>
+			<DexBonus>0</DexBonus>
+			<LckBonus>0</LckBonus>
+			<LimitLevel>1</LimitLevel>
+			<LimitBar>128</LimitBar>
+			<Name>Barret</Name>
+			<EquipWeapon>2</EquipWeapon>
+			<EquipArmour>0</EquipArmour>
+			<EquipAccessor>0</EquipAccessor>
+			<Flags>Available</Flags>
+			<LimitBreaks>Limit1_1</LimitBreaks>
+			<NumKills>10</NumKills>
+			<UsedLimit1_1>4</UsedLimit1_1>
+			<UsedLimit2_1>0</UsedLimit2_1>
+			<UsedLimit3_1>0</UsedLimit3_1>
+			<CurrentHP>310</CurrentHP>
+			<BaseHP>340</BaseHP>
+			<MaxHP>335</MaxHP>
+			<CurrentMP>30</CurrentMP>
+			<BaseMP>55</BaseMP>
+			<MaxMP>60</MaxMP>
+			<XP>8000</XP>
+			<XPTNL>500</XPTNL>
+			<WeaponMateria>
+			</WeaponMateria>
+			<BattleModel>sb</BattleModel>
 		</Character>
 		<Character>
 			<CharIndex>3</CharIndex>

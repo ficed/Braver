@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata;
 
 namespace Braver.Field {
 
@@ -48,7 +47,7 @@ namespace Braver.Field {
         Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage> {
 
         //private OrthoView3D _view3D; 
-        private PerspView3D _view3D;
+        private PerspView3D _baseView3D, _view3D;
         private Vector3 _camRight;
         private View2D _view2D;
         private FieldDebug _debug;
@@ -65,11 +64,14 @@ namespace Braver.Field {
 
         public override Color ClearColor => Color.Black;
 
+        public Entity Player { get; private set; }
+
+        public Action WhenPlayerSet { get; set; }
+
         public HashSet<int> DisabledWalkmeshTriangles { get; } = new HashSet<int>();
         public Background Background { get; private set; }
         public Movie Movie { get; private set; }
         public List<Entity> Entities { get; private set; }
-        public Entity Player { get; private set; }
         public List<FieldModel> FieldModels { get; private set; }
         public DialogEvent FieldDialog { get; private set; }
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
@@ -81,12 +83,30 @@ namespace Braver.Field {
         private HashSet<Trigger> _activeTriggers = new();
 
         private FieldDestination _destination;
+        private short _fieldID;
         public FieldScreen(FieldDestination destination) {
             _destination = destination;
+            _fieldID = destination.DestinationFieldID;
+        }
+
+        private void SetPlayerIfNecessary() {
+            if (Player == null) {
+                var autoPlayer = Entities
+                    .Where(e => e.Character != null)
+                    .Where(e => e.Model?.Visible == true)
+                    .FirstOrDefault();
+                if (autoPlayer != null)
+                    SetPlayer(Entities.IndexOf(autoPlayer));
+            }
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
+
+            UpdateSaveLocation();
+            //TODO - only if debug
+            Game.Save(System.IO.Path.Combine(FGame.GetSavePath(), "auto"));
+
 
             g.Net.Listen<Net.FieldModelMessage>(this);
             g.Net.Listen<Net.FieldBGMessage>(this);
@@ -95,179 +115,185 @@ namespace Braver.Field {
 
             Overlay = new Overlay(g, graphics);
 
-            var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
-            string file = mapList.Items[_destination.DestinationFieldID];
-
             g.Net.Send(new Net.FieldScreenMessage { Destination = _destination });
 
-            using (var s = g.Open("field", file)) {
-                var field = new FieldFile(s);
-                Background = new Background(g, graphics, field.GetBackground());
-                Movie = new Movie(g, graphics);
-                FieldDialog = field.GetDialogEvent();
+            FieldFile field;
 
-                Entities = FieldDialog.Entities
-                    .Select(e => new Entity(e, this))
-                    .ToList();
+            var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
+            string file = mapList.Items[_destination.DestinationFieldID];
+            var cached = g.Singleton(() => new CachedField());
+            if (cached.FieldID == _destination.DestinationFieldID)
+                field = cached.FieldFile;
+            else {
+                using (var s = g.Open("field", file))
+                    field = new FieldFile(s);
+            }
 
-                FieldModels = field.GetModels()
-                    .Models
-                    .Select((m, index) => {
-                        var model = new FieldModel(
-                            graphics, g, index, m.HRC,
-                            m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
-                        ) {
-                            Scale = float.Parse(m.Scale) / 128f,
-                            Rotation2 = new Vector3(0, 0, 180),
-                        };
-                        model.Translation2 = new Vector3(
-                            0, 
-                            0,
-                            model.Scale * model.MaxBounds.Y
-                        );
-                        return model;
-                    })
-                    .ToList();
+            Background = new Background(g, graphics, field.GetBackground());
+            Movie = new Movie(g, graphics);
+            FieldDialog = field.GetDialogEvent();
 
-                _triggersAndGateways = field.GetTriggersAndGateways();
-                _controlRotation = 360f * _triggersAndGateways.ControlDirection / 256f;
+            Entities = FieldDialog.Entities
+                .Select(e => new Entity(e, this))
+                .ToList();
 
-                _walkmesh = field.GetWalkmesh().Triangles;
-
-                using (var sinfo = g.TryOpen("field", file + ".xml")) {
-                    if (sinfo != null) {
-                        _info = Serialisation.Deserialise<FieldInfo>(sinfo);
-                    } else
-                        _info = new FieldInfo();
-                }
-
-                var cam = field.GetCameraMatrices().First();
-
-                /*
-                float camWidth, camHeight;
-                if (_info.Cameras.Any()) {
-                    camWidth = _info.Cameras[0].Width;
-                    camHeight = _info.Cameras[0].Height;
-                    _base3DOffset = new Vector2(_info.Cameras[0].CenterX, _info.Cameras[0].CenterY);
-                } else {
-                    //Autodetect...
-                    var testCam = new OrthoView3D {
-                        CameraPosition = new Vector3(cam.CameraPosition.X, cam.CameraPosition.Z, cam.CameraPosition.Y),
-                        CameraForwards = new Vector3(cam.Forwards.X, cam.Forwards.Z, cam.Forwards.Y),
-                        CameraUp = new Vector3(cam.Up.X, cam.Up.Z, cam.Up.Y),
-                        Width = 1280,
-                        Height = 720,
+            FieldModels = field.GetModels()
+                .Models
+                .Select((m, index) => {
+                    var model = new FieldModel(
+                        graphics, g, index, m.HRC,
+                        m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
+                    ) {
+                        Scale = float.Parse(m.Scale) / 128f,
+                        Rotation2 = new Vector3(0, 0, 180),
                     };
-                    var vp = testCam.View * testCam.Projection;
+                    model.Translation2 = new Vector3(
+                        0,
+                        0,
+                        model.Scale * model.MaxBounds.Y
+                    );
+                    return model;
+                })
+                .ToList();
 
-                    Vector3 Project(FieldVertex v) {
-                        return Vector3.Transform(new Vector3(v.X, v.Y, v.Z), vp);
-                    }
+            _triggersAndGateways = field.GetTriggersAndGateways();
+            _controlRotation = 360f * _triggersAndGateways.ControlDirection / 256f;
 
-                    Vector3 vMin, vMax;
-                    vMin = vMax = Project(_walkmesh[0].V0);
+            _walkmesh = field.GetWalkmesh().Triangles;
 
-                    foreach(var wTri in _walkmesh) {
-                        Vector3 v0 = Vector3.Transform(new Vector3(wTri.V0.X, wTri.V0.Y, wTri.V0.Z), vp),
-                            v1 = Vector3.Transform(new Vector3(wTri.V1.X, wTri.V1.Y, wTri.V1.Z), vp),
-                            v2 = Vector3.Transform(new Vector3(wTri.V2.X, wTri.V2.Y, wTri.V2.Z), vp);
-                        vMin = new Vector3(
-                            Math.Min(vMin.X, Math.Min(Math.Min(v0.X, v1.X), v2.X)),
-                            Math.Min(vMin.Y, Math.Min(Math.Min(v0.Y, v1.Y), v2.Y)),
-                            Math.Min(vMin.Z, Math.Min(Math.Min(v0.Z, v1.Z), v2.Z))
-                        );
-                        vMax = new Vector3(
-                            Math.Max(vMax.X, Math.Max(Math.Max(v0.X, v1.X), v2.X)),
-                            Math.Max(vMax.Y, Math.Max(Math.Max(v0.Y, v1.Y), v2.Y)),
-                            Math.Max(vMax.Z, Math.Max(Math.Max(v0.Z, v1.Z), v2.Z))
-                        );
-                    }
+            using (var sinfo = g.TryOpen("field", file + ".xml")) {
+                if (sinfo != null) {
+                    _info = Serialisation.Deserialise<FieldInfo>(sinfo);
+                } else
+                    _info = new FieldInfo();
+            }
 
-                    var allW = _walkmesh.SelectMany(t => new[] { t.V0, t.V1, t.V2 });
-                    Vector3 wMin = new Vector3(allW.Min(v => v.X), allW.Min(v => v.Y), allW.Min(v => v.Z)),
-                        wMax = new Vector3(allW.Max(v => v.X), allW.Max(v => v.Y), allW.Max(v => v.Z)); 
+            var cam = field.GetCameraMatrices().First();
 
-                    float xRange = (vMax.X - vMin.X) * 0.5f,
-                        yRange = (vMax.Y - vMin.Y) * 0.5f;
-
-                    //So now we know the walkmap would cover xRange screens across and yRange screens down
-                    //Compare that to the background width/height and scale it to match...
-
-                    System.Diagnostics.Debug.WriteLine($"Walkmap range {wMin} - {wMax}");
-                    System.Diagnostics.Debug.WriteLine($"Transformed {vMin} - {vMax}");
-                    System.Diagnostics.Debug.WriteLine($"Walkmap covers range {xRange}/{yRange}");
-                    System.Diagnostics.Debug.WriteLine($"Background is size {Background.Width} x {Background.Height}");
-                    System.Diagnostics.Debug.WriteLine($"Background covers {Background.Width / 320f} x {Background.Height / 240f} screens");
-                    System.Diagnostics.Debug.WriteLine($"...or in widescreen, {Background.Width / 427f} x {Background.Height / 240f} screens");
-
-                    camWidth = 1280f * xRange / (Background.Width / 320f);
-                    camHeight = 720f * yRange / (Background.Height / 240f);
-                    System.Diagnostics.Debug.WriteLine($"Auto calculated ortho w/h to {camWidth}/{camHeight}");
-
-                    camWidth = 1280f * xRange / (Background.Width / 427f);
-                    camHeight = 720f * yRange / (Background.Height / 240f);
-                    System.Diagnostics.Debug.WriteLine($"...or in widescreen, {camWidth}/{camHeight}");
-
-                    _base3DOffset = Vector2.Zero;
-                }
-
-                _view3D = new OrthoView3D {
+            /*
+            float camWidth, camHeight;
+            if (_info.Cameras.Any()) {
+                camWidth = _info.Cameras[0].Width;
+                camHeight = _info.Cameras[0].Height;
+                _base3DOffset = new Vector2(_info.Cameras[0].CenterX, _info.Cameras[0].CenterY);
+            } else {
+                //Autodetect...
+                var testCam = new OrthoView3D {
                     CameraPosition = new Vector3(cam.CameraPosition.X, cam.CameraPosition.Z, cam.CameraPosition.Y),
                     CameraForwards = new Vector3(cam.Forwards.X, cam.Forwards.Z, cam.Forwards.Y),
                     CameraUp = new Vector3(cam.Up.X, cam.Up.Z, cam.Up.Y),
-                    Width = camWidth,
-                    Height = camHeight,
-                    CenterX = _base3DOffset.X,
-                    CenterY = _base3DOffset.Y,
+                    Width = 1280,
+                    Height = 720,
                 };
-                */
+                var vp = testCam.View * testCam.Projection;
 
-                double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
-
-                var camPosition = cam.CameraPosition.ToX() * 4096f;
-
-                var camDistances = _walkmesh
-                    .SelectMany(tri => new[] { tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX() })
-                    .Select(v => (camPosition - v).Length());
-
-                float nearest = camDistances.Min(), furthest = camDistances.Max();
-
-                _view3D = new PerspView3D {
-                    FOV = (float)fovy,
-                    ZNear = nearest * 0.75f,
-                    ZFar = furthest * 1.25f,
-                    CameraPosition = camPosition,
-                    CameraForwards = cam.Forwards.ToX(),
-                    CameraUp = cam.Up.ToX(),
-                };
-                _camRight = cam.Right.ToX();
-
-                var vp = System.Numerics.Matrix4x4.CreateLookAt(
-                    cam.CameraPosition * 4096f, cam.CameraPosition * 4096f + cam.Forwards, cam.Up
-                ) * System.Numerics.Matrix4x4.CreatePerspectiveFieldOfView(
-                    (float)(fovy * Math.PI / 180.0), 1280f / 720f, 0.001f * 4096f, 1000f * 4096f
-                );
-
-                float minZ = 1f, maxZ = 0f;
-                foreach (var wTri in _walkmesh) {
-                    System.Numerics.Vector4 v0 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V0.X  , wTri.V0.Y , wTri.V0.Z , 1), vp),
-                        v1 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V1.X , wTri.V1.Y , wTri.V1.Z , 1), vp),
-                        v2 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V2.X , wTri.V2.Y , wTri.V2.Z , 1), vp);
-                    /*
-                    System.Diagnostics.Debug.WriteLine(v0 / v0.W);
-                    System.Diagnostics.Debug.WriteLine(v1 / v1.W);
-                    System.Diagnostics.Debug.WriteLine(v2 / v2.W);
-                    */
-                    minZ = Math.Min(minZ, v0.Z / v0.W);
-                    minZ = Math.Min(minZ, v1.Z / v1.W);
-                    minZ = Math.Min(minZ, v2.Z / v2.W);
-                    maxZ = Math.Max(maxZ, v0.Z / v0.W);
-                    maxZ = Math.Max(maxZ, v1.Z / v1.W);
-                    maxZ = Math.Max(maxZ, v2.Z / v2.W);
+                Vector3 Project(FieldVertex v) {
+                    return Vector3.Transform(new Vector3(v.X, v.Y, v.Z), vp);
                 }
-                System.Diagnostics.Debug.WriteLine($"Walkmesh Z varies from {minZ}-{maxZ} (recip {1f / minZ} to {1f / maxZ}");
-                _debug = new FieldDebug(graphics, field);
+
+                Vector3 vMin, vMax;
+                vMin = vMax = Project(_walkmesh[0].V0);
+
+                foreach(var wTri in _walkmesh) {
+                    Vector3 v0 = Vector3.Transform(new Vector3(wTri.V0.X, wTri.V0.Y, wTri.V0.Z), vp),
+                        v1 = Vector3.Transform(new Vector3(wTri.V1.X, wTri.V1.Y, wTri.V1.Z), vp),
+                        v2 = Vector3.Transform(new Vector3(wTri.V2.X, wTri.V2.Y, wTri.V2.Z), vp);
+                    vMin = new Vector3(
+                        Math.Min(vMin.X, Math.Min(Math.Min(v0.X, v1.X), v2.X)),
+                        Math.Min(vMin.Y, Math.Min(Math.Min(v0.Y, v1.Y), v2.Y)),
+                        Math.Min(vMin.Z, Math.Min(Math.Min(v0.Z, v1.Z), v2.Z))
+                    );
+                    vMax = new Vector3(
+                        Math.Max(vMax.X, Math.Max(Math.Max(v0.X, v1.X), v2.X)),
+                        Math.Max(vMax.Y, Math.Max(Math.Max(v0.Y, v1.Y), v2.Y)),
+                        Math.Max(vMax.Z, Math.Max(Math.Max(v0.Z, v1.Z), v2.Z))
+                    );
+                }
+
+                var allW = _walkmesh.SelectMany(t => new[] { t.V0, t.V1, t.V2 });
+                Vector3 wMin = new Vector3(allW.Min(v => v.X), allW.Min(v => v.Y), allW.Min(v => v.Z)),
+                    wMax = new Vector3(allW.Max(v => v.X), allW.Max(v => v.Y), allW.Max(v => v.Z)); 
+
+                float xRange = (vMax.X - vMin.X) * 0.5f,
+                    yRange = (vMax.Y - vMin.Y) * 0.5f;
+
+                //So now we know the walkmap would cover xRange screens across and yRange screens down
+                //Compare that to the background width/height and scale it to match...
+
+                System.Diagnostics.Debug.WriteLine($"Walkmap range {wMin} - {wMax}");
+                System.Diagnostics.Debug.WriteLine($"Transformed {vMin} - {vMax}");
+                System.Diagnostics.Debug.WriteLine($"Walkmap covers range {xRange}/{yRange}");
+                System.Diagnostics.Debug.WriteLine($"Background is size {Background.Width} x {Background.Height}");
+                System.Diagnostics.Debug.WriteLine($"Background covers {Background.Width / 320f} x {Background.Height / 240f} screens");
+                System.Diagnostics.Debug.WriteLine($"...or in widescreen, {Background.Width / 427f} x {Background.Height / 240f} screens");
+
+                camWidth = 1280f * xRange / (Background.Width / 320f);
+                camHeight = 720f * yRange / (Background.Height / 240f);
+                System.Diagnostics.Debug.WriteLine($"Auto calculated ortho w/h to {camWidth}/{camHeight}");
+
+                camWidth = 1280f * xRange / (Background.Width / 427f);
+                camHeight = 720f * yRange / (Background.Height / 240f);
+                System.Diagnostics.Debug.WriteLine($"...or in widescreen, {camWidth}/{camHeight}");
+
+                _base3DOffset = Vector2.Zero;
             }
+
+            _view3D = new OrthoView3D {
+                CameraPosition = new Vector3(cam.CameraPosition.X, cam.CameraPosition.Z, cam.CameraPosition.Y),
+                CameraForwards = new Vector3(cam.Forwards.X, cam.Forwards.Z, cam.Forwards.Y),
+                CameraUp = new Vector3(cam.Up.X, cam.Up.Z, cam.Up.Y),
+                Width = camWidth,
+                Height = camHeight,
+                CenterX = _base3DOffset.X,
+                CenterY = _base3DOffset.Y,
+            };
+            */
+
+            double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
+
+            var camPosition = cam.CameraPosition.ToX() * 4096f;
+
+            var camDistances = _walkmesh
+                .SelectMany(tri => new[] { tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX() })
+                .Select(v => (camPosition - v).Length());
+
+            float nearest = camDistances.Min(), furthest = camDistances.Max();
+
+            _baseView3D = _view3D = new PerspView3D {
+                FOV = (float)fovy,
+                ZNear = nearest * 0.75f,
+                ZFar = furthest * 1.25f,
+                CameraPosition = camPosition,
+                CameraForwards = cam.Forwards.ToX(),
+                CameraUp = cam.Up.ToX(),
+            };
+            _camRight = cam.Right.ToX();
+
+            var vp = System.Numerics.Matrix4x4.CreateLookAt(
+                cam.CameraPosition * 4096f, cam.CameraPosition * 4096f + cam.Forwards, cam.Up
+            ) * System.Numerics.Matrix4x4.CreatePerspectiveFieldOfView(
+                (float)(fovy * Math.PI / 180.0), 1280f / 720f, 0.001f * 4096f, 1000f * 4096f
+            );
+
+            float minZ = 1f, maxZ = 0f;
+            foreach (var wTri in _walkmesh) {
+                System.Numerics.Vector4 v0 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V0.X, wTri.V0.Y, wTri.V0.Z, 1), vp),
+                    v1 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V1.X, wTri.V1.Y, wTri.V1.Z, 1), vp),
+                    v2 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V2.X, wTri.V2.Y, wTri.V2.Z, 1), vp);
+                /*
+                System.Diagnostics.Debug.WriteLine(v0 / v0.W);
+                System.Diagnostics.Debug.WriteLine(v1 / v1.W);
+                System.Diagnostics.Debug.WriteLine(v2 / v2.W);
+                */
+                minZ = Math.Min(minZ, v0.Z / v0.W);
+                minZ = Math.Min(minZ, v1.Z / v1.W);
+                minZ = Math.Min(minZ, v2.Z / v2.W);
+                maxZ = Math.Max(maxZ, v0.Z / v0.W);
+                maxZ = Math.Max(maxZ, v1.Z / v1.W);
+                maxZ = Math.Max(maxZ, v2.Z / v2.W);
+            }
+            System.Diagnostics.Debug.WriteLine($"Walkmesh Z varies from {minZ}-{maxZ} (recip {1f / minZ} to {1f / maxZ}");
+            _debug = new FieldDebug(graphics, field);
 
             if (_info.BGZFrom != 0) {
                 _bgZFrom = _info.BGZFrom;
@@ -293,15 +319,7 @@ namespace Braver.Field {
                     entity.Call(0, 0, null);
                     entity.Run(9999, true);
                 }
-
-                if (Player == null) {
-                    var autoPlayer = Entities
-                        .Where(e => e.Character != null)
-                        .Where(e => e.Model?.Visible == true)
-                        .FirstOrDefault();
-                    if (autoPlayer != null)
-                        SetPlayer(Entities.IndexOf(autoPlayer));
-                }
+                SetPlayerIfNecessary(); //TODO - is it OK to delay doing this? But until the entity scripts run we don't know which entity corresponds to which party member...
 
                 BringPlayerIntoView();
 
@@ -381,35 +399,65 @@ namespace Braver.Field {
             frame++;
         }
 
+        private IEnumerable<(float Distance, Vector2 Up, Vector2 Right, Vector3 VertPos)> GetWalkmeshOffsets() {
+            var up = _view3D.Clone();
+            up.CameraPosition += up.CameraUp * 100;
+            var right = _view3D.Clone();
+            right.CameraPosition += _camRight * 100;
+
+            return _walkmesh
+                .SelectMany(t => t.AllVerts())
+                .Select(v => {
+                    var testPos = v.ToX();
+                    var initial = ModelToBGPosition(testPos, _view3D.View * _view3D.Projection);
+                    var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
+                    var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
+
+                    //System.Diagnostics.Debug.WriteLine($"Vert {v} at initial screen pos {initial} distance from center {initial.Length()}) moves up {offsetUp - initial} right {offsetRight - initial}");
+
+                    return (initial.Length(), (offsetUp - initial) / 100, (offsetRight - initial) / 100, testPos);
+                })
+                .OrderBy(a => a.Item1);
+        }
+
         public (int x, int y) GetBGScroll() {
             return (
-                (int)(_view2D.CenterX / 3),
+                (int)(-_view2D.CenterX / 3),
                 (int)(_view2D.CenterY / 3)
             );
         }
         public void BGScroll(float x, float y) {
-            BGScrollOffset(x - (_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
+            BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
         }
         public void BGScrollOffset(float ox, float oy) {
 
-            var up = _view3D.Clone();
-            up.CameraPosition += up.CameraUp;
-            var right = _view3D.Clone();
-            right.CameraPosition += _camRight;
+            var offsets = GetWalkmeshOffsets().ToArray();
 
-            var testPos = _walkmesh[0].V0.ToX();
-            var initial = ModelToBGPosition(testPos, _view3D.View * _view3D.Projection);
-            var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
-            var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
+            var calcUp = new Vector2((float)Math.Round(offsets[0].Up.X, 4), (float)Math.Round(offsets[0].Up.Y, 4));
+            var calcRight = new Vector2((float)Math.Round(offsets[0].Right.X, 4), (float)Math.Round(offsets[0].Right.Y, 4));
 
-            //System.Diagnostics.Debug.WriteLine($"Moving camera up one unit changes BG by {offsetUp.Y - initial.Y}");
-            //System.Diagnostics.Debug.WriteLine($"Moving camera right one unit changes BG by {offsetRight.X - initial.X}");
-
-            _view3D.CameraPosition += _view3D.CameraUp * -oy / (offsetUp.Y - initial.Y);
-            _view3D.CameraPosition += _camRight * -ox / (offsetRight.X - initial.X);
-
-            _view2D.CenterX += 3 * ox;
+            /*
+        var testPos = _walkmesh[0].V0.ToX();
+        var initial = ModelToBGPosition(testPos, _view3D.View * _view3D.Projection);
+        var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
+        var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
+            */
+            System.Diagnostics.Debug.WriteLine($"Moving camera up one unit changes BG by {calcUp}");
+            System.Diagnostics.Debug.WriteLine($"Moving camera right one unit changes BG by {calcRight}");
+            /*
+                        _view3D.CameraPosition += _view3D.CameraUp * -oy / (offsetUp.Y - initial.Y);
+                        _view3D.CameraPosition += _camRight * -ox / (offsetRight.X - initial.X);
+            */
+            _view2D.CenterX -= 3 * ox;
             _view2D.CenterY += 3 * oy;
+/*
+            var scroll = GetBGScroll();
+            _view3D.CameraPosition = _baseView3D.CameraPosition
+                + (_baseView3D.CameraUp * -scroll.y / calcUp.Y)
+                + (_camRight * -scroll.x / calcRight.X);
+*/
+            _view3D.CameraPosition += _view3D.CameraUp * -oy / calcUp.Y;
+            _view3D.CameraPosition += _camRight * -ox / calcRight.X;
 
             Game.Net.Send(new Net.FieldBGScrollMessage {
                 X = _view2D.CenterX / 3,
@@ -461,12 +509,14 @@ namespace Braver.Field {
                 else if (posOnBG.Y < (scroll.y - 110))
                     newScroll.y = (int)posOnBG.Y + 110;
 
-                if (newScroll != scroll)
+                if (newScroll != scroll) {
+                    System.Diagnostics.Debug.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
                     BGScroll(newScroll.x, newScroll.y);
+                }
             }
         }
 
-        public Vector2 ModelToBGPosition(Vector3 modelPosition, Matrix? transformMatrix = null) {
+        public Vector2 ModelToBGPosition(Vector3 modelPosition, Matrix? transformMatrix = null, bool debug = false) {
             transformMatrix ??= _view3D.View * _view3D.Projection;
             var screenPos = Vector4.Transform(modelPosition, transformMatrix.Value);
             screenPos = screenPos / screenPos.W;
@@ -474,12 +524,26 @@ namespace Braver.Field {
             float tx = (_view2D.CenterX / 3) + screenPos.X * 0.5f * (1280f / 3),
                   ty = (_view2D.CenterY / 3) + screenPos.Y * 0.5f * (720f / 3);
 
-            return new Vector2(tx, ty);
+            if (debug)
+                System.Diagnostics.Debug.WriteLine($"ModelToBG: {modelPosition} -> screen {screenPos} -> BG {tx}/{ty}");
+
+            return new Vector2(-tx, ty);
         }
 
         private InputState _lastInput;
 
         internal InputState LastInput => _lastInput;
+
+        private void UpdateSaveLocation() {
+            Game.SaveData.Module = Module.Field;
+            Game.SaveData.FieldDestination = _destination ?? new FieldDestination {
+                Triangle = (ushort)Player.WalkmeshTri,
+                X = (short)Player.Model.Translation.X,
+                Y = (short)Player.Model.Translation.Y,
+                Orientation = (byte)(Player.Model.Rotation.Y * 255 / 360),
+                DestinationFieldID = _fieldID,
+            };
+        }
 
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
@@ -504,6 +568,21 @@ namespace Braver.Field {
 
             if (_debugMode) {
                 if (input.IsAnyDirectionDown() || input.IsJustDown(InputKey.Select)) {
+
+                    var offsets = GetWalkmeshOffsets().ToArray();
+                    var prePos = ModelToBGPosition(offsets[0].VertPos, null, false);
+                    if (input.IsDown(InputKey.Left))
+                        _view3D.CameraPosition -= _camRight * 5;
+                    else if (input.IsDown(InputKey.Right))
+                        _view3D.CameraPosition += _camRight * 5;
+
+                    if (input.IsDown(InputKey.Up))
+                        _view3D.CameraPosition += _view3D.CameraUp;
+                    else if (input.IsDown(InputKey.Down))
+                        _view3D.CameraPosition -= _view3D.CameraUp;
+
+                    System.Diagnostics.Debug.WriteLine($"Player at {ModelToBGPosition(Player.Model.Translation, null, false)} WM0 {ModelToBGPosition(_walkmesh[0].V0.ToX(), null, false)}");
+
                     /*
                     //Now calculate 3d scroll amount
                     var _3dScrollAmount = new Vector2(_view3D.Width / 427f, _view3D.Height / 240f);
@@ -581,6 +660,7 @@ namespace Braver.Field {
                 }
 
                 if (input.IsJustDown(InputKey.Menu) && Options.HasFlag(FieldOptions.MenuEnabled)) {
+                    UpdateSaveLocation();
                     Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     return;
                 }
@@ -1051,6 +1131,7 @@ namespace Braver.Field {
             if (Player.CollideDistance == 0)
                 Player.CollideDistance = 20;
             CheckPendingPlayerSetup();
+            WhenPlayerSet?.Invoke();
         }
 
         public void SetPlayerControls(bool enabled) {
@@ -1097,6 +1178,19 @@ namespace Braver.Field {
 
         public void Received(Net.FieldEntityModelMessage message) {
             Entities[message.EntityID].Model = FieldModels[message.ModelID];
+        }
+    }
+
+    public class CachedField {
+        public int FieldID { get; set; } = -1;
+        public FieldFile FieldFile { get; set; }
+
+        public void Load(FGame g, int fieldID) {
+            var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
+            string file = mapList.Items[fieldID];
+            using (var s = g.Open("field", file))
+                FieldFile = new FieldFile(s);
+            FieldID = fieldID;
         }
     }
 }

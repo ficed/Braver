@@ -107,6 +107,22 @@ namespace Braver {
             }
         }
 
+        public override void Load(string path) {
+            base.Load(path);
+            switch (SaveData.Module) {
+                case Module.WorldMap:
+                    PushScreen(new WorldMap.WMScreen(SaveData.WorldMapX, SaveData.WorldMapY));
+                    break;
+
+                case Module.Field:
+                    PushScreen(new Field.FieldScreen(SaveData.FieldDestination));
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
         public void PushScreen(Screen s) {
             _screens.Push(s);
             s.Init(this, _graphics);

@@ -49,8 +49,8 @@ namespace Braver.Field {
             _windows[window].State = WindowState.Hidden;
         }
         public void SetupWindow(int window, int x, int y, int width, int height) {
-            _windows[window].X = x * 3 / 2;
-            _windows[window].Y = y * 3 / 2;
+            _windows[window].X = x * 3 + 160;
+            _windows[window].Y = y * 3;
             _windows[window].Width = width * 3 / 2 + 8; //expand size to account for border...? 
             _windows[window].Height = height * 3 / 2 + 8;
         }

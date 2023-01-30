@@ -58,13 +58,13 @@ namespace Braver {
 
         public void Save(string path) {
             Directory.CreateDirectory(Path.GetDirectoryName(path + ".sav"));
-            using (var fs = File.OpenWrite(path + ".sav"))
+            using (var fs = File.Create(path + ".sav"))
                 Serialisation.Serialise(SaveData, fs);
-            using (var fs = File.OpenWrite(path + ".mem"))
+            using (var fs = File.Create(path + ".mem"))
                 Memory.Save(fs);
         }
 
-        public void Load(string path) {
+        public virtual void Load(string path) {
             using (var fs = File.OpenRead(path + ".mem"))
                 Memory.Load(fs);
             using (var fs = File.OpenRead(path + ".sav"))

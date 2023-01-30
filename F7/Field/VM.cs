@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpDX.MediaFoundation;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -1023,6 +1024,12 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int parmValue = s.Game.Memory.Read(bank, parm);
 
             switch (menu) {
+                case 0x6:
+                    if (parmValue < 10)
+                        s.Game.PushScreen(new UI.Layout.LayoutScreen("Name", parm: parmValue));
+                    else
+                        throw new NotImplementedException();
+                    break;
                 case 0x9:
                     s.Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     break;
@@ -1172,6 +1179,19 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 y = s.Game.Memory.Read(banks >> 4, sy);
 
             s.BGScroll(x, y);
+            return OpResult.Continue;
+        }
+
+        public static OpResult SCRCC(Fiber f, Entity e, FieldScreen s) {
+            if (s.Player == null) {
+                s.WhenPlayerSet += () => {
+                    var pos = s.ModelToBGPosition(s.Player.Model.Translation);
+                    s.BGScroll(pos.X, pos.Y);
+                };
+            } else {
+                var pos = s.ModelToBGPosition(s.Player.Model.Translation);
+                s.BGScroll(pos.X, pos.Y);
+            }
             return OpResult.Continue;
         }
 
@@ -1389,6 +1409,30 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             byte bank = f.ReadU8();
             ushort id = f.ReadU16();
             s.TriggerBattle(s.Game.Memory.Read(bank, id));
+            return OpResult.Continue;
+        }
+
+        public static OpResult PMJMP(Fiber f, Entity e, FieldScreen s) {
+            ushort id = f.ReadU16();
+            var cached = s.Game.Singleton(() => new CachedField());
+            cached.Load(s.Game, id);
+            return OpResult.Continue;
+        }
+        public static OpResult MAPJUMP(Fiber f, Entity e, FieldScreen s) {
+            short id = f.ReadS16(), x = f.ReadS16(), y = f.ReadS16();
+            ushort tri = f.ReadU16();
+            byte rotation = f.ReadU8();
+
+            var destination = new Ficedula.FF7.Field.FieldDestination {
+                DestinationFieldID = id,
+                X = x, Y = y,
+                Triangle = tri,
+                Orientation = rotation,
+            };
+            s.FadeOut(() => {
+                s.Game.ChangeScreen(s, new FieldScreen(destination));
+            });
+
             return OpResult.Continue;
         }
     }
