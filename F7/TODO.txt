@@ -13,7 +13,7 @@ Shops!
 
 Compressed/single file saves
 
-Music looping
+Music looping works but still a noticeable break at the loop point
 
 Item menu: Icons, actually do arrange
 

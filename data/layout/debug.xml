@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Box" X="0" Y="0" W="1280" H="720" ID="Root">
+		<Component xsi:type="Label" X="200" Y="30">DEBUG OPTIONS</Component>
+
+		<Component xsi:type="Label" X="200" Y="120" ID="lNoFieldScripts" Click="LabelClick">No Field Scripts</Component>
+		<Component xsi:type="Label" X="200" Y="160" ID="lNoRandomBattles" Click="LabelClick">No Random Battles</Component>
+		<Component xsi:type="Label" X="200" Y="200" ID="lSkipBattleMenu" Click="LabelClick">Skip Battle Menu</Component>
+		<Component xsi:type="Label" X="200" Y="240" ID="lAutoSaveOnFieldEntry" Click="LabelClick">Auto Save on Field Entry</Component>
+
+	</Root>
+</Layout>

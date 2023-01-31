@@ -336,7 +336,7 @@ namespace Braver.UI.Layout {
             FocusUpdated();
         }
         public void ChangeFocus(Component focus) {
-            Debug.Assert(focus.FocusParent == FocusGroup);
+            System.Diagnostics.Debug.Assert(focus.FocusParent == FocusGroup);
             _focus.Peek().Focus = focus;
             FocusUpdated();
         }

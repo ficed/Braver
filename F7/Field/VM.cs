@@ -921,6 +921,70 @@ namespace Braver.Field {
             s.Game.Memory.Write(bank, address, value);
             return OpResult.Continue;
         }
+        public static OpResult GETAXY(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), entity = f.ReadU8(), xaddr = f.ReadU8(), yaddr = f.ReadU8();
+            ushort value = (ushort)s.Entities[entity].Model.Translation.X;
+            s.Game.Memory.Write(banks & 0xf, xaddr, value);
+            value = (ushort)s.Entities[entity].Model.Translation.Y;
+            s.Game.Memory.Write(banks >> 4, yaddr, value);
+            return OpResult.Continue;
+        }
+
+        public static OpResult OFST(Fiber f, Entity e, FieldScreen s) {
+            byte bankxy = f.ReadU8(), bankzs = f.ReadU8(), type = f.ReadU8();
+            short x = f.ReadS16(), y = f.ReadS16(), z = f.ReadS16(), speed = f.ReadS16();
+            x = (short)s.Game.Memory.Read(bankxy & 0xf, x);
+            y = (short)s.Game.Memory.Read(bankxy >> 4, y);
+            z = (short)s.Game.Memory.Read(bankzs & 0xf, z);
+            speed = (short)s.Game.Memory.Read(bankzs >> 4, speed);
+
+            var start = e.Model.Translation2;
+            var end = new Vector3(x, y, z);
+
+            s.StartProcess(frame => {
+                float progress;
+                switch (type) {
+                    case 0: //instant
+                        progress = 1f;
+                        break;
+                    case 1: //linear
+                        progress = 1f * frame / speed;
+                        break;
+                    case 2: //ease in/out
+                        progress = Easings.QuadraticInOut(1f * frame / speed);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                if (progress >= 1f) {
+                    e.Model.Translation2 = end;
+                    return true;
+                } else {
+                    e.Model.Translation2 = Vector3.Lerp(start, end, progress);
+                    return false;
+                }
+            });
+
+            return OpResult.Continue;
+        }
+
+        public static OpResult KAWAI(Fiber f, Entity e, FieldScreen s) {
+            byte len = f.ReadU8(), op = f.ReadU8();
+            byte[] data = Enumerable.Range(0, len - 3).Select(_ => f.ReadU8()).ToArray();
+
+            switch(op) {
+                case 0xD: //SHINE
+                    //VERY TODO!
+                    break;
+                
+                default:
+                    throw new NotImplementedException();
+            }
+
+            return OpResult.Continue;
+        }
+
     }
 
     internal static class PartyInventory {
@@ -1092,6 +1156,10 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
         private static OpResult DoAKAO(Fiber f, Entity e, FieldScreen s, byte op, int parm1, int parm2, int parm3, int parm4, int parm5) {
             switch (op) {
+                case 0xc0:
+                    s.Game.Audio.SetMusicVolume((byte)parm1);
+                    break;
+
                 case 0xc8:
                 case 0xc9:
                 case 0xca:

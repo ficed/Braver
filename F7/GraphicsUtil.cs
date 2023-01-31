@@ -49,6 +49,15 @@ namespace Braver {
             ColorDestinationBlend = Blend.One,
             ColorSourceBlend = Blend.InverseSourceColor,
         };
+        public static readonly BlendState BlendQuarterAdd = new BlendState {
+            AlphaBlendFunction = BlendFunction.Add,
+            AlphaDestinationBlend = Blend.One,
+            AlphaSourceBlend = Blend.BlendFactor,
+            ColorBlendFunction = BlendFunction.Add,
+            ColorDestinationBlend = Blend.One,
+            ColorSourceBlend = Blend.BlendFactor,
+            BlendFactor = new Color(0.25f, 0.25f, 0.25f),
+        };
 
         public static int MakePowerOfTwo(int i) {
             int n = 1;

@@ -183,8 +183,6 @@ namespace Braver.Field {
                     if ((layer.Mask != 0) && (_parameters[layer.Parameter] & layer.Mask) == 0)
                         continue;
 
-                    if (layer.FixedZ)
-
                     switch (layer.Blend) {
                         case Ficedula.FF7.Field.BlendType.None:
                         case Ficedula.FF7.Field.BlendType.Blend:
@@ -192,6 +190,9 @@ namespace Braver.Field {
                             break;
                         case Ficedula.FF7.Field.BlendType.Additive:
                             _graphics.BlendState = BlendState.Additive;
+                            break;
+                        case Ficedula.FF7.Field.BlendType.QuarterAdd:
+                            _graphics.BlendState = GraphicsUtil.BlendQuarterAdd;
                             break;
                         default: //TODO NO
                             _graphics.BlendState = BlendState.Opaque;

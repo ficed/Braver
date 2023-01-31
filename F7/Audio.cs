@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Braver.UI.Layout;
+using NAudio.Wave;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,10 +31,12 @@ namespace Braver {
             Stop,
             Push,
             Pop,
+            SetVolume,
         }
         private class MusicCommand {
             public CommandType Command { get; set; }
             public string Track { get; set; }
+            public byte Param { get; set; }
         }
 
         private class MusicContext {
@@ -41,9 +45,56 @@ namespace Braver {
             public string Track { get; set; }
         }
 
+        private class LoopProvider : ISampleProvider {
+
+            private NAudio.Vorbis.VorbisWaveReader _source;
+            private int _loopStart, _loopEnd;
+
+            public WaveFormat WaveFormat => _source.WaveFormat;
+
+            private long _samplesRead;
+            private long _seekBeforeLoopStart, _samplesBeforeLoopStart;
+
+            public LoopProvider(NAudio.Vorbis.VorbisWaveReader source, int loopStart, int loopEnd) {
+                _source = source;
+                _loopStart = loopStart * source.WaveFormat.Channels;
+                _loopEnd = loopEnd * source.WaveFormat.Channels;
+            }
+
+            private float[] _discardBuffer = new float[4096];
+
+            public int Read(float[] buffer, int offset, int count) {
+
+                int read = _source.Read(buffer, offset, count);
+                _samplesRead += read;
+                if ((_samplesRead <= _loopStart) && (_samplesRead > _seekBeforeLoopStart)) {
+                    _samplesBeforeLoopStart = _samplesRead;
+                    _seekBeforeLoopStart = _source.Position;
+                } else if (_samplesRead >= _loopEnd) {
+                    read -= (int)(_samplesRead - _loopEnd);
+                    _samplesRead = _samplesBeforeLoopStart;
+                    _source.Position = _seekBeforeLoopStart;
+                    int toDiscard = (int)(_loopStart - _samplesBeforeLoopStart);
+                    while (toDiscard > 0) {
+                        int discard = _source.Read(_discardBuffer, 0, Math.Min(_discardBuffer.Length, toDiscard));
+                        toDiscard -= discard;
+                        _samplesRead += discard;
+                    }
+                    if (read == 0) { //Don't want to seem like end of stream, so must return some data now we've looped back!
+                        read = _source.Read(buffer, offset, count);
+                    }
+                }
+
+                if (read == 0)
+                    System.Diagnostics.Debugger.Break();
+                return read;
+            }
+        }
+
         private async Task RunMusic() {
             var contexts = new Stack<MusicContext>();
             contexts.Push(new MusicContext());
+            byte volume = 127;
 
             void DoStop() {
                 var context = contexts.Peek();
@@ -57,9 +108,17 @@ namespace Braver {
             void DoPlay(string track) {
                 var current = contexts.Peek();
                 DoStop();
-                current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(System.IO.Path.Combine(_ff7Dir, "music_ogg", track + ".ogg"));
+                string file = System.IO.Path.Combine(_ff7Dir, "music_ogg", track + ".ogg");
+                int loopStart, loopEnd;
+                using (var reader = new NVorbis.VorbisReader(file)) {
+                    loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));
+                    loopEnd = int.Parse(reader.Tags.GetTagSingle("LOOPEND"));
+                }                    
+                current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(file);
                 current.WaveOut = new NAudio.Wave.WaveOut();
-                current.WaveOut.Init(current.Vorbis);
+                //current.WaveOut.Init(current.Vorbis);
+                current.WaveOut.Init(new LoopProvider(current.Vorbis, loopStart, loopEnd).ToWaveProvider());
+                current.WaveOut.Volume = volume / 127f;
                 current.WaveOut.Play();
                 current.Track = track;
             }
@@ -69,6 +128,12 @@ namespace Braver {
                 if (command == null) break;
 
                 switch (command.Command) {
+                    case CommandType.SetVolume:
+                        volume = command.Param;
+                        if (contexts.Peek().WaveOut != null)
+                            contexts.Peek().WaveOut.Volume = volume / 127f;
+                        break;
+
                     case CommandType.Play:
                         if (command.Track != contexts.Peek().Track)
                             DoPlay(command.Track);
@@ -95,6 +160,13 @@ namespace Braver {
             }
         }
 
+        public void SetMusicVolume(byte volume) {
+            _channel.Writer.TryWrite(new MusicCommand {
+                Command = CommandType.SetVolume,
+                Param = volume,
+            });
+            //TODO net
+        }
         public void PlayMusic(string name, bool pushContext = false) {
             _channel.Writer.TryWrite(new MusicCommand {
                 Track = name,

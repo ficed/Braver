@@ -104,8 +104,8 @@ namespace Braver.Field {
             base.Init(g, graphics);
 
             UpdateSaveLocation();
-            //TODO - only if debug
-            Game.Save(System.IO.Path.Combine(FGame.GetSavePath(), "auto"));
+            if (g.DebugOptions.AutoSaveOnFieldEntry)
+                Game.Save(System.IO.Path.Combine(FGame.GetSavePath(), "auto"));
 
 
             g.Net.Listen<Net.FieldModelMessage>(this);
@@ -315,9 +315,11 @@ namespace Braver.Field {
             };
 
             if (g.Net is Net.Server) {
-                foreach (var entity in Entities) {
-                    entity.Call(0, 0, null);
-                    entity.Run(9999, true);
+                if (!Game.DebugOptions.NoFieldScripts) {
+                    foreach (var entity in Entities) {
+                        entity.Call(0, 0, null);
+                        entity.Run(9999, true);
+                    }
                 }
                 SetPlayerIfNecessary(); //TODO - is it OK to delay doing this? But until the entity scripts run we don't know which entity corresponds to which party member...
 
@@ -376,7 +378,8 @@ namespace Braver.Field {
                 if ((frame % 2) == 0) {
                     Overlay.Step();
                     foreach (var entity in Entities) {
-                        entity.Run(1000);
+                        if (!Game.DebugOptions.NoFieldScripts) 
+                            entity.Run(1000);
                         entity.Model?.FrameStep();
                     }
                 }
@@ -1017,8 +1020,6 @@ namespace Braver.Field {
             if (newHeight != null) {
                 //We're staying in the same tri, so just update height
                 eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
-                if (eMove.Name == "ba")
-                    System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} to {eMove.Model.Translation}");
                 return true;
             } else {
                 switch (DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, true, out float dist, out short? newTri, out Vector2 newDest)) {
@@ -1033,8 +1034,6 @@ namespace Braver.Field {
                         if (newHeight == null)
                             throw new Exception();
                         eMove.Model.Translation = new Vector3(newDest.X, newDest.Y, newHeight.Value);
-                        if (eMove.Name == "ba")
-                            System.Diagnostics.Debug.WriteLine($"Sliding {eMove.Name} to {eMove.Model.Translation}");
                         return true;
                     case LeaveTriResult.SlideNewTri:
                         newPosition = new Vector3(newDest, 0);
@@ -1069,8 +1068,6 @@ namespace Braver.Field {
                         }
                         testLocation = testFrom;
 
-                        if (eMove.Name == "ba")
-                            System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} from wmtri {eMove.WalkmeshTri} to {newTri.Value}");
                         movingToTri = _walkmesh[newTri.Value];
                         newHeight = HeightInTriangle(
                             movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
@@ -1080,8 +1077,6 @@ namespace Braver.Field {
 
                     eMove.WalkmeshTri = newTri.Value;
                     eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
-                    if (eMove.Name == "ba")
-                        System.Diagnostics.Debug.WriteLine($"Moving {eMove.Name} to {eMove.Model.Translation}");
                     return true;                    
                 }
             }
@@ -1094,7 +1089,7 @@ namespace Braver.Field {
 
             a = Math.Round(a, 4);
             b = Math.Round(b, 4);
-            var c = 1 - a - b;
+            var c = Math.Round(1 - a - b, 4);
 
             if (a < 0) return null;
             if (b < 0) return null;
@@ -1147,7 +1142,7 @@ namespace Braver.Field {
         }
 
         public void TriggerBattle(int which) {
-            Battle.BattleScreen.Launch(Game, which, BattleOptions.Flags | Battle.BattleFlags.Debug); //TODO!!!
+            Battle.BattleScreen.Launch(Game, which, BattleOptions.Flags);
         }
 
 

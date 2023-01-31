@@ -8,7 +8,6 @@ using System.Linq;
 namespace Braver {
     public class Game1 : Game {
         private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
 
         public Game1() {
             _graphics = new GraphicsDeviceManager(this);
@@ -28,16 +27,9 @@ namespace Braver {
         private FGame _g;
 
         protected override void LoadContent() {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             _g = new FGame(GraphicsDevice, @"C:\games\ff7", @"C:\Users\ficed\Projects\F7\data");
             _g.NewGame();
-            //_g.ChangeScreen(null, new TestScreen(_g, GraphicsDevice));
-            //_screen = new Field.FieldScreen("mrkt2", _g, GraphicsDevice);
-            //_screen = new UI.UIScreen(_g, GraphicsDevice);
-            //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "Quit"));
-            //_g.ChangeScreen(null, new UI.Layout.LayoutScreen(_g, GraphicsDevice, "MainMenu"));
-            //_g.ChangeScreen(null, new WorldMap.WMScreen(_g, GraphicsDevice, 139348, 126329));
 
             Dictionary<string, string> parms = Environment.GetCommandLineArgs()
                 .Select(s => s.Split('='))
@@ -72,7 +64,7 @@ namespace Braver {
             [Keys.F8] = InputKey.Debug4,
             [Keys.F9] = InputKey.Debug5,
 
-            [Keys.F11] = InputKey.DebugEffect,
+            [Keys.F11] = InputKey.DebugOptions,
             [Keys.F12] = InputKey.DebugSpeed,
         };
 
@@ -106,8 +98,8 @@ namespace Braver {
                 _g.Step(gameTime, _input);
             }
 
-            if (_input.IsJustDown(InputKey.DebugEffect))
-                _g.PushScreen(new Battle.Swirl());
+            if (_input.IsJustDown(InputKey.DebugOptions))
+                _g.PushScreen(new UI.Layout.LayoutScreen("Debug"));
 
             base.Update(gameTime);
         }

@@ -673,7 +673,7 @@ namespace Braver.Battle {
         }
 
         public static void Launch(FGame game, int battleID, BattleFlags flags) {
-            if (flags.HasFlag(BattleFlags.Debug))
+            if (game.DebugOptions.SkipBattleMenu)
                 game.PushScreen(new BattleDebug(flags));
             else
                 game.PushScreen(new RealBattleScreen(battleID, flags));
@@ -697,8 +697,6 @@ namespace Braver.Battle {
         BattleArena = 0x40,
         NoVictoryScreens = 0x80,
         NoGameOver = 0x100,
-
-        Debug = 0x8000,
     }
 }
 

@@ -21,6 +21,14 @@ namespace Braver {
         public List<LocalPref> Prefs { get; set; } = new();
     }
 
+    public class DebugOptions {
+        public bool NoFieldScripts { get; set; }
+        public bool NoRandomBattles { get; set; }
+        public bool SkipBattleMenu { get; set; }
+        public bool AutoSaveOnFieldEntry { get; set; } = true;
+    }
+
+
     public class FGame : BGame {
 
         private Stack<Screen> _screens = new();
@@ -30,6 +38,7 @@ namespace Braver {
 
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
+        public DebugOptions DebugOptions { get; } = new();
 
         public string FFMpegPath { get; private set; } //TODO - better place to put/calculate this?
 
