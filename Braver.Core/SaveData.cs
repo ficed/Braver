@@ -221,6 +221,10 @@ namespace Braver {
         public Ficedula.FF7.Field.FieldDestination FieldDestination { get; set; }
         public Module Module { get; set; }
 
+        public int FieldDangerCounter { get; set; }
+
+        public int LastRandomBattleID { get; set; }
+
         public string Location { get; set; }
         public int Gil { get; set; }
         public int GameTimeSeconds { get; set; }

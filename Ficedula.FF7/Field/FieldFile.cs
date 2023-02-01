@@ -267,8 +267,9 @@ namespace Ficedula.FF7.Field {
         public Encounter SideAttack { get; set; }
         public Encounter BothSidesAttack { get; set; }
 
+        public IEnumerable<Encounter> SpecialEncounters => new[] { BackAttack1, BackAttack2, SideAttack, BothSidesAttack };
         public IEnumerable<Encounter> AllEncounters => StandardEncounters
-            .Concat(new[] { BackAttack1, BackAttack2, SideAttack, BothSidesAttack });
+            .Concat(SpecialEncounters);
 
         public EncounterTable(Stream s) {
             Enabled = s.ReadByte() != 0;

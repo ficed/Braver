@@ -15,18 +15,17 @@ namespace Braver {
         private Field.FieldModel _model;
         private Viewer _viewer;
         private int _anim;
-        private string[] _anims = new[] { "aze.a", "baa.a", "bab.a", "bac.a", "bad.a", "bae.a",
-                        "bba.a", "bbb.a", "bbc.a", "bbd.a", "bid.a", "bie.a",
-                        "bja.a", "bjb.a", "bjc.a", "bjd.a", "bje.a", "bka.a",
-                        "bkb.a", "bkc.a" };
+        private string[] _anims = new[] { "ACFE.a", "AAFF.a", "AAGA.a", "BVJF.a" };
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
 
             graphics.BlendState = BlendState.AlphaBlend;
 
-            _model = new Field.FieldModel(graphics, g, 0, "BBE.hrc", _anims, "wm");
+            _model = new Field.FieldModel(graphics, g, 0, "AAAA.hrc", _anims, "field");
             _model.PlayAnimation(_anim, true, 1f, null);
+            _model.Scale = 0.5f;
+            //_model.Rotation2 = new Vector3(0, 0, 180);
 
             _viewer = new PerspView3D {
                 CameraPosition = new Vector3(0, 50f, 10f),
@@ -45,14 +44,18 @@ namespace Braver {
         }
 
         protected override void DoRender() {
+            Graphics.DepthStencilState = DepthStencilState.Default;
+            Graphics.RasterizerState = RasterizerState.CullClockwise;
             _model.Render(_viewer);
         }
 
         private float _z = 5;
+        private int _frame;
         protected override void DoStep(GameTime elapsed) {
-            _model.Rotation = new Vector3(0, 0, 90);
-            _model.Translation = new Vector3(0, 0, _z);
-            _model.FrameStep();
+            //_model.Rotation = new Vector3(0, 0, 90);
+            //_model.Translation = new Vector3(0, 0, _z);
+            if ((_frame++ % 4) == 0)
+                _model.FrameStep();
         }
     }
 }

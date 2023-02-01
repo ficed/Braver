@@ -8,7 +8,7 @@ namespace Braver.Field {
     public class BattleOptions {
         public string OverrideMusic { get; set; }
         public string PostBattleMusic { get; set; } //will play in field
-        public bool BattlesEnabled { get; set; } = false; //TODO - reasonable default?
+        public bool BattlesEnabled { get; set; } = true; //TODO - reasonable default?
         public Battle.BattleFlags Flags { get; set; } = Battle.BattleFlags.None;
     }
 
@@ -46,8 +46,7 @@ namespace Braver.Field {
     public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
         Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage> {
 
-        //private OrthoView3D _view3D; 
-        private PerspView3D _baseView3D, _view3D;
+        private PerspView3D _view3D;
         private Vector3 _camRight;
         private View2D _view2D;
         private FieldDebug _debug;
@@ -74,10 +73,13 @@ namespace Braver.Field {
         public List<Entity> Entities { get; private set; }
         public List<FieldModel> FieldModels { get; private set; }
         public DialogEvent FieldDialog { get; private set; }
+
+        private EncounterTable[] _encounters;
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
         public Dialog Dialog { get; private set; }
         public Overlay Overlay { get; private set; }
 
+        public int BattleTable { get; set; }
         public BattleOptions BattleOptions { get; } = new();
 
         private HashSet<Trigger> _activeTriggers = new();
@@ -132,6 +134,7 @@ namespace Braver.Field {
             Background = new Background(g, graphics, field.GetBackground());
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();
+            _encounters = field.GetEncounterTables().ToArray();
 
             Entities = FieldDialog.Entities
                 .Select(e => new Entity(e, this))
@@ -145,7 +148,7 @@ namespace Braver.Field {
                         m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
                     ) {
                         Scale = float.Parse(m.Scale) / 128f,
-                        Rotation2 = new Vector3(0, 0, 180),
+                        Rotation2 = new Vector3(0, 0, 0),
                     };
                     model.Translation2 = new Vector3(
                         0,
@@ -259,7 +262,7 @@ namespace Braver.Field {
 
             float nearest = camDistances.Min(), furthest = camDistances.Max();
 
-            _baseView3D = _view3D = new PerspView3D {
+            _view3D = new PerspView3D {
                 FOV = (float)fovy,
                 ZNear = nearest * 0.75f,
                 ZFar = furthest * 1.25f,
@@ -351,10 +354,13 @@ namespace Braver.Field {
             if (_renderDebug)
                 _debug.Render(_view3D);
 
-            if (_renderModels)
-                foreach (var entity in Entities)
-                    if ((entity.Model != null) && entity.Model.Visible)
-                        entity.Model.Render(_view3D);
+            if (_renderModels) {
+                using (var state = new GraphicsState(Graphics, rasterizerState: RasterizerState.CullClockwise)) {
+                    foreach (var entity in Entities)
+                        if ((entity.Model != null) && entity.Model.Visible)
+                            entity.Model.Render(_view3D);
+                }
+            }
 
             Overlay.Render();
 
@@ -372,10 +378,10 @@ namespace Braver.Field {
             _processes.Add(new FrameProcess { Process = process });
         }
 
-        int frame = 0;
+        private int _frame = 0;
         protected override void DoStep(GameTime elapsed) {
             if (Game.Net is Net.Server) {
-                if ((frame % 2) == 0) {
+                if ((_frame % 2) == 0) {
                     Overlay.Step();
                     foreach (var entity in Entities) {
                         if (!Game.DebugOptions.NoFieldScripts) 
@@ -394,33 +400,12 @@ namespace Braver.Field {
                 Movie.Step();
                 Background.Step();
             } else {
-                if ((frame % 2) == 0) {
+                if ((_frame % 2) == 0) {
                     foreach (var entity in Entities)
                         entity.Model?.FrameStep();
                 }
             }
-            frame++;
-        }
-
-        private IEnumerable<(float Distance, Vector2 Up, Vector2 Right, Vector3 VertPos)> GetWalkmeshOffsets() {
-            var up = _view3D.Clone();
-            up.CameraPosition += up.CameraUp * 100;
-            var right = _view3D.Clone();
-            right.CameraPosition += _camRight * 100;
-
-            return _walkmesh
-                .SelectMany(t => t.AllVerts())
-                .Select(v => {
-                    var testPos = v.ToX();
-                    var initial = ModelToBGPosition(testPos, _view3D.View * _view3D.Projection);
-                    var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
-                    var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
-
-                    //System.Diagnostics.Debug.WriteLine($"Vert {v} at initial screen pos {initial} distance from center {initial.Length()}) moves up {offsetUp - initial} right {offsetRight - initial}");
-
-                    return (initial.Length(), (offsetUp - initial) / 100, (offsetRight - initial) / 100, testPos);
-                })
-                .OrderBy(a => a.Item1);
+            _frame++;
         }
 
         public (int x, int y) GetBGScroll() {
@@ -433,34 +418,11 @@ namespace Braver.Field {
             BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
         }
         public void BGScrollOffset(float ox, float oy) {
-
-            var offsets = GetWalkmeshOffsets().ToArray();
-
-            var calcUp = new Vector2((float)Math.Round(offsets[0].Up.X, 4), (float)Math.Round(offsets[0].Up.Y, 4));
-            var calcRight = new Vector2((float)Math.Round(offsets[0].Right.X, 4), (float)Math.Round(offsets[0].Right.Y, 4));
-
-            /*
-        var testPos = _walkmesh[0].V0.ToX();
-        var initial = ModelToBGPosition(testPos, _view3D.View * _view3D.Projection);
-        var offsetUp = ModelToBGPosition(testPos, up.View * up.Projection);
-        var offsetRight = ModelToBGPosition(testPos, right.View * right.Projection);
-            */
-            System.Diagnostics.Debug.WriteLine($"Moving camera up one unit changes BG by {calcUp}");
-            System.Diagnostics.Debug.WriteLine($"Moving camera right one unit changes BG by {calcRight}");
-            /*
-                        _view3D.CameraPosition += _view3D.CameraUp * -oy / (offsetUp.Y - initial.Y);
-                        _view3D.CameraPosition += _camRight * -ox / (offsetRight.X - initial.X);
-            */
             _view2D.CenterX -= 3 * ox;
             _view2D.CenterY += 3 * oy;
-/*
-            var scroll = GetBGScroll();
-            _view3D.CameraPosition = _baseView3D.CameraPosition
-                + (_baseView3D.CameraUp * -scroll.y / calcUp.Y)
-                + (_camRight * -scroll.x / calcRight.X);
-*/
-            _view3D.CameraPosition += _view3D.CameraUp * -oy / calcUp.Y;
-            _view3D.CameraPosition += _camRight * -ox / calcRight.X;
+
+            var newScroll = GetBGScroll();
+            _view3D.ScreenOffset = new Vector2(newScroll.x * 3f * 2 / 1280, newScroll.y * -3f * 2 / 720);
 
             Game.Net.Send(new Net.FieldBGScrollMessage {
                 X = _view2D.CenterX / 3,
@@ -570,14 +532,13 @@ namespace Braver.Field {
 
 
             if (_debugMode) {
-                if (input.IsAnyDirectionDown() || input.IsJustDown(InputKey.Select)) {
 
-                    var offsets = GetWalkmeshOffsets().ToArray();
-                    var prePos = ModelToBGPosition(offsets[0].VertPos, null, false);
-                    if (input.IsDown(InputKey.Left))
-                        _view3D.CameraPosition -= _camRight * 5;
-                    else if (input.IsDown(InputKey.Right))
-                        _view3D.CameraPosition += _camRight * 5;
+                if (input.IsDown(InputKey.PanLeft))
+                    BGScrollOffset(0, -1);
+                else if (input.IsDown(InputKey.PanRight))
+                    BGScrollOffset(0, +1);
+
+                if (input.IsAnyDirectionDown() || input.IsJustDown(InputKey.Select)) {
 
                     if (input.IsDown(InputKey.Up))
                         _view3D.CameraPosition += _view3D.CameraUp;
@@ -784,6 +745,18 @@ namespace Braver.Field {
 
                             if (Options.HasFlag(FieldOptions.CameraTracksPlayer))
                                 BringPlayerIntoView();
+
+                            if ((_frame % 20) == 0) {
+                                Game.SaveData.FieldDangerCounter += (int)(1024 * animSpeed * animSpeed / _encounters[BattleTable].Rate);
+                                if (_r.Next(256) < (Game.SaveData.FieldDangerCounter / 256)) {
+                                    System.Diagnostics.Debug.WriteLine($"FieldDangerCounter: trigger encounter and reset");
+                                    Game.SaveData.FieldDangerCounter = 0;
+                                    if (BattleOptions.BattlesEnabled && _encounters[BattleTable].Enabled) {
+                                        Battle.BattleScreen.Launch(Game, _encounters[BattleTable], BattleOptions.Flags, _r);
+                                    }
+                                }
+                            }
+
                         } else {
                             //
                         }

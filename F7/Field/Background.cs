@@ -172,7 +172,7 @@ namespace Braver.Field {
 
         public void Render(Viewer viewer, float zFrom, float zTo) {
 
-            using (var state = new GraphicsState(_graphics, BlendState.AlphaBlend, DepthStencilState.Default)) {
+            using (var state = new GraphicsState(_graphics, depthStencilState: DepthStencilState.Default, forceSaveAll: true)) {
 
                 _effect.Projection = viewer.Projection;
                 _effect.View = viewer.View;

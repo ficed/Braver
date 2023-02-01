@@ -1210,7 +1210,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             byte banks = f.ReadU8();
             ushort ssound = f.ReadU16();
             byte span = f.ReadU8();
-            int sound = s.Game.Memory.Read(banks & 0xf, ssound);
+            int sound = s.Game.Memory.Read(banks & 0xf, ssound) - 1;
             int pan = s.Game.Memory.Read(banks >> 4, span);
             s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64);
             return OpResult.Continue;

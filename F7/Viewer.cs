@@ -61,6 +61,7 @@ namespace Braver {
     public class PerspView3D : View3D {
 
         public float FOV { get; set; } = 90f;
+        public Vector2 ScreenOffset { get; set; }
 
         public PerspView3D Clone() {
             return new PerspView3D {
@@ -71,12 +72,14 @@ namespace Braver {
                 CameraUp = CameraUp,
                 CameraForwards = CameraForwards,
                 FOV = FOV,
+                ScreenOffset = ScreenOffset,
             };
         }
 
         public override Matrix Projection => Matrix.CreatePerspectiveFieldOfView(
-            FOV * (float)Math.PI / 180, AspectRatio, ZNear, ZFar
-        );
+                                                FOV * (float)Math.PI / 180, AspectRatio, ZNear, ZFar
+                                             )
+                                           * Matrix.CreateTranslation(ScreenOffset.X, ScreenOffset.Y, 0);
 
         public PerspView3D Blend(PerspView3D other, float factor) {
             return new PerspView3D {
@@ -105,4 +108,5 @@ namespace Braver {
 
     }
 }
+
 

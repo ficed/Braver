@@ -2,6 +2,7 @@
 using Braver.UI.Layout;
 using Ficedula.FF7;
 using Ficedula.FF7.Battle;
+using Ficedula.FF7.Field;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -675,8 +676,47 @@ namespace Braver.Battle {
         public static void Launch(FGame game, int battleID, BattleFlags flags) {
             if (game.DebugOptions.SkipBattleMenu)
                 game.PushScreen(new BattleDebug(flags));
-            else
+            else {
                 game.PushScreen(new RealBattleScreen(battleID, flags));
+                game.PushScreen(new Swirl());
+            }
+        }
+
+        public static void Launch(FGame game, EncounterTable encounters, BattleFlags flags, Random r) {
+            int preemptive = 16;
+            //TODO - preemptive materia!
+            bool isPreemptive = r.Next(256) < preemptive;
+
+            bool ambushAlert = false; //TODO!
+
+            int specialChance = r.Next(64);
+            foreach(var enc in encounters.SpecialEncounters) {
+                int frequency = enc.Frequency;
+                if (ambushAlert && (enc != encounters.SideAttack))
+                    frequency /= 2;
+                if (specialChance < enc.Frequency) {
+                    game.SaveData.LastRandomBattleID = enc.EncounterID;
+                    Launch(game, enc.EncounterID, flags); 
+                    return;
+                }
+                specialChance -= enc.Frequency;
+            }
+
+            Encounter PickEncounter() {
+                int num = r.Next(64);
+                foreach(var enc in encounters.StandardEncounters) {
+                    if (num < enc.Frequency)
+                        return enc;
+                    num -= enc.Frequency;
+                }
+                throw new InvalidOperationException();
+            }
+
+            var which = PickEncounter();
+            if (which.EncounterID == game.SaveData.LastRandomBattleID)
+                which = PickEncounter();
+            game.SaveData.LastRandomBattleID = which.EncounterID;
+            Launch(game, which.EncounterID, flags);
         }
     }
 

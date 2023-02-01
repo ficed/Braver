@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Braver.UI.Layout;
+using Microsoft.CodeAnalysis;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -14,20 +15,52 @@ namespace Braver {
         private GraphicsDevice _graphics;
         private BlendState _blend;
         private DepthStencilState _depthStencilState;
+        private RasterizerState _rasterizerState;
 
-        public GraphicsState(GraphicsDevice graphics, BlendState blend, DepthStencilState depthStencilState = null) {
+        public GraphicsState(GraphicsDevice graphics, BlendState blend = null, DepthStencilState depthStencilState = null, RasterizerState rasterizerState = null, bool forceSaveAll = false) {
+            if (!forceSaveAll) {
+                if (graphics.BlendState == blend)
+                    blend = null;
+                if (graphics.DepthStencilState == depthStencilState)
+                    depthStencilState = null;
+                if (graphics.RasterizerState == rasterizerState)
+                    rasterizerState = null;
+
+                if ((blend == null) && (depthStencilState == null) && (rasterizerState == null))
+                    return;
+            }
+
             _graphics = graphics;
-            _blend = graphics.BlendState;
-            _depthStencilState = graphics.DepthStencilState;
-            if (blend != null)
+
+            if (forceSaveAll) {
+                _blend = graphics.BlendState;
+                _depthStencilState = graphics.DepthStencilState;
+                _rasterizerState = graphics.RasterizerState;
+            }
+
+            if (blend != null) {
+                _blend = graphics.BlendState;
                 graphics.BlendState = blend;
-            if (depthStencilState != null)
+            }
+            if (depthStencilState != null) {
+                _depthStencilState = graphics.DepthStencilState;
                 graphics.DepthStencilState = depthStencilState;
+            }
+            if (rasterizerState != null) {
+                _rasterizerState = graphics.RasterizerState;
+                graphics.RasterizerState = rasterizerState;
+            }
         }
 
         public void Dispose() {
-            _graphics.BlendState = _blend;
-            _graphics.DepthStencilState = _depthStencilState;
+            if (_graphics != null) {
+                if (_blend != null)
+                    _graphics.BlendState = _blend;
+                if (_depthStencilState != null)
+                    _graphics.DepthStencilState = _depthStencilState;
+                if (_rasterizerState != null)
+                    _graphics.RasterizerState = _rasterizerState;
+            }
         }
     }
 
