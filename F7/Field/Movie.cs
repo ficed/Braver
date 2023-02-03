@@ -17,6 +17,7 @@ namespace Braver.Field {
 
         public int Frame => _frame;
         public bool Active => (_process != null) && (_frame >= 0);
+        public Ficedula.FF7.Field.CameraMatrix Camera => Active ? _cam.Camera.ElementAtOrDefault(Frame) : null;
 
         private string _ffPath;
 
@@ -32,7 +33,12 @@ namespace Braver.Field {
 
         private string[] _files;
 
+        private FGame _game;
+
+        private Ficedula.FF7.Field.MovieCam _cam;
+
         public Movie(FGame g, GraphicsDevice graphics) {
+            _game = g;
             _graphics = graphics;
             _spriteBatch = new SpriteBatch(graphics);
             _ffPath = g.FFMpegPath;
@@ -101,6 +107,9 @@ namespace Braver.Field {
         public void Prepare(int movie) {
 
             string filename = _files[movie];
+
+            using (var s = _game.Open("cd", Path.GetFileName(Path.ChangeExtension(filename, ".cam"))))
+                _cam = new Ficedula.FF7.Field.MovieCam(s);
 
             GetAudioData(filename, "");
 

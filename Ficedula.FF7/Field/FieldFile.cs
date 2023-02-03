@@ -362,4 +362,17 @@ namespace Ficedula.FF7.Field {
         }
 
     }
+
+    public class MovieCam {
+        private List<CameraMatrix> _cameras = new();
+
+        public IReadOnlyList<CameraMatrix> Camera => _cameras.AsReadOnly();
+
+        public MovieCam(Stream s) {
+            while(s.Position < s.Length) {
+                _cameras.Add(new CameraMatrix(s));
+                s.ReadI16();
+            }
+        }
+    }
 }

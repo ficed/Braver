@@ -47,7 +47,6 @@ namespace Braver.Field {
         Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage> {
 
         private PerspView3D _view3D;
-        private Vector3 _camRight;
         private View2D _view2D;
         private FieldDebug _debug;
         private FieldInfo _info;
@@ -100,6 +99,29 @@ namespace Braver.Field {
                 if (autoPlayer != null)
                     SetPlayer(Entities.IndexOf(autoPlayer));
             }
+        }
+
+        private PerspView3D ViewFromCamera(CameraMatrix cam) {
+            if (cam == null) return null;
+
+            double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
+
+            var camPosition = cam.CameraPosition.ToX() * 4096f;
+
+            var camDistances = _walkmesh
+                .SelectMany(tri => new[] { tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX() })
+                .Select(v => (camPosition - v).Length());
+
+            float nearest = camDistances.Min(), furthest = camDistances.Max();
+
+            return new PerspView3D {
+                FOV = (float)fovy,
+                ZNear = nearest * 0.75f,
+                ZFar = furthest * 1.25f,
+                CameraPosition = camPosition,
+                CameraForwards = cam.Forwards.ToX(),
+                CameraUp = cam.Up.ToX(),
+            };
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
@@ -252,30 +274,12 @@ namespace Braver.Field {
             };
             */
 
-            double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
-
-            var camPosition = cam.CameraPosition.ToX() * 4096f;
-
-            var camDistances = _walkmesh
-                .SelectMany(tri => new[] { tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX() })
-                .Select(v => (camPosition - v).Length());
-
-            float nearest = camDistances.Min(), furthest = camDistances.Max();
-
-            _view3D = new PerspView3D {
-                FOV = (float)fovy,
-                ZNear = nearest * 0.75f,
-                ZFar = furthest * 1.25f,
-                CameraPosition = camPosition,
-                CameraForwards = cam.Forwards.ToX(),
-                CameraUp = cam.Up.ToX(),
-            };
-            _camRight = cam.Right.ToX();
+            _view3D = ViewFromCamera(cam);
 
             var vp = System.Numerics.Matrix4x4.CreateLookAt(
                 cam.CameraPosition * 4096f, cam.CameraPosition * 4096f + cam.Forwards, cam.Up
             ) * System.Numerics.Matrix4x4.CreatePerspectiveFieldOfView(
-                (float)(fovy * Math.PI / 180.0), 1280f / 720f, 0.001f * 4096f, 1000f * 4096f
+                (float)(_view3D.FOV * Math.PI / 180.0), 1280f / 720f, 0.001f * 4096f, 1000f * 4096f
             );
 
             float minZ = 1f, maxZ = 0f;
@@ -351,14 +355,16 @@ namespace Braver.Field {
                     Background.Render(_view2D, _bgZFrom, _bgZTo);
             }
 
+            Viewer viewer3D = ViewFromCamera(Movie.Camera) ?? _view3D;
+
             if (_renderDebug)
-                _debug.Render(_view3D);
+                _debug.Render(viewer3D);
 
             if (_renderModels) {
                 using (var state = new GraphicsState(Graphics, rasterizerState: RasterizerState.CullClockwise)) {
                     foreach (var entity in Entities)
                         if ((entity.Model != null) && entity.Model.Visible)
-                            entity.Model.Render(_view3D);
+                            entity.Model.Render(viewer3D);
                 }
             }
 

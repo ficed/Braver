@@ -57,6 +57,7 @@ namespace Braver {
             _data["cd"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "disc_us.lgp"))),
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "cr_us.lgp"))),
+                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "moviecam.lgp"))),
             };
             _data["wm"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "wm", "world_us.lgp"))),
