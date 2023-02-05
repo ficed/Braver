@@ -131,6 +131,12 @@ namespace Braver.UI {
             public string Texture { get; set; }
             public int X { get; set; }
             public int Y { get; set; }
+
+            public int SourceX { get; set; } //Optional
+            public int SourceY { get; set; } //Optional
+            public int SourceWidth { get; set; } //Optional
+            public int SourceHeight { get; set; } //Optional
+
             [XmlElement("Chunk")]
             public List<SourceChunk> Chunks { get; set; } = new List<SourceChunk>();
         }
@@ -176,10 +182,14 @@ namespace Braver.UI {
                                     var t = new Ficedula.FF7.TexFile(ts);
                                     int pal = int.Parse(parts.ElementAtOrDefault(2) ?? "0");
                                     var pixels = t.ApplyPalette(pal);
+
+                                    int w = image.SourceWidth > 0 ? image.SourceWidth : t.Width,
+                                        h = image.SourceHeight > 0 ? image.SourceHeight : t.Height;
+
                                     texture.SetData(
-                                        0, new Rectangle(image.X, image.Y, t.Width, t.Height),
-                                        pixels.SelectMany(row => row).ToArray(),
-                                        0, t.Width * t.Height
+                                        0, new Rectangle(image.X, image.Y, w, h),
+                                        pixels.Skip(image.SourceY).SelectMany(row => row.Skip(image.SourceX)).ToArray(),
+                                        0, w * h
                                     );
                                 } else if (System.IO.Path.GetExtension(parts[1]).Equals(".png")) {
                                     using (var png = SixLabors.ImageSharp.Image.Load<Rgba32>(ts)) {

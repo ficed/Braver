@@ -38,6 +38,8 @@
 			<Chunk X="32" Y="96" W="26" H="26">materia_star_empty</Chunk>
 			<Chunk X="0" Y="32" W="64" H="16">bm_name</Chunk>
 			<Chunk X="0" Y="48" W="64" H="16">bm_status</Chunk>
+			<Chunk X="0" Y="192" W="32" H="26">pointer_above_left</Chunk>
+			<Chunk X="0" Y="192" W="32" H="26" Flip="true">pointer_above</Chunk>
 		</SourceImage>
 		<SourceImage>
 			<Texture>menu\btl_win_c_h.tex,0</Texture>
@@ -48,6 +50,13 @@
 			<Texture>menu\btl_win_c_h.tex,1</Texture>
 			<X>512</X>
 			<Y>256</Y>
+
+			<Chunk X="96" Y="160" W="18" H="12">anim_arrow_0</Chunk>
+			<Chunk X="128" Y="160" W="18" H="12">anim_arrow_1</Chunk>
+			<Chunk X="160" Y="160" W="18" H="12">anim_arrow_2</Chunk>
+			<Chunk X="192" Y="160" W="18" H="12">anim_arrow_3</Chunk>
+			<Chunk X="224" Y="160" W="18" H="12">anim_arrow_4</Chunk>
+
 		</SourceImage>
 		<SourceImage>
 			<Texture>menu\btl_win_d_h.tex,0</Texture>

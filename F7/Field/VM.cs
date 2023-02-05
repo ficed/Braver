@@ -452,9 +452,9 @@ namespace Braver.Field {
                 case 8:
                     match = (val1 | val2) != 0; break;
                 case 9:
-                    match = (val2 & (1 << val2)) != 0; break;
+                    match = (val1 & (1 << val2)) != 0; break;
                 case 0xA:
-                    match = ~(val2 & (1 << val2)) != 0; break;
+                    match = (val1 & (1 << val2)) == 0; break;
                 default:
                     throw new F7Exception($"Unrecognised comparison {comparison}");
             }
@@ -1011,6 +1011,14 @@ namespace Braver.Field {
             s.Game.SaveData.Characters[charID].Flags |= CharFlags.Locked;
             return OpResult.Continue;
         }
+
+        public static OpResult STITM(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8();
+            ushort item = f.ReadU16();
+            byte qty = f.ReadU8();
+            s.Game.SaveData.GiveInventoryItem(InventoryItemKind.Item, s.Game.Memory.Read(banks & 0xf, item), s.Game.Memory.Read(banks >> 4, qty));
+            return OpResult.Continue;
+        }
     }
 
     internal static class WindowMenu {
@@ -1441,6 +1449,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             byte banks = f.ReadU8(), dest = f.ReadU8(), src = f.ReadU8();
             int bit = s.Game.Memory.Read(banks & 0xf, src);
             int current = s.Game.Memory.Read(banks >> 4, dest);
+            
             s.Game.Memory.Write(banks >> 4, dest, (byte)(current | (1 << bit)));
             return OpResult.Continue;
         }

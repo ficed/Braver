@@ -55,10 +55,10 @@ namespace Braver.Field {
         private bool _debugMode = false;
         private bool _renderBG = true, _renderDebug = true, _renderModels = true;
         private float _controlRotation;
+        private bool _renderUI = true;
 
         private List<WalkmeshTriangle> _walkmesh;
 
-        private TriggersAndGateways _triggersAndGateways;
 
         public override Color ClearColor => Color.Black;
 
@@ -72,10 +72,12 @@ namespace Braver.Field {
         public List<Entity> Entities { get; private set; }
         public List<FieldModel> FieldModels { get; private set; }
         public DialogEvent FieldDialog { get; private set; }
+        public TriggersAndGateways TriggersAndGateways { get; private set; }
 
         private EncounterTable[] _encounters;
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
         public Dialog Dialog { get; private set; }
+        public FieldUI FieldUI { get; private set; }
         public Overlay Overlay { get; private set; }
 
         public int BattleTable { get; set; }
@@ -181,8 +183,8 @@ namespace Braver.Field {
                 })
                 .ToList();
 
-            _triggersAndGateways = field.GetTriggersAndGateways();
-            _controlRotation = 360f * _triggersAndGateways.ControlDirection / 256f;
+            TriggersAndGateways = field.GetTriggersAndGateways();
+            _controlRotation = 360f * TriggersAndGateways.ControlDirection / 256f;
 
             _walkmesh = field.GetWalkmesh().Triangles;
 
@@ -311,6 +313,7 @@ namespace Braver.Field {
             }
 
             Dialog = new Dialog(g, graphics);
+            FieldUI = new FieldUI(g, graphics);
 
             g.Memory.ResetScratch();
 
@@ -370,6 +373,8 @@ namespace Braver.Field {
 
             Overlay.Render();
 
+            if (_renderUI && !Movie.Active)
+                FieldUI.Render();
             Dialog.Render();
         }
 
@@ -402,6 +407,7 @@ namespace Braver.Field {
                         _processes.RemoveAt(i);
                 }
 
+                FieldUI.Step(this);
                 Dialog.Step();
                 Movie.Step();
                 Background.Step();
@@ -523,6 +529,9 @@ namespace Braver.Field {
             _lastInput = input;
             if (input.IsJustDown(InputKey.Start))
                 _debugMode = !_debugMode;
+
+            if (input.IsJustDown(InputKey.Select))
+                _renderUI = !_renderUI;
 
             if (input.IsJustDown(InputKey.Debug1))
                 _renderBG = !_renderBG;
@@ -697,7 +706,7 @@ namespace Braver.Field {
                                 left.Call(3, 6, null); //TODO PRIORITY!?!
                             }
 
-                            foreach (var gateway in _triggersAndGateways.Gateways) {
+                            foreach (var gateway in TriggersAndGateways.Gateways) {
                                 if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
                                     Options &= ~FieldOptions.PlayerControls;
                                     desiredAnim = 0; //stop player walking as they won't move any more!
@@ -706,7 +715,7 @@ namespace Braver.Field {
                                     });
                                 }
                             }
-                            foreach(var trigger in _triggersAndGateways.Triggers) {
+                            foreach(var trigger in TriggersAndGateways.Triggers) {
                                 bool active = GraphicsUtil.LineCircleIntersect(trigger.V0.ToX().XY(), trigger.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance);
                                 if (active != _activeTriggers.Contains(trigger)) {
 

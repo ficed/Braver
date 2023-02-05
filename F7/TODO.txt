@@ -13,8 +13,8 @@ Shops!
 
 Compressed/single file saves
 
-Field - camera in movies
-	  - model lighting
+Field - model lighting
+	  - player hand pointer is jumpy (due to int coordinates maybe...?)
 
 Music looping works but still a noticeable break at the loop point
 
@@ -30,5 +30,6 @@ Battle
 	EXP/AP, Gil/items screens need finishing - actually update savedata as well!!!
 	Implement alternate music options
 	Targetting input is probably wrong - switch always, or based on camera angle...?
+	Don't allow targetting dead enemies
 	Animations?!?!?!?!?!
 	Hit effects...
