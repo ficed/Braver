@@ -12,6 +12,8 @@ namespace Braver.Field {
         public int Height => _bg.Height;
         public int MinX { get; private set; }
         public int MinY { get; private set; }
+        public int MaxX => _bg.Width + MinX;
+        public int MaxY => _bg.Height + MinY;
 
         private class TexLayer {
             public Texture2D Tex;
@@ -65,9 +67,9 @@ namespace Braver.Field {
 
             var zCoords = bg.AllSprites
                 .Select(spr => spr.ID)
-                .Where(z => z > 1 && z < 4095);
-            AutoDetectZFrom = zCoords.Min();
-            AutoDetectZTo = zCoords.Max();
+                .Where(z => z > 1 && z < 4032);
+            AutoDetectZFrom = zCoords.Min() * 0.75f;
+            AutoDetectZTo = zCoords.Max() * 1.25f;
 
             foreach (var layer in bg.Layers.Where(L => L.Any())) {
 
@@ -88,20 +90,20 @@ namespace Braver.Field {
                         maxT = 1f * (maxY - minY) / texHeight;
 
                     float zcoord;
-                    switch (group.First().ID) {
-                        case 4095:
-                            zcoord = 1f; break;
-                        case 0:
-                        case 1:
-                            zcoord = 0f; break;
-                        default:
-                            zcoord = group.First().ID; break;
+                    bool isFixedZ;
+                    if (group.First().ID >= 4032) {
+                        zcoord = 1f; isFixedZ = true;
+                    } else if (group.First().ID <= 1) {
+                        zcoord = 0f; isFixedZ = true;
+                    } else {
+                        zcoord = group.First().ID; isFixedZ = false;
                     }
 
                     TexLayer tl = new TexLayer {
                         Tex = new Texture2D(graphics, texWidth, texHeight, false, SurfaceFormat.Color),
                         OffsetX = -minX,
                         OffsetY = -minY,
+                        FixedZ = isFixedZ,
                         Blend = (Ficedula.FF7.Field.BlendType)group.First().TypeTrans,
                         Sprites = group.ToArray(),
                         Data = Enumerable.Range(0, texHeight)
@@ -138,14 +140,6 @@ namespace Braver.Field {
                         }
                     };
 
-                    switch (group.First().ID) {
-                        case 4095:
-                        case 1:
-                        case 0:
-                            tl.FixedZ = true;
-                            break;
-                    }
-
                     _layers.Add(tl);
                     Draw(tl.Sprites, tl.Data, -minX, -minY, false);
                     foreach (int y in Enumerable.Range(0, tl.Tex.Height))
@@ -170,9 +164,11 @@ namespace Braver.Field {
         public void Step() {
         }
 
-        public void Render(Viewer viewer, float zFrom, float zTo) {
+        public void Render(Viewer viewer, float zFrom, float zTo, bool blendLayers) {
 
-            using (var state = new GraphicsState(_graphics, depthStencilState: DepthStencilState.Default, forceSaveAll: true)) {
+            var depth = blendLayers ? DepthStencilState.None : DepthStencilState.Default;
+
+            using (var state = new GraphicsState(_graphics, depthStencilState: depth, forceSaveAll: true)) {
 
                 _effect.Projection = viewer.Projection;
                 _effect.View = viewer.View;
@@ -186,12 +182,15 @@ namespace Braver.Field {
                     switch (layer.Blend) {
                         case Ficedula.FF7.Field.BlendType.None:
                         case Ficedula.FF7.Field.BlendType.Blend:
+                            if (blendLayers) continue;
                             _graphics.BlendState = BlendState.AlphaBlend;
                             break;
                         case Ficedula.FF7.Field.BlendType.Additive:
+                            if (!blendLayers) continue;
                             _graphics.BlendState = BlendState.Additive;
                             break;
                         case Ficedula.FF7.Field.BlendType.QuarterAdd:
+                            if (!blendLayers) continue;
                             _graphics.BlendState = GraphicsUtil.BlendQuarterAdd;
                             break;
                         default: //TODO NO

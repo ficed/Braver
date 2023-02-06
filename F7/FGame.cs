@@ -43,9 +43,11 @@ namespace Braver {
         public string FFMpegPath { get; private set; } //TODO - better place to put/calculate this?
 
         private Dictionary<string, string> _prefs;
+        private string _bdata;
 
         public FGame(GraphicsDevice graphics, string root, string bdata) {
             _graphics = graphics;
+            _bdata = bdata;
             string data = Path.Combine(root, "data");
             _data["field"] = new List<DataSource> {
                 new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
@@ -115,6 +117,10 @@ namespace Braver {
                 };
                 Serialisation.Serialise(lp, fs);
             }
+        }
+
+        public Stream WriteDebugBData(string category, string file) {
+            return new FileStream(Path.Combine(_bdata, category, file), FileMode.Create);
         }
 
         public override void Load(string path) {

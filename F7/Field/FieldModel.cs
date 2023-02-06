@@ -82,8 +82,15 @@ namespace Braver.Field {
         private FGame _game;
         private List<Ficedula.FF7.Field.FieldAnim> _animations = new();
 
+        private Vector3 _light1Pos, _light2Pos, _light3Pos;
+
         //TODO dedupe textures
-        public FieldModel(GraphicsDevice graphics, FGame g, int modelID, string hrc, IEnumerable<string> animations, string category = "field") {
+        public FieldModel(GraphicsDevice graphics, FGame g, int modelID, string hrc, IEnumerable<string> animations, 
+            string category = "field", uint? globalLightColour = null,
+            uint? light1Colour = null, Vector3? light1Pos = null,
+            uint? light2Colour = null, Vector3? light2Pos = null,
+            uint? light3Colour = null, Vector3? light3Pos = null
+            ) {
             _graphics = graphics;
             _game = g;
             _modelID = modelID;
@@ -127,13 +134,35 @@ namespace Braver.Field {
             _texEffect = new BasicEffect(graphics) {
                 TextureEnabled = true,
                 VertexColorEnabled = true,
-                LightingEnabled = false,
             };
             _colEffect = new BasicEffect(graphics) {
                 TextureEnabled = false,
                 VertexColorEnabled = true,
-                LightingEnabled = false,
             };
+
+            foreach(var effect in new[] { _texEffect, _colEffect }) {
+                if (globalLightColour == null)
+                    effect.LightingEnabled = false;
+                else {
+                    effect.LightingEnabled = true;
+                    effect.PreferPerPixelLighting = true;
+                    effect.AmbientLightColor = new Color(globalLightColour.Value).ToVector3();
+
+                    _light1Pos = light1Pos.Value;
+                    _light2Pos = light1Pos.Value;
+                    _light3Pos = light1Pos.Value;
+
+                    effect.DirectionalLight0.DiffuseColor = new Color(light1Colour.Value).ToVector3();
+                    effect.DirectionalLight0.Enabled = true;
+
+                    effect.DirectionalLight1.DiffuseColor = new Color(light2Colour.Value).ToVector3();
+                    effect.DirectionalLight1.Enabled = true;
+
+                    effect.DirectionalLight2.DiffuseColor = new Color(light3Colour.Value).ToVector3();
+                    effect.DirectionalLight2.Enabled = true;
+
+                }
+            }
 
             if (verts.Any()) {
                 _vertexBuffer = new VertexBuffer(graphics, typeof(VertexPositionNormalColorTexture), verts.Count, BufferUsage.WriteOnly);
@@ -207,6 +236,20 @@ namespace Braver.Field {
 
         public void Render(Viewer viewer) {
             if (_vertexBuffer == null) return;
+
+            if (_texEffect.LightingEnabled) {
+                Vector3 direction = Translation - _light1Pos;
+                direction.Normalize();
+                _texEffect.DirectionalLight0.Direction = _colEffect.DirectionalLight0.Direction = direction;
+
+                direction = Translation - _light2Pos;
+                direction.Normalize();
+                _texEffect.DirectionalLight1.Direction = _colEffect.DirectionalLight1.Direction = direction;
+
+                direction = Translation - _light3Pos;
+                direction.Normalize();
+                _texEffect.DirectionalLight2.Direction = _colEffect.DirectionalLight2.Direction = direction;
+            }
 
             _texEffect.View = viewer.View;
             _texEffect.Projection = viewer.Projection;

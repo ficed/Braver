@@ -13,8 +13,9 @@ Shops!
 
 Compressed/single file saves
 
-Field - model lighting
+Field - model lighting looks a bit too bright
 	  - player hand pointer is jumpy (due to int coordinates maybe...?)
+	  - easy way of debugging/configure Z ranges
 
 Music looping works but still a noticeable break at the loop point
 

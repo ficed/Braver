@@ -13,6 +13,8 @@ namespace Braver.Field {
     }
 
     public class FieldInfo {
+        public float OriginalBGZFrom { get; set; }
+        public float OriginalBGZTo { get; set; }
         public float BGZFrom { get; set; }
         public float BGZTo { get; set; }
     }
@@ -51,6 +53,7 @@ namespace Braver.Field {
         private FieldDebug _debug;
         private FieldInfo _info;
         private float _bgZFrom = 1025f, _bgZTo = 1092f;
+        private string _file;
 
         private bool _debugMode = false;
         private bool _renderBG = true, _renderDebug = true, _renderModels = true;
@@ -146,12 +149,12 @@ namespace Braver.Field {
             FieldFile field;
 
             var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
-            string file = mapList.Items[_destination.DestinationFieldID];
+            _file = mapList.Items[_destination.DestinationFieldID];
             var cached = g.Singleton(() => new CachedField());
             if (cached.FieldID == _destination.DestinationFieldID)
                 field = cached.FieldFile;
             else {
-                using (var s = g.Open("field", file))
+                using (var s = g.Open("field", _file))
                     field = new FieldFile(s);
             }
 
@@ -169,7 +172,11 @@ namespace Braver.Field {
                 .Select((m, index) => {
                     var model = new FieldModel(
                         graphics, g, index, m.HRC,
-                        m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a"))
+                        m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a")),
+                        globalLightColour: m.GlobalLightColor,
+                        light1Colour: m.Light1Color, light1Pos: m.Light1Pos.ToX(),
+                        light2Colour: m.Light2Color, light2Pos: m.Light2Pos.ToX(),
+                        light3Colour: m.Light3Color, light3Pos: m.Light3Pos.ToX()
                     ) {
                         Scale = float.Parse(m.Scale) / 128f,
                         Rotation2 = new Vector3(0, 0, 0),
@@ -188,7 +195,7 @@ namespace Braver.Field {
 
             _walkmesh = field.GetWalkmesh().Triangles;
 
-            using (var sinfo = g.TryOpen("field", file + ".xml")) {
+            using (var sinfo = g.TryOpen("field", _file + ".xml")) {
                 if (sinfo != null) {
                     _info = Serialisation.Deserialise<FieldInfo>(sinfo);
                 } else
@@ -352,10 +359,11 @@ namespace Braver.Field {
             Graphics.DepthStencilState = DepthStencilState.Default;
             Graphics.BlendState = BlendState.AlphaBlend;
             if (_renderBG) {
+                //Render non-transparent background (or movie, if it's active)
                 if (Movie.Active)
                     Movie.Render();
                 else
-                    Background.Render(_view2D, _bgZFrom, _bgZTo);
+                    Background.Render(_view2D, _bgZFrom, _bgZTo, false);
             }
 
             Viewer viewer3D = ViewFromCamera(Movie.Camera) ?? _view3D;
@@ -370,6 +378,10 @@ namespace Braver.Field {
                             entity.Model.Render(viewer3D);
                 }
             }
+
+            //Now render blend layers over actual background + models
+            if (_renderBG && !Movie.Active)
+                Background.Render(_view2D, _bgZFrom, _bgZTo, true);
 
             Overlay.Render();
 
@@ -430,8 +442,17 @@ namespace Braver.Field {
             BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
         }
         public void BGScrollOffset(float ox, float oy) {
+
+            int minYScroll = Background.MinY >= -120 ? 0 : -Background.MinY - 120,
+                maxYScroll = Background.MaxY <= 120 ? 0 : Background.MaxY - 120,
+                minXScroll = Background.MinX >= -213 ? 0 : -Background.MinX - 213,
+                maxXScroll = Background.MaxX <= 213 ? 0 : Background.MaxX - 213;
+
             _view2D.CenterX -= 3 * ox;
             _view2D.CenterY += 3 * oy;
+
+            _view2D.CenterX = Math.Min(Math.Max(-3 * maxXScroll, _view2D.CenterX), 3 * minXScroll);
+            _view2D.CenterY = Math.Min(Math.Max(-3 * minYScroll, _view2D.CenterY), 3 * maxYScroll);
 
             var newScroll = GetBGScroll();
             _view3D.ScreenOffset = new Vector2(newScroll.x * 3f * 2 / 1280, newScroll.y * -3f * 2 / 720);
@@ -545,6 +566,30 @@ namespace Braver.Field {
             if (input.IsJustDown(InputKey.Debug5))
                 Entity.DEBUG_OUT = !Entity.DEBUG_OUT;
 
+            if (input.IsDown(InputKey.Debug4)) {
+                if (input.IsDown(InputKey.Up))
+                    _bgZFrom++;
+                else if (input.IsDown(InputKey.Down))
+                    _bgZFrom--;
+
+                if (input.IsDown(InputKey.Left))
+                    _bgZTo--;
+                else if (input.IsDown(InputKey.Right))
+                    _bgZTo++;
+
+                if (input.IsDown(InputKey.Start)) {
+                    using(var s = Game.WriteDebugBData("field", _file + ".xml")) {
+                        var info = new FieldInfo {
+                            BGZFrom = _bgZFrom, BGZTo = _bgZTo,
+                            OriginalBGZFrom = Background.AutoDetectZFrom, OriginalBGZTo = Background.AutoDetectZTo, 
+                        };
+                        Serialisation.Serialise(info, s);
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"BGZFrom {_bgZFrom} ZTo {_bgZTo}");
+                return;
+            }
 
             if (_debugMode) {
 

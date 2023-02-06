@@ -153,6 +153,7 @@ namespace Braver {
                     case CommandType.Push:
                         if (contexts.Peek().Vorbis != null)
                             contexts.Peek().WaveOut.Pause();
+                        contexts.Push(new MusicContext());
                         DoPlay(command.Track);
                         break;
                 }
