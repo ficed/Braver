@@ -286,6 +286,8 @@ namespace Braver.Field {
 
         public object ResumeState { get; set; }
 
+        public Dictionary<string, object> OtherState { get; } = new();
+
         public byte ReadU8() {
             return _script[_ip++];
         }
@@ -941,6 +943,8 @@ namespace Braver.Field {
             var start = e.Model.Translation2;
             var end = new Vector3(x, y, z);
 
+            f.OtherState["OFST"] = true;
+
             s.StartProcess(frame => {
                 float progress;
                 switch (type) {
@@ -948,10 +952,10 @@ namespace Braver.Field {
                         progress = 1f;
                         break;
                     case 1: //linear
-                        progress = 1f * frame / speed;
+                        progress = 1f * (frame / 2) / speed;
                         break;
                     case 2: //ease in/out
-                        progress = Easings.QuadraticInOut(1f * frame / speed);
+                        progress = Easings.QuadraticInOut(1f * (frame / 2) / speed);
                         break;
                     default:
                         throw new NotImplementedException();
@@ -959,6 +963,7 @@ namespace Braver.Field {
 
                 if (progress >= 1f) {
                     e.Model.Translation2 = end;
+                    f.OtherState["OFST"] = false;
                     return true;
                 } else {
                     e.Model.Translation2 = Vector3.Lerp(start, end, progress);
@@ -967,6 +972,12 @@ namespace Braver.Field {
             });
 
             return OpResult.Continue;
+        }
+        public static OpResult OFSTW(Fiber f, Entity e, FieldScreen s) {
+            if (f.OtherState.TryGetValue("OFST", out object v) && (bool)v)
+                return OpResult.Continue;
+            else
+                return OpResult.Restart;
         }
 
         public static OpResult KAWAI(Fiber f, Entity e, FieldScreen s) {

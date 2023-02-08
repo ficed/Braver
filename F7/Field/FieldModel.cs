@@ -149,8 +149,8 @@ namespace Braver.Field {
                     effect.AmbientLightColor = new Color(globalLightColour.Value).ToVector3();
 
                     _light1Pos = light1Pos.Value;
-                    _light2Pos = light1Pos.Value;
-                    _light3Pos = light1Pos.Value;
+                    _light2Pos = light2Pos.Value;
+                    _light3Pos = light3Pos.Value;
 
                     effect.DirectionalLight0.DiffuseColor = new Color(light1Colour.Value).ToVector3();
                     effect.DirectionalLight0.Enabled = true;
@@ -203,7 +203,7 @@ namespace Braver.Field {
             var frame = _animations[AnimationState.Animation].Frames[AnimationState.Frame];
             Matrix child = m;
             if (bone.Index >= 0) {
-                var rotation = frame.Bones[bone.Index];
+                var rotation = frame.Bones.ElementAtOrDefault(bone.Index); //Single-element HRCs don't actually have bone data in the anim :/
                 child =
                       Matrix.CreateRotationZ(rotation.Z * (float)Math.PI / 180)
                     * Matrix.CreateRotationX(rotation.X * (float)Math.PI / 180)

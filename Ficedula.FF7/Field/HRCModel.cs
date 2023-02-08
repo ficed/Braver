@@ -42,6 +42,10 @@ namespace Ficedula.FF7.Field {
                 Name = lines[1].Split(null).Last();
                 int numBones = int.Parse(lines[2].Split(null).Last());
                 Dictionary<string, Bone> bones = new Dictionary<string, Bone>(StringComparer.InvariantCultureIgnoreCase);
+                
+                if (numBones == 0) //special case, bah
+                    numBones++;
+
                 Root = new Bone(0, -1);
                 bones.Add("root", Root);
 

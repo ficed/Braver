@@ -502,8 +502,8 @@ namespace Braver.Field {
                 else if (posOnBG.X < (scroll.x - 150))
                     newScroll.x = (int)posOnBG.X + 150;
 
-                if (posOnBG.Y > (scroll.y + 100))
-                    newScroll.y = (int)posOnBG.Y - 100;
+                if (posOnBG.Y > (scroll.y + 90))
+                    newScroll.y = (int)posOnBG.Y - 90;
                 else if (posOnBG.Y < (scroll.y - 110))
                     newScroll.y = (int)posOnBG.Y + 110;
 
@@ -706,7 +706,7 @@ namespace Braver.Field {
                     float animSpeed = 1f;
                     if (input.IsAnyDirectionDown() && Options.HasFlag(FieldOptions.PlayerControls)) {
                         //TODO actual use controldirection
-                        var forwards = _view3D.CameraForwards.WithZ(0);
+                        var forwards = Vector3.Transform(_view3D.CameraForwards.WithZ(0), Matrix.CreateRotationZ((_controlRotation + 180) * (float)Math.PI / 180f));
                         forwards.Normalize();
                         var right = Vector3.Transform(forwards, Matrix.CreateRotationZ(90f * (float)Math.PI / 180f));
                         var move = Vector2.Zero;
@@ -1085,12 +1085,13 @@ namespace Braver.Field {
                         newPosition.X, newPosition.Y
                     );
                     Vector2 testLocation = eMove.Model.Translation.XY();
+                    int step = 0;
                     while (newHeight == null) {
                         //Our destination triangle isn't directly connected to our start location -
                         //we need to loop through and check all the intermediate points are within
                         //(walkable) triangles
                         var vector = newPosition.XY() - testLocation;
-                        var testFrom = testLocation + vector * (dist * 1.05f);
+                        var testFrom = testLocation + vector * (dist + 0.05f);
                         switch(DoesLeaveTri(testFrom, newPosition.XY(), movingToTri, false, out dist, out newTri, out newDest)) {
                             case LeaveTriResult.Failure:
                                 throw new Exception($"Reality failure: Can't find route out of triangle");
@@ -1106,6 +1107,10 @@ namespace Braver.Field {
                             movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
                             newPosition.X, newPosition.Y
                         );
+
+                        if (++step > 10) {
+                            System.Diagnostics.Debug.WriteLine($"Entity {eMove.Name} still moving to tri {newTri.Value} at position {newPosition}...");
+                        }
                     }
 
                     eMove.WalkmeshTri = newTri.Value;
