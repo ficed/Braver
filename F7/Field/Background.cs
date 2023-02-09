@@ -176,7 +176,8 @@ namespace Braver.Field {
                 _graphics.SamplerStates[0] = SamplerState.PointClamp;
 
                 foreach (var layer in _layers) {
-                    if ((layer.Mask != 0) && (_parameters[layer.Parameter] & layer.Mask) == 0)
+                    _parameters.TryGetValue(layer.Parameter, out int parmValue); //Parameters not always actually initialised - eg. elevtr1 - so we should probably assume defaulting to zero? 
+                    if ((layer.Mask != 0) && (parmValue & layer.Mask) == 0)
                         continue;
 
                     switch (layer.Blend) {

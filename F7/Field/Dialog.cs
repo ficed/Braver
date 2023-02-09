@@ -44,6 +44,10 @@ namespace Braver.Field {
         }
 
 
+        public void CloseWindow(int window) {
+            _windows[window].State = WindowState.Hiding; //TODO - is this right, or just insta-hide it?
+            _windows[window].FrameProgress = 0;
+        }
         public void ResetWindow(int window) {
             SetupWindow(window, 5, 5, 0x130, 0x45);
             _windows[window].State = WindowState.Hidden;

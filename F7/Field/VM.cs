@@ -1062,6 +1062,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             s.Dialog.ResetWindow(id);
             return OpResult.Continue;
         }
+        public static OpResult WCLSE(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8();
+            s.Dialog.ResetWindow(id);
+            return OpResult.Continue;
+        }
         public static OpResult WSIZW(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
             ushort x = f.ReadU16(), y = f.ReadU16(),

@@ -259,6 +259,8 @@ namespace Braver.Field {
             _graphics.Indices = _indexBuffer;
             _graphics.SetVertexBuffer(_vertexBuffer);
 
+            _graphics.SamplerStates[0] = SamplerState.AnisotropicWrap;
+
             Descend(
                 _hrcModel.Root,
                   Matrix.CreateRotationX((ZUp ? -90 : 0) * (float)Math.PI / 180)

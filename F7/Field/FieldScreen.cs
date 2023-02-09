@@ -407,7 +407,7 @@ namespace Braver.Field {
                 if ((_frame % 2) == 0) {
                     Overlay.Step();
                     foreach (var entity in Entities) {
-                        if (!Game.DebugOptions.NoFieldScripts) 
+                        if (!Game.DebugOptions.NoFieldScripts)
                             entity.Run(1000);
                         entity.Model?.FrameStep();
                     }
@@ -464,7 +464,7 @@ namespace Braver.Field {
         }
 
         private void ReportAllModelPositions() {
-            foreach(var entity in Entities.Where(e => e.Model != null)) {
+            foreach (var entity in Entities.Where(e => e.Model != null)) {
                 System.Diagnostics.Debug.WriteLine($"Entity {entity.Name} at pos {entity.Model.Translation}, 2D background pos {ModelToBGPosition(entity.Model.Translation)}");
             }
         }
@@ -578,10 +578,10 @@ namespace Braver.Field {
                     _bgZTo++;
 
                 if (input.IsDown(InputKey.Start)) {
-                    using(var s = Game.WriteDebugBData("field", _file + ".xml")) {
+                    using (var s = Game.WriteDebugBData("field", _file + ".xml")) {
                         var info = new FieldInfo {
                             BGZFrom = _bgZFrom, BGZTo = _bgZTo,
-                            OriginalBGZFrom = Background.AutoDetectZFrom, OriginalBGZTo = Background.AutoDetectZTo, 
+                            OriginalBGZFrom = Background.AutoDetectZFrom, OriginalBGZTo = Background.AutoDetectZTo,
                         };
                         Serialisation.Serialise(info, s);
                     }
@@ -741,7 +741,7 @@ namespace Braver.Field {
                                     Player.LinesCollidingWith.Add(lineEnt);
                             }
 
-                            foreach(var entered in Player.LinesCollidingWith.Except(oldLines)) {
+                            foreach (var entered in Player.LinesCollidingWith.Except(oldLines)) {
                                 System.Diagnostics.Debug.WriteLine($"Player has entered line {entered}");
                                 entered.Call(3, 5, null); //TODO PRIORITY!?!
                             }
@@ -760,14 +760,14 @@ namespace Braver.Field {
                                     });
                                 }
                             }
-                            foreach(var trigger in TriggersAndGateways.Triggers) {
+                            foreach (var trigger in TriggersAndGateways.Triggers) {
                                 bool active = GraphicsUtil.LineCircleIntersect(trigger.V0.ToX().XY(), trigger.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance);
                                 if (active != _activeTriggers.Contains(trigger)) {
 
                                     bool setOn = false, setOff = false;
                                     switch (trigger.Behaviour) {
                                         case TriggerBehaviour.OnNone:
-                                            if (active) 
+                                            if (active)
                                                 setOn = true;
                                             break;
                                         case TriggerBehaviour.OffNone:
@@ -839,7 +839,7 @@ namespace Braver.Field {
 
 
             if (denominator == 0) {
-                aDist = 0; 
+                aDist = 0;
                 return numerator1 == 0 && numerator2 == 0;
             }
 
@@ -852,7 +852,7 @@ namespace Braver.Field {
         private bool CalculateTriLeave(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, out float dist, out short? newTri, out Vector2 tv0, out Vector2 tv1) {
             tv0 = tri.V0.ToX().XY();
             tv1 = tri.V1.ToX().XY();
-            if (LineIntersect(startPos, endPos, tv0, tv1, out dist)) { 
+            if (LineIntersect(startPos, endPos, tv0, tv1, out dist)) {
                 newTri = tri.V01Tri;
                 return true;
             }
@@ -919,7 +919,7 @@ namespace Braver.Field {
 
         private static Random _r = new();
 
-        private LeaveTriResult DoesLeaveTri(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, bool allowSlide, out float dist, out short? newTri, out Vector2 newDestination) {
+        private LeaveTriResult DoesLeaveTri(Vector2 startPos, Vector2 endPos, WalkmeshTriangle tri, bool allowSlide, out short? newTri, out Vector2 newDestination) {
             newDestination = Vector2.Zero;
 
             var origDir = (endPos - startPos);
@@ -947,13 +947,13 @@ namespace Braver.Field {
                                 };
                             })
                         )
+                        .Where(a => !DisabledWalkmeshTriangles.Contains(a.TIndex))
                         .Where(a => a.Tri.AllVerts().Any(v => v == vert))
                         .OrderBy(a => Math.Abs(a.Angle));
 
                     if (candidates.Any()) {
                         var choice = candidates.First();
                         if (choice.Tri != tri) {
-                            dist = 0;
                             newDestination = choice.VStart;
                             newTri = (short)choice.TIndex;
                             return LeaveTriResult.SlideNewTri;
@@ -966,19 +966,53 @@ namespace Braver.Field {
                             else
                                 newDestination = startPos + edge * origDistance;
                             newTri = null;
-                            dist = 0;
                             return LeaveTriResult.SlideCurrentTri;
                         }
                     }
                 }
             }
 
+            bool TestTri(short? t, Vector2 pos) {
+                if (t == null)
+                    return false;
+                else {
+                    var tt = _walkmesh[t.Value];
+                    return HeightInTriangle(tt, pos.X, pos.Y) != null;
+                }
+            }
 
-            if (!CalculateTriLeave(startPos, endPos, tri, out dist, out newTri, out Vector2 tv0, out Vector2 tv1))
-                return LeaveTriResult.Failure;
+            newTri = null;
+
+            var vector = endPos - startPos;
+            vector.Normalize();
+            var currentTri = tri;
+            int steps = (int)Math.Ceiling((endPos - startPos).Length());
+            foreach (int step in Enumerable.Range(1, steps)) {
+                var pos = startPos + vector * step;
+
+                if (HeightInTriangle(currentTri, pos.X, pos.Y) != null) {
+                    continue;
+                }
+
+                if (TestTri(currentTri.V01Tri, pos)) {
+                    newTri = currentTri.V01Tri.Value;
+                    newDestination = pos;
+                } else if (TestTri(currentTri.V12Tri, pos)) {
+                    newTri = currentTri.V12Tri.Value;
+                    newDestination = pos;
+                } else if (TestTri(currentTri.V20Tri, pos)) {
+                    newTri = currentTri.V20Tri.Value;
+                    newDestination = pos;
+                } else
+                    break;
+
+            }
 
             if (newTri != null)
                 return LeaveTriResult.Success;
+
+            if (!CalculateTriLeave(startPos, endPos, tri, out _, out _, out var tv0, out var tv1))
+                return LeaveTriResult.Failure;
 
             if (allowSlide) {
 
@@ -991,12 +1025,12 @@ namespace Braver.Field {
                 var v0dir = (tv0 - startPos);
                 var v0Distance = v0dir.Length();
                 v0dir.Normalize();
-                
+
                 var v1dir = (tv1 - startPos);
                 var v1Distance = v1dir.Length();
-                v1dir.Normalize();                
+                v1dir.Normalize();
 
-                double v0angle = AngleBetweenVectors(v0dir, origDir), 
+                double v0angle = AngleBetweenVectors(v0dir, origDir),
                     v1angle = AngleBetweenVectors(v1dir, origDir);
 
                 if ((Math.Abs(v0angle) < Math.Abs(v1angle)) && (v0angle < (Math.PI / 2))) {
@@ -1049,85 +1083,45 @@ namespace Braver.Field {
             }
 
             var currentTri = _walkmesh[eMove.WalkmeshTri];
-            var newHeight = HeightInTriangle(currentTri.V0.ToX(), currentTri.V1.ToX(), currentTri.V2.ToX(), newPosition.X, newPosition.Y);
+            var newHeight = HeightInTriangle(currentTri, newPosition.X, newPosition.Y);
             if (newHeight != null) {
                 //We're staying in the same tri, so just update height
                 eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
                 return true;
             } else {
-                switch (DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, true, out float dist, out short? newTri, out Vector2 newDest)) {
+                switch (DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, true, out short? newTri, out Vector2 newDest)) {
                     case LeaveTriResult.Failure:
-                        System.Diagnostics.Debug.WriteLine($"Moving from {eMove.Model.Translation} to {newPosition}");
-                        System.Diagnostics.Debug.WriteLine($"V0 {currentTri.V0}, V1 {currentTri.V1}, V2 {currentTri.V2}");
-                        throw new Exception($"Reality failure: Can't find route out of triangle");
-                    case LeaveTriResult.Success:
-                        break; //Woo
+                        return false;
                     case LeaveTriResult.SlideCurrentTri:
-                        newHeight = HeightInTriangle(currentTri.V0.ToX(), currentTri.V1.ToX(), currentTri.V2.ToX(), newDest.X, newDest.Y);
-                        if (newHeight == null)
-                            throw new Exception();
-                        eMove.Model.Translation = new Vector3(newDest.X, newDest.Y, newHeight.Value);
-                        return true;
+                        break;
+                    case LeaveTriResult.Success:
                     case LeaveTriResult.SlideNewTri:
-                        newPosition = new Vector3(newDest, 0);
-                        break; //Treat same as success, code below will move us into the new tri
+                        eMove.WalkmeshTri = newTri.Value;
+                        currentTri = _walkmesh[newTri.Value];
+                        break; //Treat same as success, code below will move us accordingly
                     default:
                         throw new NotImplementedException();
                 }
 
-                if ((newTri == null) || DisabledWalkmeshTriangles.Contains(newTri.Value)) {
-                    //Just can't leave by this side, oh well
-                    return false;
-                } else {
-                    var movingToTri = _walkmesh[newTri.Value];
-                    newHeight = HeightInTriangle(
-                        movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
-                        newPosition.X, newPosition.Y
-                    );
-                    Vector2 testLocation = eMove.Model.Translation.XY();
-                    int step = 0;
-                    while (newHeight == null) {
-                        //Our destination triangle isn't directly connected to our start location -
-                        //we need to loop through and check all the intermediate points are within
-                        //(walkable) triangles
-                        var vector = newPosition.XY() - testLocation;
-                        var testFrom = testLocation + vector * (dist + 0.05f);
-                        switch(DoesLeaveTri(testFrom, newPosition.XY(), movingToTri, false, out dist, out newTri, out newDest)) {
-                            case LeaveTriResult.Failure:
-                                throw new Exception($"Reality failure: Can't find route out of triangle");
-                        }
-                        if ((newTri == null) || DisabledWalkmeshTriangles.Contains(newTri.Value)) {
-                            //Just can't leave by this side, oh well
-                            return false;
-                        }
-                        testLocation = testFrom;
-
-                        movingToTri = _walkmesh[newTri.Value];
-                        newHeight = HeightInTriangle(
-                            movingToTri.V0.ToX(), movingToTri.V1.ToX(), movingToTri.V2.ToX(),
-                            newPosition.X, newPosition.Y
-                        );
-
-                        if (++step > 10) {
-                            System.Diagnostics.Debug.WriteLine($"Entity {eMove.Name} still moving to tri {newTri.Value} at position {newPosition}...");
-                        }
-                    }
-
-                    eMove.WalkmeshTri = newTri.Value;
-                    eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
-                    return true;                    
-                }
+                newHeight = HeightInTriangle(currentTri, newDest.X, newDest.Y);
+                if (newHeight == null)
+                    throw new Exception();
+                eMove.Model.Translation = new Vector3(newDest.X, newDest.Y, newHeight.Value);
+                return true;
             }
         }
 
+        private static float? HeightInTriangle(WalkmeshTriangle tri, float x, float y) {
+            return HeightInTriangle(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), x, y);
+        }
         private static float? HeightInTriangle(Vector3 p0, Vector3 p1, Vector3 p2, float x, float y) {
             double denominator = (p1.Y - p2.Y) * (p0.X - p2.X) + (p2.X - p1.X) * (p0.Y - p2.Y);
             var a = ((p1.Y - p2.Y) * (x - p2.X) + (p2.X - p1.X) * (y - p2.Y)) / denominator;
             var b = ((p2.Y - p0.Y) * (x - p2.X) + (p0.X - p2.X) * (y - p2.Y)) / denominator;
 
-            a = Math.Round(a, 4);
-            b = Math.Round(b, 4);
-            var c = Math.Round(1 - a - b, 4);
+            a = Math.Round(a, 2);
+            b = Math.Round(b, 2);
+            var c = Math.Round(1 - a - b, 2);
 
             if (a < 0) return null;
             if (b < 0) return null;
@@ -1145,7 +1139,7 @@ namespace Braver.Field {
             e.Model.Translation = new Vector3(
                 position.X,
                 position.Y,
-                HeightInTriangle(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), position.X, position.Y).Value
+                HeightInTriangle(tri, position.X, position.Y).Value
             );
             e.WalkmeshTri = walkmeshTri;
         }
