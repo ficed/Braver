@@ -622,7 +622,7 @@ namespace Braver.Field {
 
     internal static class FieldModels {
 
-        
+
         public static OpResult IDLCK(Fiber f, Entity e, FieldScreen s) {
             ushort triID = f.ReadU16();
             byte enabled = f.ReadU8();
@@ -670,6 +670,118 @@ namespace Braver.Field {
                 e.Flags = EntityFlags.None;
             }
             return OpResult.Continue;
+        }
+
+        public static OpResult SPLIT(Fiber f, Entity e, FieldScreen s) {
+            byte bankAXY = f.ReadU8(), bankADBX = f.ReadU8(), bankBYD = f.ReadU8();
+            short xa = f.ReadS16(), ya = f.ReadS16();
+            byte da = f.ReadU8();
+            short xb = f.ReadS16(), yb = f.ReadS16();
+            byte db = f.ReadU8(), speed = f.ReadU8();
+
+            int frame = (int?)f.ResumeState ?? 0;
+
+            var entities = s.Entities
+                .Where(e => e.Character != null)
+                .Where(e => e.Character != s.Player.Character);
+
+            Entity entA = entities.ElementAtOrDefault(0),
+                entB = entities.ElementAtOrDefault(1);
+
+            if ((entA == null) && (entB == null))
+                throw new InvalidOperationException();
+
+            void Process(Entity ent, int x, int y, int d) {
+                if (frame == 0) {
+                    ent.Model.Translation = s.Player.Model.Translation;
+                    ent.WalkmeshTri = s.Player.WalkmeshTri;
+                    ent.Model.Visible = true;
+
+                    float rotation = (float)(Math.Atan2(x - s.Player.Model.Translation.X, -(y - s.Player.Model.Translation.Y)) * 180 / Math.PI);
+                    ent.Model.Rotation = new Vector3(0, 0, rotation);
+                    ent.Model.PlayAnimation(1, true, 1f, null); //TODO - should be run, depending on speed
+
+                } else if (frame == speed) {
+                    s.DropToWalkmesh(ent, new Vector2(x, y), ent.WalkmeshTri); //TODO - if it's blocked, this won't be right. But that probably shouldn't happen?
+                    float rotation = 360f * d / 255f;
+                    ent.Model.Rotation = new Vector3(0, 0, rotation);
+                    ent.Model.PlayAnimation(0, true, 1f, null);
+                } else {
+                    var target = Vector2.Lerp(s.Player.Model.Translation.XY(), new Vector2(x, y), 1f * frame / speed);
+                    s.TryWalk(ent, new Vector3(target.X, target.Y, 0), false);
+                }
+            }
+
+            if (entA != null)
+                Process(entA,
+                    s.Game.Memory.Read(bankAXY >> 4, xa), s.Game.Memory.Read(bankAXY & 0xf, ya),
+                    s.Game.Memory.Read(bankADBX >> 4, da));
+            if (entB != null)
+                Process(entB,
+                    s.Game.Memory.Read(bankADBX & 0xf, ya), s.Game.Memory.Read(bankBYD >> 4, yb),
+                    s.Game.Memory.Read(bankBYD & 0xf, db));
+
+            if (frame < speed) {
+                f.ResumeState = ++frame;
+                return OpResult.Restart;
+            } else
+                return OpResult.Continue;
+
+        }
+
+        private class JoinState {
+            public int Frame;
+            public Vector2 EntAStart, EntBStart;
+        }
+
+        public static OpResult JOIN(Fiber f, Entity e, FieldScreen s) {
+            byte speed = f.ReadU8();
+
+            var entities = s.Entities
+                .Where(e => e.Character != null)
+                .Where(e => e.Character != s.Player.Character);
+
+            Entity entA = entities.ElementAtOrDefault(0),
+                entB = entities.ElementAtOrDefault(1);
+
+            if ((entA == null) && (entB == null))
+                throw new InvalidOperationException();
+
+            JoinState state;
+            if (f.ResumeState == null) {
+                f.ResumeState = state = new JoinState {
+                    Frame = 0,
+                    EntAStart = entA == null ? Vector2.Zero : entA.Model.Translation.XY(),
+                    EntBStart = entB == null ? Vector2.Zero : entB.Model.Translation.XY(),
+                };
+            } else
+                state = (JoinState)f.ResumeState;
+
+            void Process(Entity ent, Vector2 start) {
+                if (state.Frame == 0) {
+                    float rotation = (float)(Math.Atan2(s.Player.Model.Translation.X - ent.Model.Translation.X, -(s.Player.Model.Translation.Y - ent.Model.Translation.Y)) * 180 / Math.PI);
+                    ent.Model.Rotation = new Vector3(0, 0, rotation);
+                    ent.Model.PlayAnimation(1, true, 1f, null); //TODO - should be run, depending on speed
+                } else if (state.Frame == speed) {
+                    ent.Model.Translation = s.Player.Model.Translation;
+                    ent.Model.Visible = false;
+                } else {
+                    var target = Vector2.Lerp(start, s.Player.Model.Translation.XY(), 1f * state.Frame / speed);
+                    s.TryWalk(ent, new Vector3(target.X, target.Y, 0), false);
+                }
+            }
+
+            if (entA != null)
+                Process(entA, state.EntAStart);
+            if (entB != null)
+                Process(entB, state.EntBStart);
+
+            if (state.Frame < speed) {
+                state.Frame++;
+                return OpResult.Restart;
+            } else
+                return OpResult.Continue;
+
         }
 
         public static OpResult PDIRA(Fiber f, Entity e, FieldScreen s) {
@@ -783,9 +895,11 @@ namespace Braver.Field {
             byte anim = f.ReadU8(), first = f.ReadU8(), last = f.ReadU8(), speed = f.ReadU8();
             f.Pause();
             var state = e.Model.AnimationState;
+            f.OtherState["AnimPlaying"] = true;
             Action onComplete = () => {
                 f.Resume();
                 e.Model.AnimationState = state;
+                f.OtherState["AnimPlaying"] = false;
             };
             e.Model.PlayAnimation(anim, false, 1f / speed, onComplete, first, last); //TODO is this speed even vaguely correct?
             return OpResult.Continue;
@@ -794,28 +908,50 @@ namespace Braver.Field {
             byte anim = f.ReadU8(), speed = f.ReadU8();
             f.Pause();
             var state = e.Model.AnimationState;
+            f.OtherState["AnimPlaying"] = true;
             Action onComplete = () => {
                 f.Resume();
                 e.Model.AnimationState = state;
+                f.OtherState["AnimPlaying"] = false;
             };
             e.Model.PlayAnimation(anim, false, 1f / speed, onComplete); //TODO is this speed even vaguely correct?
+            return OpResult.Continue;
+        }
+        public static OpResult ANIME2(Fiber f, Entity e, FieldScreen s) {
+            byte anim = f.ReadU8(), speed = f.ReadU8();
+            var state = e.Model.AnimationState;
+            f.OtherState["AnimPlaying"] = true;
+            Action onComplete = () => {
+                e.Model.AnimationState = state;
+                f.OtherState["AnimPlaying"] = false;
+            };
+            e.Model.PlayAnimation(anim, false, 1f / speed, onComplete); 
             return OpResult.Continue;
         }
         public static OpResult ANIM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
             f.Pause();
-            e.Model.PlayAnimation(anim, false, 1f / speed, f.Resume); //TODO is this speed even vaguely correct?
+            f.OtherState["AnimPlaying"] = true;
+            e.Model.PlayAnimation(anim, false, 1f / speed, () => {
+                f.Resume();
+                f.OtherState["AnimPlaying"] = false;
+            }); //TODO is this speed even vaguely correct?
             return OpResult.Continue;
         }
         public static OpResult CANM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
             f.Pause();
-            e.Model.PlayAnimation(anim, false, 1f / speed, f.Resume, fstart, fend); 
+            f.OtherState["AnimPlaying"] = true;
+            e.Model.PlayAnimation(anim, false, 1f / speed, () => {
+                f.Resume();
+                f.OtherState["AnimPlaying"] = false;
+            }, fstart, fend); 
             return OpResult.Continue;
         }
         public static OpResult DFANM(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
             e.Model.PlayAnimation(anim, true, 1f / speed, null); //TODO is this speed even vaguely correct?
+            //TODO - not setting AnimPlaying, is that reasonable?
             return OpResult.Continue;
         }
         public static OpResult ASPED(Fiber f, Entity e, FieldScreen s) {
@@ -834,6 +970,9 @@ namespace Braver.Field {
 
         private static OpResult DoTurn(Entity e, float rotation, float rotationSteps, byte rotateDir, byte rotateType) {
             float rotationAmount = rotationSteps == 0 ? 360f : 360f * rotationSteps / 255f;
+
+            if (rotateDir > 2)
+                rotateDir = 2; //TODO - it's 10 in elevtr1, so we can expect to see values other than 0/1/2, but how to treat them?
 
             float ccwAmount = rotation > e.Model.Rotation.Z ? (e.Model.Rotation.Z + 360 - rotation) : e.Model.Rotation.Z - rotation,
                 cwAmount = rotation < e.Model.Rotation.Z ? (rotation + 360 - e.Model.Rotation.Z) : rotation - e.Model.Rotation.Z;
@@ -898,9 +1037,10 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
         public static OpResult ANIMW(Fiber f, Entity e, FieldScreen s) {
-            f.Pause();
-            e.Model.AnimationState.AnimationComplete += f.Resume;
-            return OpResult.Continue;
+            if ((bool)f.OtherState["AnimPlaying"])
+                return OpResult.Restart;
+            else
+                return OpResult.Continue;
         }
 
         public static OpResult SLIDR(Fiber f, Entity e, FieldScreen s) {
@@ -1236,7 +1376,10 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             byte span = f.ReadU8();
             int sound = s.Game.Memory.Read(banks & 0xf, ssound) - 1;
             int pan = s.Game.Memory.Read(banks >> 4, span);
-            s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64);
+            if (sound < 0)
+                s.Game.Audio.StopLoopingSfx();
+            else
+                s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64);
             return OpResult.Continue;
         }
 
@@ -1270,7 +1413,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int x = s.Game.Memory.Read(banks & 0xf, sx),
                 y = s.Game.Memory.Read(banks >> 4, sy);
 
-            s.BGScroll(x, y);
+            s.BGScroll(x, y, false);
             return OpResult.Continue;
         }
 
@@ -1278,11 +1421,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             if (s.Player == null) {
                 s.WhenPlayerSet += () => {
                     var pos = s.ModelToBGPosition(s.Player.Model.Translation);
-                    s.BGScroll(pos.X, pos.Y);
+                    s.BGScroll(pos.X, pos.Y, true);
                 };
             } else {
                 var pos = s.ModelToBGPosition(s.Player.Model.Translation);
-                s.BGScroll(pos.X, pos.Y);
+                s.BGScroll(pos.X, pos.Y, true);
             }
             return OpResult.Continue;
         }
@@ -1312,11 +1455,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             var progress = Easings.QuadraticInOut(1f * state.Frame / speed); //TODO - is interpreting speed as framecount vaguely correct?
 
             if (progress >= 1f) {
-                s.BGScroll(x, y);
+                s.BGScroll(x, y, false);
                 return OpResult.Continue;
             } else {
                 var pos = state.Start + (end - state.Start) * progress;
-                s.BGScroll(pos.X, pos.Y);
+                s.BGScroll(pos.X, pos.Y, false);
                 state.Frame++;
                 return OpResult.Restart;
             }
@@ -1350,13 +1493,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     var target = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
 
                     if (progress >= 1f) {
-                        s.BGScroll(target.X, target.Y);
+                        s.BGScroll(target.X, target.Y, true);
                         s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
                         return true;
                     } else {
                         s.BGScroll(
                             curX + (target.X - curX) * progress,
-                            curY + (target.Y - curY) * progress
+                            curY + (target.Y - curY) * progress,
+                            true
                         );
                         return false;
                     }
@@ -1381,7 +1525,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             f.Pause();
             s.StartProcess(frame => {
                 float progress = 1f * frame / numFrames;
-                s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress);
+                s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress, false);
 
                 if (progress >= 1) {
                     f.Resume();

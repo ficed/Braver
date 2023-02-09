@@ -142,6 +142,8 @@ namespace Braver.Field {
             g.Net.Listen<Net.FieldEntityModelMessage>(this);
             g.Net.Listen<Net.FieldBGScrollMessage>(this);
 
+            g.Audio.StopLoopingSfx();
+
             Overlay = new Overlay(g, graphics);
 
             g.Net.Send(new Net.FieldScreenMessage { Destination = _destination });
@@ -438,21 +440,23 @@ namespace Braver.Field {
                 (int)(_view2D.CenterY / 3)
             );
         }
-        public void BGScroll(float x, float y) {
-            BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
+        public void BGScroll(float x, float y, bool clampToViewport) {
+            BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3), clampToViewport);
         }
-        public void BGScrollOffset(float ox, float oy) {
-
-            int minYScroll = Background.MinY >= -120 ? 0 : -Background.MinY - 120,
-                maxYScroll = Background.MaxY <= 120 ? 0 : Background.MaxY - 120,
-                minXScroll = Background.MinX >= -213 ? 0 : -Background.MinX - 213,
-                maxXScroll = Background.MaxX <= 213 ? 0 : Background.MaxX - 213;
+        public void BGScrollOffset(float ox, float oy, bool clampToViewport) {
 
             _view2D.CenterX -= 3 * ox;
             _view2D.CenterY += 3 * oy;
 
-            _view2D.CenterX = Math.Min(Math.Max(-3 * maxXScroll, _view2D.CenterX), 3 * minXScroll);
-            _view2D.CenterY = Math.Min(Math.Max(-3 * minYScroll, _view2D.CenterY), 3 * maxYScroll);
+            if (clampToViewport) {
+                int minYScroll = Background.MinY >= -120 ? 0 : -Background.MinY - 120,
+                    maxYScroll = Background.MaxY <= 120 ? 0 : Background.MaxY - 120,
+                    minXScroll = Background.MinX >= -213 ? 0 : -Background.MinX - 213,
+                    maxXScroll = Background.MaxX <= 213 ? 0 : Background.MaxX - 213;
+
+                _view2D.CenterX = Math.Min(Math.Max(-3 * maxXScroll, _view2D.CenterX), 3 * minXScroll);
+                _view2D.CenterY = Math.Min(Math.Max(-3 * minYScroll, _view2D.CenterY), 3 * maxYScroll);
+            }
 
             var newScroll = GetBGScroll();
             _view3D.ScreenOffset = new Vector2(newScroll.x * 3f * 2 / 1280, newScroll.y * -3f * 2 / 720);
@@ -509,7 +513,7 @@ namespace Braver.Field {
 
                 if (newScroll != scroll) {
                     System.Diagnostics.Debug.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
-                    BGScroll(newScroll.x, newScroll.y);
+                    BGScroll(newScroll.x, newScroll.y, true);
                 }
             }
         }
@@ -594,88 +598,10 @@ namespace Braver.Field {
             if (_debugMode) {
 
                 if (input.IsDown(InputKey.PanLeft))
-                    BGScrollOffset(0, -1);
+                    BGScrollOffset(0, -1, false);
                 else if (input.IsDown(InputKey.PanRight))
-                    BGScrollOffset(0, +1);
+                    BGScrollOffset(0, +1, false);
 
-                if (input.IsAnyDirectionDown() || input.IsJustDown(InputKey.Select)) {
-
-                    if (input.IsDown(InputKey.Up))
-                        _view3D.CameraPosition += _view3D.CameraUp;
-                    else if (input.IsDown(InputKey.Down))
-                        _view3D.CameraPosition -= _view3D.CameraUp;
-
-                    System.Diagnostics.Debug.WriteLine($"Player at {ModelToBGPosition(Player.Model.Translation, null, false)} WM0 {ModelToBGPosition(_walkmesh[0].V0.ToX(), null, false)}");
-
-                    /*
-                    //Now calculate 3d scroll amount
-                    var _3dScrollAmount = new Vector2(_view3D.Width / 427f, _view3D.Height / 240f);
-                    System.Diagnostics.Debug.WriteLine($"To scroll 3d view by one BG pixel, it will move {_3dScrollAmount}");
-
-                    if (input.IsJustDown(InputKey.Select)) {
-                        _view3D.CenterX += _3dScrollAmount.X * _view2D.CenterX / -3;
-                        _view3D.CenterY += _3dScrollAmount.Y * _view2D.CenterY / -3;
-                    }
-
-                    if (input.IsDown(InputKey.OK)) {
-                        if (input.IsDown(InputKey.Up)) {
-                            _view2D.CenterY += 3;
-                            _view3D.CenterY += _3dScrollAmount.Y;
-                        }
-                        if (input.IsDown(InputKey.Down)) {
-                            _view2D.CenterY -= 3;
-                            _view3D.CenterY -= _3dScrollAmount.Y;
-                        }
-                        if (input.IsDown(InputKey.Left)) {
-                            _view2D.CenterX -= 3;
-                            _view3D.CenterX -= _3dScrollAmount.X;
-                        }
-                        if (input.IsDown(InputKey.Right)) {
-                            _view2D.CenterX += 3;
-                            _view3D.CenterX += _3dScrollAmount.X;
-                        }
-
-                    } else if (input.IsDown(InputKey.Cancel)) {
-                        if (input.IsDown(InputKey.Up))
-                            _view2D.CenterY++;
-                        if (input.IsDown(InputKey.Down))
-                            _view2D.CenterY--;
-                        if (input.IsDown(InputKey.Left))
-                            _view2D.CenterX--;
-                        if (input.IsDown(InputKey.Right))
-                            _view2D.CenterX++;
-
-                    } else {
-                        if (input.IsDown(InputKey.Menu)) {
-
-                            if (input.IsDown(InputKey.Up))
-                                _view3D.Height++;
-                            if (input.IsDown(InputKey.Down))
-                                _view3D.Height--;
-                            if (input.IsDown(InputKey.Left))
-                                _view3D.Width--;
-                            if (input.IsDown(InputKey.Right))
-                                _view3D.Width++;
-
-                        } else {
-                            if (input.IsDown(InputKey.Up)) {
-                                _view3D.CenterY++;
-                            }
-                            if (input.IsDown(InputKey.Down)) {
-                                _view3D.CenterY--;
-                            }
-                            if (input.IsDown(InputKey.Left)) {
-                                _view3D.CenterX--;
-                            }
-                            if (input.IsDown(InputKey.Right)) {
-                                _view3D.CenterX++;
-                            }
-                        }
-                    }
-                    System.Diagnostics.Debug.WriteLine($"View2D Center: {_view2D.CenterX}/{_view2D.CenterY}");
-                    System.Diagnostics.Debug.WriteLine($"View3D: {_view3D}");
-                    */
-                }
             } else {
 
                 if (Dialog.IsActive) {
@@ -1200,7 +1126,7 @@ namespace Braver.Field {
             Background.SetParameter(message.Parm, message.Value);
         }
         public void Received(Net.FieldBGScrollMessage message) {
-            BGScroll(message.X, message.Y);
+            BGScroll(message.X, message.Y, false);
         }
 
         public void Received(Net.FieldEntityModelMessage message) {

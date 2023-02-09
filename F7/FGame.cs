@@ -191,6 +191,7 @@ namespace Braver {
             }
 
             Net.Update();
+            Audio.Update();
         }
 
     }

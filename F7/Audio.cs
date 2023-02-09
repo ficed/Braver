@@ -91,6 +91,20 @@ namespace Braver {
             }
         }
 
+        public void StopLoopingSfx() {
+            foreach (var loop in _activeLoops) {
+                loop.Stop();
+                loop.Dispose();
+            }
+            _activeLoops.Clear();
+        }
+
+        public void Update() {
+            var needsRestart = _activeLoops.Where(instance => instance.State != SoundState.Playing);
+            foreach (var loop in needsRestart)
+                loop.Play();
+        }
+
         private async Task RunMusic() {
             var contexts = new Stack<MusicContext>();
             contexts.Push(new MusicContext());
@@ -182,37 +196,59 @@ namespace Braver {
             _game.Net.Send(new Net.MusicMessage { Track = string.Empty, IsPop = popContext });
         }
 
-        private Dictionary<int, WeakReference<SoundEffect>> _sfx = new();
-        private HashSet<SoundEffect> _recent0 = new(), _pinned = new(), _recent1;
+        private class LoadedEffect {
+            public SoundEffect Effect { get; set; }
+            public bool ShouldLoop { get; set; }
+        }
+
+        private Dictionary<int, WeakReference<LoadedEffect>> _sfx = new();
+        private HashSet<LoadedEffect> _recent0 = new(), _pinned = new(), _recent1;
+        private HashSet<SoundEffectInstance> _activeLoops = new();
         private DateTime _lastPromote = DateTime.MinValue;
 
-        public void Precache(Sfx which, bool pin) {
-            byte[] raw = _sfxSource.ExportPCM((int)which, out int freq, out int channels);
+        private LoadedEffect GetEffect(int which) {
+            byte[] raw = _sfxSource.ExportPCM(which, out int freq, out int channels);
             var fx = new SoundEffect(raw, freq, channels == 1 ? AudioChannels.Mono : AudioChannels.Stereo);
-            _sfx[(int)which] = new WeakReference<SoundEffect>(fx);
+            return new LoadedEffect {
+                Effect = fx,
+                ShouldLoop = _sfxSource.GetExtraData(which)[0] != 0, //TODO - seems like it *might* be right?!
+            };
+        }
+
+        public void Precache(Sfx which, bool pin) {
+            var effect = GetEffect((int)which);
+            _sfx[(int)which] = new WeakReference<LoadedEffect>(effect);
 
             if (pin)
-                _pinned.Add(fx);
+                _pinned.Add(effect);
         }
 
         public void PlaySfx(Sfx which, float volume, float pan) => PlaySfx((int)which, volume, pan);
         public void PlaySfx(int which, float volume, float pan) {
-            SoundEffect fx;
+            LoadedEffect effect;
 
-            if (_sfx.TryGetValue(which, out var wr) && wr.TryGetTarget(out fx)) {
+            if (_sfx.TryGetValue(which, out var wr) && wr.TryGetTarget(out effect)) {
                 //
             } else {
-                byte[] raw = _sfxSource.ExportPCM(which, out int freq, out int channels);
-                fx = new SoundEffect(raw, freq, channels == 1 ? AudioChannels.Mono : AudioChannels.Stereo);
-                _sfx[which] = new WeakReference<SoundEffect>(fx);
+                effect = GetEffect(which);
+                _sfx[which] = new WeakReference<LoadedEffect>(effect);
             }
 
-            fx.Play(volume, 0, pan);
+            if (effect.ShouldLoop) {
+                var instance = effect.Effect.CreateInstance();
+                instance.Pan = pan;
+                instance.Volume = volume;
+                instance.Play();
+                _activeLoops.Add(instance);
+            } else {
+                effect.Effect.Play(volume, 0, pan);
+            }
+
             if (_lastPromote < DateTime.Now.AddMinutes(-1)) {
                 _recent1 = _recent0;
                 _recent0 = new();
             }
-            _recent0.Add(fx);
+            _recent0.Add(effect);
             _game.Net.Send(new Net.SfxMessage { Which = which, Volume = volume, Pan = pan });
         }
 

@@ -224,7 +224,7 @@ namespace Ficedula.FF7 {
         private struct SoundEntry {
             public int Size;
             public int Offset;
-            public byte[] UNK; //16
+            public byte[] ExtraData; //16
             public byte[] WAVFORMATEX; //18
             public ushort SamplesPerBlock;
             public ushort NumCoef;
@@ -261,7 +261,7 @@ namespace Ficedula.FF7 {
                         var entry = new SoundEntry {
                             Size = size,
                             Offset = s.ReadI32(),
-                            UNK = s.ReadBytes(16),
+                            ExtraData = s.ReadBytes(16),
                             WAVFORMATEX = s.ReadBytes(18),
                             SamplesPerBlock = s.ReadU16(),
                             NumCoef = s.ReadU16(),
@@ -292,6 +292,7 @@ namespace Ficedula.FF7 {
             dest.Write(buffer, 0, buffer.Length);
         }
 
+		public byte[] GetExtraData(int soundID) => _entries[soundID].ExtraData;
 		public byte[] ExportPCM(int soundID, out int frequency, out int channels) {
 			var entry = _entries[soundID];
 			byte[] buffer = new byte[entry.Size];
