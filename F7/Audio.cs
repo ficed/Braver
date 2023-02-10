@@ -205,6 +205,7 @@ namespace Braver {
         private HashSet<LoadedEffect> _recent0 = new(), _pinned = new(), _recent1;
         private HashSet<SoundEffectInstance> _activeLoops = new();
         private DateTime _lastPromote = DateTime.MinValue;
+        private Dictionary<int, SoundEffectInstance> _channels = new();
 
         private LoadedEffect GetEffect(int which) {
             byte[] raw = _sfxSource.ExportPCM(which, out int freq, out int channels);
@@ -223,8 +224,8 @@ namespace Braver {
                 _pinned.Add(effect);
         }
 
-        public void PlaySfx(Sfx which, float volume, float pan) => PlaySfx((int)which, volume, pan);
-        public void PlaySfx(int which, float volume, float pan) {
+        public void PlaySfx(Sfx which, float volume, float pan, int? channel = null) => PlaySfx((int)which, volume, pan, channel);
+        public void PlaySfx(int which, float volume, float pan, int? channel = null) {
             LoadedEffect effect;
 
             if (_sfx.TryGetValue(which, out var wr) && wr.TryGetTarget(out effect)) {
@@ -240,6 +241,14 @@ namespace Braver {
                 instance.Volume = volume;
                 instance.Play();
                 _activeLoops.Add(instance);
+                if (channel != null)
+                    _channels[channel.Value] = instance;
+            } else if (channel != null) {
+                var instance = effect.Effect.CreateInstance();
+                instance.Pan = pan;
+                instance.Volume = volume;
+                instance.Play();
+                _channels[channel.Value] = instance;
             } else {
                 effect.Effect.Play(volume, 0, pan);
             }

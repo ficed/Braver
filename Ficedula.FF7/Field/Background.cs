@@ -30,7 +30,7 @@ namespace Ficedula.FF7.Field {
         public short TextureID, TextureID2, Depth;
         public int IDBig;
 
-        public long SortKey => (TypeTrans << 48) | (Param << 40) | (State << 32) | ID;
+        public long SortKey => ((long)TypeTrans << 48) | ((long)Param << 40) | ((long)State << 32) | ID;
 
         public Sprite(Stream source, int layer) {
             DestX = source.ReadI16();

@@ -82,6 +82,7 @@ namespace Braver.Field {
         public Dialog Dialog { get; private set; }
         public FieldUI FieldUI { get; private set; }
         public Overlay Overlay { get; private set; }
+        public IInputCapture InputCapture { get; set; }
 
         public int BattleTable { get; set; }
         public BattleOptions BattleOptions { get; } = new();
@@ -387,7 +388,7 @@ namespace Braver.Field {
 
             Overlay.Render();
 
-            if (_renderUI && !Movie.Active)
+            if (_renderUI && !Movie.Active && Options.HasFlag(FieldOptions.PlayerControls))
                 FieldUI.Render();
             Dialog.Render();
         }
@@ -609,6 +610,11 @@ namespace Braver.Field {
                     return;
                 }
 
+                if (InputCapture != null) {
+                    InputCapture.ProcessInput(input);
+                    return;
+                }
+
                 if (input.IsJustDown(InputKey.Menu) && Options.HasFlag(FieldOptions.MenuEnabled)) {
                     UpdateSaveLocation();
                     Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
@@ -676,6 +682,12 @@ namespace Braver.Field {
                                 System.Diagnostics.Debug.WriteLine($"Player has left line {left}");
                                 left.Call(3, 6, null); //TODO PRIORITY!?!
                             }
+
+                            /*
+                            foreach (var inside in Player.LinesCollidingWith) {
+                                inside.Call(2, 3, null); //TODO PRIORITY!?!
+                            }
+                            */
 
                             foreach (var gateway in TriggersAndGateways.Gateways) {
                                 if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
@@ -746,16 +758,23 @@ namespace Braver.Field {
                         } else {
                             //
                         }
-                    }
 
-                    foreach (var isIn in Player.LinesCollidingWith) {
-                        isIn.Call(2, 4, null); //TODO PRIORITY!?!
+                        //Lines we're moving through
+                        foreach (var isIn in Player.LinesCollidingWith) {
+                            isIn.Call(2, 3, null); //TODO PRIORITY!?!
+                        }
                     }
 
                     if ((Player.Model.AnimationState.Animation != desiredAnim) || (Player.Model.AnimationState.AnimationSpeed != animSpeed))
                         Player.Model.PlayAnimation(desiredAnim, true, animSpeed, null);
+
+                    //Lines we're just within
+                    foreach (var isIn in Player.LinesCollidingWith) {
+                        isIn.Call(2, 4, null); //TODO PRIORITY!?!
+                    }
                 }
             }
+
         }
 
         private static bool LineIntersect(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1, out float aDist) {
@@ -1145,5 +1164,9 @@ namespace Braver.Field {
                 FieldFile = new FieldFile(s);
             FieldID = fieldID;
         }
+    }
+
+    public interface IInputCapture {
+        void ProcessInput(InputState input);
     }
 }

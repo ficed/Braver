@@ -1,4 +1,6 @@
-﻿using SharpDX.MediaFoundation;
+﻿using Braver.Net;
+using Microsoft.AspNetCore.Razor.Language.Intermediate;
+using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -622,6 +624,105 @@ namespace Braver.Field {
 
     internal static class FieldModels {
 
+        private class LadderInput : IInputCapture {
+            public int Keys;
+            public Vector3 From, To;
+            public FieldScreen Screen;
+            public int FromTri, ToTri, AnimSpeed;            
+            public Entity Entity;
+
+            private int _progress;
+
+            public bool Step(bool toEnd) {
+                float length = (To - From).Length();
+                if (toEnd)
+                    _progress++;
+                else
+                    _progress--;
+
+                Entity.Model.Translation = Vector3.Lerp(From, To, _progress / length);
+
+                return toEnd ? _progress >= length : _progress <= 0;
+            }
+            public void ProcessInput(InputState input) {
+                bool? movement = null;
+                switch (Keys) {
+                    case 0:
+                        if (input.IsDown(InputKey.Down))
+                            movement = true;
+                        else if (input.IsDown(InputKey.Up))
+                            movement = false;
+                        break;
+                    case 1:
+                        if (input.IsDown(InputKey.Up))
+                            movement = true;
+                        else if (input.IsDown(InputKey.Down))
+                            movement = false;
+                        break;
+                    case 2:
+                        if (input.IsDown(InputKey.Right))
+                            movement = true;
+                        else if (input.IsDown(InputKey.Left))
+                            movement = false;
+                        break;
+                    case 3:
+                        if (input.IsDown(InputKey.Left))
+                            movement = true;
+                        else if (input.IsDown(InputKey.Right))
+                            movement = false;
+                        break;
+                }
+
+                if (movement != null) {
+                    Entity.Model.AnimationState.AnimationSpeed = AnimSpeed; //TODO speed?
+                    bool done = Step(movement.Value);
+
+                    if (done) {
+                        Entity.WalkmeshTri = movement.Value ? ToTri : FromTri;
+                        Entity.Model.Translation = movement.Value ? To : From;
+                        Entity.Model.PlayAnimation(0, true, 1f, null);
+                        Screen.InputCapture = null;
+                    }
+                } else {
+                    Entity.Model.AnimationState.AnimationSpeed = 0;
+                }
+            }
+        }
+
+        public static OpResult LADER(Fiber f, Entity e, FieldScreen s) {
+            byte bankXY = f.ReadU8(), bankZT = f.ReadU8();
+            short x = f.ReadS16(), y = f.ReadS16(), z = f.ReadS16(), tri = f.ReadS16();
+            byte keys = f.ReadU8(), anim = f.ReadU8(), direction = f.ReadU8(), speed = f.ReadU8();
+
+            Vector3 target = new Vector3(
+                s.Game.Memory.Read(bankXY >> 4, x),
+                s.Game.Memory.Read(bankXY & 0xf, y),
+                s.Game.Memory.Read(bankZT >> 4, z)
+            );
+            int triID = s.Game.Memory.Read(bankZT & 0xf, tri);
+
+            float rotation = 360f * direction / 255f;
+            e.Model.Rotation = new Vector3(0, 0, rotation);
+            e.Model.PlayAnimation(anim, true, 0, null); 
+
+            var ladder = new LadderInput {
+                Keys = keys,
+                From = e.Model.Translation,
+                To = target,
+                Screen = s,
+                FromTri = e.WalkmeshTri,
+                ToTri = triID,
+                Entity = e,
+                AnimSpeed = speed,
+            };
+
+            if (s.Player == e)
+                s.InputCapture = ladder;
+            else
+                s.StartProcess(_ => ladder.Step(true));
+
+            return OpResult.Continue;
+        }
 
         public static OpResult IDLCK(Fiber f, Entity e, FieldScreen s) {
             ushort triID = f.ReadU16();
@@ -706,6 +807,7 @@ namespace Braver.Field {
                     float rotation = 360f * d / 255f;
                     ent.Model.Rotation = new Vector3(0, 0, rotation);
                     ent.Model.PlayAnimation(0, true, 1f, null);
+                    ent.Flags |= EntityFlags.CanCollide;
                 } else {
                     var target = Vector2.Lerp(s.Player.Model.Translation.XY(), new Vector2(x, y), 1f * frame / speed);
                     s.TryWalk(ent, new Vector3(target.X, target.Y, 0), false);
@@ -765,6 +867,7 @@ namespace Braver.Field {
                 } else if (state.Frame == speed) {
                     ent.Model.Translation = s.Player.Model.Translation;
                     ent.Model.Visible = false;
+                    ent.Flags &= ~EntityFlags.CanCollide;
                 } else {
                     var target = Vector2.Lerp(start, s.Player.Model.Translation.XY(), 1f * state.Frame / speed);
                     s.TryWalk(ent, new Vector3(target.X, target.Y, 0), false);
@@ -1320,6 +1423,22 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
         private static OpResult DoAKAO(Fiber f, Entity e, FieldScreen s, byte op, int parm1, int parm2, int parm3, int parm4, int parm5) {
             switch (op) {
+                case 0x28:
+                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 1);
+                    break;
+                case 0x29:
+                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 2);
+                    break;
+                case 0x2A:
+                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 3);
+                    break;
+                case 0x2B:
+                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 4);
+                    break;
+                case 0x30:
+                    s.Game.Audio.PlaySfx(parm2, 1f, 0, 5);
+                    break;
+
                 case 0xc0:
                     s.Game.Audio.SetMusicVolume((byte)parm1);
                     break;
@@ -1379,7 +1498,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             if (sound < 0)
                 s.Game.Audio.StopLoopingSfx();
             else
-                s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64);
+                s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64f);
             return OpResult.Continue;
         }
 

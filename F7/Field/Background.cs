@@ -66,10 +66,17 @@ namespace Braver.Field {
             MinY = bg.AllSprites.Min(s => s.DestY);
 
             var zCoords = bg.AllSprites
+                .Where(spr => spr.State == 0)
                 .Select(spr => spr.ID)
-                .Where(z => z > 1 && z < 4032);
-            AutoDetectZFrom = zCoords.Min() * 0.75f;
-            AutoDetectZTo = zCoords.Max() * 1.25f;
+                .Where(z => z > 1 && z < 4032)
+                ;
+            if (zCoords.Any()) {
+                AutoDetectZFrom = zCoords.Min() * 0.75f;
+                AutoDetectZTo = zCoords.Max() * 1.25f;
+            } else {
+                AutoDetectZFrom = 1f;
+                AutoDetectZTo = 4095f;
+            }
 
             foreach (var layer in bg.Layers.Where(L => L.Any())) {
 
