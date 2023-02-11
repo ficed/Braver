@@ -176,8 +176,7 @@ namespace Ficedula.FF7 {
 					pcmOut.Write(r_sample_1);
 
 					// Go through the bytes in this MSADPCM block.
-					throw new Exception("Verify this header size calculation, looks wrong");
-					for (int bytes = 0; bytes < ((blockAlign + 15) * 2); bytes++) {
+					for (int bytes = 0; bytes < (blockAlign  - 14); bytes++) {
 						// Each block carries one left/right sample.
 						getNibbleBlock(Source.ReadByte(), nibbleBlock);
 

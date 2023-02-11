@@ -5,9 +5,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms.Design;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Braver.Field {
+
+    [Flags]
+    public enum DialogOptions {
+        None = 0,
+        Transparent = 0x1,
+        NoBorder = 0x2,
+        IsPermanent = 0x4,
+    }
+
     public class Dialog {
 
         private enum WindowState {
@@ -30,6 +40,7 @@ namespace Braver.Field {
             public Action<int> OnChoice;
             public int Choice;
             public int[] ChoiceLines;
+            public DialogOptions Options;
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
@@ -51,12 +62,16 @@ namespace Braver.Field {
         public void ResetWindow(int window) {
             SetupWindow(window, 5, 5, 0x130, 0x45);
             _windows[window].State = WindowState.Hidden;
+            _windows[window].Options = DialogOptions.None;
         }
         public void SetupWindow(int window, int x, int y, int width, int height) {
             _windows[window].X = x * 3 + 160;
             _windows[window].Y = y * 3;
             _windows[window].Width = width * 3 / 2 + 8; //expand size to account for border...? 
             _windows[window].Height = height * 3 / 2 + 8;
+        }
+        public void SetOptions(int window, DialogOptions options) {
+            _windows[window].Options = options;
         }
 
         private void PrepareWindow(int window, string text) {
@@ -96,14 +111,17 @@ namespace Braver.Field {
 
                     case WindowState.Wait:
                         if (input.IsJustDown(InputKey.OK)) {
-                            _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
                                 window.ScreenProgress++;
                                 window.FrameProgress = 0;
                                 window.State = WindowState.Displaying;
+                                _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             } else { //we're done
-                                window.State = WindowState.Hiding;
-                                window.FrameProgress = 0;
+                                if (!window.Options.HasFlag(DialogOptions.IsPermanent)) {
+                                    window.State = WindowState.Hiding;
+                                    window.FrameProgress = 0;
+                                    _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                                }
                             }
                         } else if (input.IsJustDown(InputKey.Down)) {
                             if (window.ChoiceLines != null) {
@@ -175,26 +193,32 @@ namespace Braver.Field {
             }
 
             foreach (var window in _windows) {
+                float alpha = window.Options.HasFlag(DialogOptions.Transparent) ? 0.5f : 1f;
+                bool box = !window.Options.HasFlag(DialogOptions.NoBorder);
                 switch (window.State) {
                     case WindowState.Expanding:
                         float rW = MIN_SIZE + (window.Width - MIN_SIZE) * 1f * window.FrameProgress / EXPAND_HIDE_FRAMES,
                             rH = MIN_SIZE + (window.Height - MIN_SIZE) * 1f * window.FrameProgress / EXPAND_HIDE_FRAMES;
-                        _ui.DrawBox(new Rectangle(window.X, window.Y, (int)rW, (int)rH), NextZ());
+                        if (box)
+                            _ui.DrawBox(new Rectangle(window.X, window.Y, (int)rW, (int)rH), NextZ(), alpha);
                         break;
                     case WindowState.Hiding:
                         rW = MIN_SIZE + (window.Width - MIN_SIZE) * (1f - 1f * window.FrameProgress / EXPAND_HIDE_FRAMES);
                         rH = MIN_SIZE + (window.Height - MIN_SIZE) * (1f - 1f * window.FrameProgress / EXPAND_HIDE_FRAMES);
-                        _ui.DrawBox(new Rectangle(window.X, window.Y, (int)rW, (int)rH), NextZ());
+                        if (box)
+                            _ui.DrawBox(new Rectangle(window.X, window.Y, (int)rW, (int)rH), NextZ(), alpha);
                         break;
                     case WindowState.Displaying:
-                        _ui.DrawBox(new Rectangle(window.X, window.Y, window.Width, window.Height), NextZ());
+                        if (box)
+                            _ui.DrawBox(new Rectangle(window.X, window.Y, window.Width, window.Height), NextZ(), alpha);
                         int chars = window.FrameProgress / 4;
                         DrawText(window, ref chars);
                         if (chars > 0)
                             window.State = WindowState.Wait;
                         break;
                     case WindowState.Wait:
-                        _ui.DrawBox(new Rectangle(window.X, window.Y, window.Width, window.Height), NextZ());
+                        if (box)
+                            _ui.DrawBox(new Rectangle(window.X, window.Y, window.Width, window.Height), NextZ(), alpha);
                         int i = 99999;
                         DrawText(window, ref i);
                         break;

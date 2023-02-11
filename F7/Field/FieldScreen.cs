@@ -343,7 +343,9 @@ namespace Braver.Field {
                 }
                 SetPlayerIfNecessary(); //TODO - is it OK to delay doing this? But until the entity scripts run we don't know which entity corresponds to which party member...
 
-                BringPlayerIntoView();
+                var scroll = GetBGScroll();
+                if ((scroll.x == 0) && (scroll.y == 0)) //don't bring player into view if script appears to have scrolled away
+                    BringPlayerIntoView();
 
                 if (!Overlay.HasTriggered)
                     Overlay.Fade(30, GraphicsUtil.BlendSubtractive, Color.White, Color.Black, null);
@@ -411,7 +413,7 @@ namespace Braver.Field {
                     Overlay.Step();
                     foreach (var entity in Entities) {
                         if (!Game.DebugOptions.NoFieldScripts)
-                            entity.Run(1000);
+                            entity.Run(100);
                         entity.Model?.FrameStep();
                     }
                 }
@@ -497,9 +499,13 @@ namespace Braver.Field {
             );
         }
 
-        private void BringPlayerIntoView() {
+        public void BringPlayerIntoView() {
+            if (Options.HasFlag(FieldOptions.CameraIsAsyncScrolling)) return;
+
             if (Player != null) {
                 var posOnBG = ModelToBGPosition(Player.Model.Translation);
+                float playerHeight = (Player.Model.MaxBounds.Y - Player.Model.MinBounds.Y) * Player.Model.Scale;
+                var highPosOnBG = ModelToBGPosition(Player.Model.Translation + new Vector3(0, 0, playerHeight));
                 var scroll = GetBGScroll();
                 var newScroll = scroll;
                 if (posOnBG.X > (scroll.x + 150))
@@ -507,8 +513,8 @@ namespace Braver.Field {
                 else if (posOnBG.X < (scroll.x - 150))
                     newScroll.x = (int)posOnBG.X + 150;
 
-                if (posOnBG.Y > (scroll.y + 90))
-                    newScroll.y = (int)posOnBG.Y - 90;
+                if (highPosOnBG.Y > (scroll.y + 100))
+                    newScroll.y = (int)highPosOnBG.Y - 100;
                 else if (posOnBG.Y < (scroll.y - 110))
                     newScroll.y = (int)posOnBG.Y + 110;
 
@@ -732,7 +738,7 @@ namespace Braver.Field {
                                         Background.ModifyParameter(trigger.BackgroundID, i => i & ~(1 << trigger.BackgroundState));
 
                                     if ((setOn || setOff) && (trigger.SoundID != 0))
-                                        Game.Audio.PlaySfx(trigger.SoundID, 1f, 0f);
+                                        Game.Audio.PlaySfx(trigger.SoundID - 1, 1f, 0f);
 
                                     if (active)
                                         _activeTriggers.Add(trigger);
@@ -760,7 +766,13 @@ namespace Braver.Field {
                         }
 
                         //Lines we're moving through
+                        //Both events seem necessary; presumably priorities should be different though...?
                         foreach (var isIn in Player.LinesCollidingWith) {
+                            System.Diagnostics.Debug.WriteLine($"Player colliding with {isIn.Name}, triggering script 2");
+                            isIn.Call(3, 2, null); //TODO PRIORITY!?!
+                        }
+                        foreach (var isIn in Player.LinesCollidingWith) {
+                            System.Diagnostics.Debug.WriteLine($"Player colliding with {isIn.Name}, triggering script 3");
                             isIn.Call(2, 3, null); //TODO PRIORITY!?!
                         }
                     }
@@ -1056,6 +1068,9 @@ namespace Braver.Field {
             }
         }
 
+        public float? HeightInTriangle(int triID, float x, float y) {
+            return HeightInTriangle(_walkmesh[triID], x, y);
+        }
         private static float? HeightInTriangle(WalkmeshTriangle tri, float x, float y) {
             return HeightInTriangle(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), x, y);
         }

@@ -246,6 +246,13 @@ namespace Braver {
                 MateriaStock.RemoveRange(lastValid + 1, MateriaStock.Count - lastValid - 1);
         }
 
+        public void GiveMateria(OwnedMateria materia) {
+            int space = MateriaStock.IndexOf(null);
+            if (space >= 0)
+                MateriaStock[space] = materia;
+            else
+                MateriaStock.Add(materia);
+        }
         public bool GiveInventoryItem(InventoryItemKind kind, int id, int quantity = 1) {
             var entry = Inventory.Find(inv => (inv.Kind == kind) && (inv.ItemID == id));
             if (entry != null) {

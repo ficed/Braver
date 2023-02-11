@@ -42,7 +42,7 @@ namespace Braver.Field {
         }
 
         public bool Call(int priority, int script, Action onComplete) {
-            if (_priorities[priority].Active)
+            if (_priorities[priority].InProgress)
                 return false;
 
             _priorities[priority].OnStop = onComplete;
@@ -58,7 +58,9 @@ namespace Braver.Field {
                         System.Diagnostics.Debug.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
                     fiber.Run(maxOps, isInit);
                     if (isInit) fiber.Resume();
-                    break;
+                    
+                    if (fiber.InProgress)
+                        break;
                 }
                 priority--;
             }

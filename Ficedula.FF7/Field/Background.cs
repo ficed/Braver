@@ -29,6 +29,7 @@ namespace Ficedula.FF7.Field {
         public byte Param, State, Blending, ZZ3, TypeTrans, ZZ4;
         public short TextureID, TextureID2, Depth;
         public int IDBig;
+        public int ZZ5, ZZ6, ZZ7;
 
         public long SortKey => ((long)TypeTrans << 48) | ((long)Param << 40) | ((long)State << 32) | ID;
 
@@ -56,9 +57,12 @@ namespace Ficedula.FF7.Field {
             Depth = source.ReadI16();
             IDBig = source.ReadI32();
 
+            ZZ5 = source.ReadI32();
+            ZZ6 = source.ReadI32();
+            ZZ7 = source.ReadI32();
+
             FixUp(layer);
 
-            source.Seek(12, SeekOrigin.Current);
         }
 
         public void FixUp(int layerID) {

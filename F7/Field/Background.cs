@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace Braver.Field {
     public class Background {
+
+        private const int DEPTH_CUTOFF = 3850; //TODO TURBO HACK
 
         public int ScrollX { get; set; }
         public int ScrollY { get; set; }
@@ -68,7 +71,7 @@ namespace Braver.Field {
             var zCoords = bg.AllSprites
                 .Where(spr => spr.State == 0)
                 .Select(spr => spr.ID)
-                .Where(z => z > 1 && z < 4032)
+                .Where(z => z > 1 && z < DEPTH_CUTOFF)
                 ;
             if (zCoords.Any()) {
                 AutoDetectZFrom = zCoords.Min() * 0.75f;
@@ -98,7 +101,7 @@ namespace Braver.Field {
 
                     float zcoord;
                     bool isFixedZ;
-                    if (group.First().ID >= 4032) {
+                    if (group.First().ID >= DEPTH_CUTOFF) {
                         zcoord = 1f; isFixedZ = true;
                     } else if (group.First().ID <= 1) {
                         zcoord = 0f; isFixedZ = true;

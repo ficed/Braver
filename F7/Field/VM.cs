@@ -1,9 +1,6 @@
-﻿using Braver.Net;
-using Microsoft.AspNetCore.Razor.Language.Intermediate;
-using SharpDX.MediaFoundation;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Linq;
 
 namespace Braver.Field {
@@ -341,7 +338,7 @@ namespace Braver.Field {
             while (Active && (maxOps-- > 0)) {
                 int opIP = _ip;
                 OpCode op = (OpCode)ReadU8();
-                //if (_entity.Name == "FURYOA")
+                //if (_entity.Name == "av_j")
                 //    System.Diagnostics.Debug.WriteLine($"Entity {_entity.Name} executing {op} ({(byte)op}) at IP {opIP}");
                 switch (VM.Execute(op, this, _entity, _screen)) {
                     case OpResult.Continue:
@@ -624,12 +621,44 @@ namespace Braver.Field {
 
     internal static class FieldModels {
 
+        public static OpResult JUMP(Fiber f, Entity e, FieldScreen s) {
+            byte bankXY = f.ReadU8(), bankTS = f.ReadU8();
+            short x = f.ReadS16(), y = f.ReadS16(), t = f.ReadS16(), st = f.ReadS16();
+            var startPos = e.Model.Translation;
+            int endX = s.Game.Memory.Read(bankXY >> 4, x),
+                endY = s.Game.Memory.Read(bankXY & 0xf, y),
+                triID = s.Game.Memory.Read(bankTS >> 4, t),
+                steps = s.Game.Memory.Read(bankTS & 0xf, st);
+
+            float startZ = e.Model.Translation.Z,
+                endZ = s.HeightInTriangle(triID, endX, endY).Value;
+
+            s.StartProcess(frame => {
+                if (frame >= steps) {
+                    e.Model.Translation = new Vector3(endX, endY, endZ);
+                    e.WalkmeshTri = triID;
+                    f.Resume();
+                    return true;
+                } else {
+                    var pos = Vector3.Lerp(startPos, new Vector3(endX, endY, 0), 1f * frame / steps);
+                    float z = ((endZ - startZ) * frame / steps) + (float)Math.Sin(Math.PI * frame / steps) * steps * steps * 0.5f;
+                    pos.Z = startZ + z;
+                    e.Model.Translation = pos;
+                    return false;
+                }
+            });
+
+            f.Pause();
+            return OpResult.Continue;
+        }
+
         private class LadderInput : IInputCapture {
             public int Keys;
             public Vector3 From, To;
             public FieldScreen Screen;
             public int FromTri, ToTri, AnimSpeed;            
             public Entity Entity;
+            public Fiber Fiber;
 
             private int _progress;
 
@@ -676,12 +705,14 @@ namespace Braver.Field {
                 if (movement != null) {
                     Entity.Model.AnimationState.AnimationSpeed = AnimSpeed; //TODO speed?
                     bool done = Step(movement.Value);
+                    Screen.BringPlayerIntoView();
 
                     if (done) {
                         Entity.WalkmeshTri = movement.Value ? ToTri : FromTri;
                         Entity.Model.Translation = movement.Value ? To : From;
                         Entity.Model.PlayAnimation(0, true, 1f, null);
                         Screen.InputCapture = null;
+                        Fiber.Resume();
                     }
                 } else {
                     Entity.Model.AnimationState.AnimationSpeed = 0;
@@ -714,12 +745,22 @@ namespace Braver.Field {
                 ToTri = triID,
                 Entity = e,
                 AnimSpeed = speed,
+                Fiber = f,
             };
+            f.Pause();
 
             if (s.Player == e)
                 s.InputCapture = ladder;
             else
-                s.StartProcess(_ => ladder.Step(true));
+                s.StartProcess(_ => {
+                    if (ladder.Step(true)) {
+                        f.Resume();
+                        e.WalkmeshTri = triID;
+                        e.Model.Translation = target;
+                        return true;
+                    } else
+                        return false;
+                });
 
             return OpResult.Continue;
         }
@@ -919,6 +960,25 @@ namespace Braver.Field {
 
             return OpResult.Continue;
         }
+        public static OpResult AXYZI(Fiber f, Entity e, FieldScreen s) {
+            byte banks1 = f.ReadU8(), banks2 = f.ReadU8(),
+                eindex = f.ReadU8(), sx = f.ReadU8(), sy = f.ReadU8(), sz = f.ReadU8(), stri = f.ReadU8();
+
+            var ent = s.Entities[eindex];
+            if (ent.Model != null) {
+                s.Game.Memory.Write(banks1 >> 4, sx, (ushort)(short)ent.Model.Translation.X);
+                s.Game.Memory.Write(banks1 & 0xf, sy, (ushort)(short)ent.Model.Translation.Y);
+                s.Game.Memory.Write(banks2 >> 4, sz, (ushort)(short)ent.Model.Translation.Z);
+                s.Game.Memory.Write(banks2 & 0xf, stri, (ushort)ent.WalkmeshTri);
+            } else {
+                s.Game.Memory.Write(banks1 >> 4, sx, 0);
+                s.Game.Memory.Write(banks1 & 0xf, sy, 0);
+                s.Game.Memory.Write(banks2 >> 4, sz, 0);
+                s.Game.Memory.Write(banks2 & 0xf, stri, 0);
+            }
+
+            return OpResult.Continue;
+        }
 
         private static OpResult DoMove(Fiber f, Entity e, FieldScreen s, bool doAnimation) {
             byte banks = f.ReadU8();
@@ -1039,6 +1099,14 @@ namespace Braver.Field {
                 f.Resume();
                 f.OtherState["AnimPlaying"] = false;
             }); //TODO is this speed even vaguely correct?
+            return OpResult.Continue;
+        }
+        public static OpResult CANM_1(Fiber f, Entity e, FieldScreen s) {
+            byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
+            f.OtherState["AnimPlaying"] = true;
+            e.Model.PlayAnimation(anim, false, 1f / speed, () => {
+                f.OtherState["AnimPlaying"] = false;
+            }, fstart, fend);
             return OpResult.Continue;
         }
         public static OpResult CANM_2(Fiber f, Entity e, FieldScreen s) {
@@ -1273,6 +1341,24 @@ namespace Braver.Field {
             s.Game.SaveData.GiveInventoryItem(InventoryItemKind.Item, s.Game.Memory.Read(banks & 0xf, item), s.Game.Memory.Read(banks >> 4, qty));
             return OpResult.Continue;
         }
+
+        public static OpResult SMTRA(Fiber f, Entity e, FieldScreen s) {
+            byte banks1 = f.ReadU8(), banks2 = f.ReadU8(),
+                mtype = f.ReadU8(),
+                ap0 = f.ReadU8(), ap1 = f.ReadU8(), ap2 = f.ReadU8();
+
+            mtype = (byte)s.Game.Memory.Read(banks1 >> 4, mtype);
+            ap0 = (byte)s.Game.Memory.Read(banks1 & 0xf, ap0);
+            ap1  = (byte)s.Game.Memory.Read(banks2 >> 4, ap1);
+            ap2 = (byte)s.Game.Memory.Read(banks2 & 0xf, ap2);
+
+            s.Game.SaveData.GiveMateria(new OwnedMateria {
+                MateriaID = mtype,
+                AP = ap0 | (ap1 << 8) | (ap2 << 16)
+            });
+
+            return OpResult.Continue;
+        }
     }
 
     internal static class WindowMenu {
@@ -1308,6 +1394,24 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         public static OpResult WCLSE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
             s.Dialog.ResetWindow(id);
+            return OpResult.Continue;
+        }
+
+        public static OpResult WMODE(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8(), mode = f.ReadU8(), permanent = f.ReadU8();
+            var options = DialogOptions.None;
+            switch (mode) {
+                case 1:
+                    options |= DialogOptions.NoBorder;
+                    break;
+                case 2:
+                    options |= DialogOptions.Transparent;
+                    break;
+            }
+            if (permanent == 1)
+                options |= DialogOptions.IsPermanent;
+            s.Dialog.SetOptions(id, options);
+
             return OpResult.Continue;
         }
         public static OpResult WSIZW(Fiber f, Entity e, FieldScreen s) {
@@ -1519,11 +1623,71 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         }
 
 
+        public static OpResult VWOFT(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8();
+            short sx = f.ReadS16(), sy = f.ReadS16();
+            byte type = f.ReadU8();
+
+            int x = s.Game.Memory.Read(banks >> 4, sx),
+                y = s.Game.Memory.Read(banks & 0xf, sy);
+            //VERY TODO, this is guesswork
+            System.Diagnostics.Debugger.Break();
+            s.BGScroll(x, y, false);
+            return OpResult.Continue;
+        }
+
         public static OpResult SCRLW(Fiber f, Entity e, FieldScreen s) {
             if (s.Options.HasFlag(FieldOptions.CameraIsAsyncScrolling))
                 return OpResult.Restart;
             else
                 return OpResult.Continue;
+        }
+
+        public static OpResult SCRLA(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8();
+            ushort sspeed = f.ReadU16();
+            byte entityID = f.ReadU8(), type = f.ReadU8();
+
+            int speed = s.Game.Memory.Read(bank, sspeed);
+
+            Func<Vector3> target;
+            if (s.Entities[entityID].Model == null)
+                target = () => Vector3.Zero;
+            else
+                target = () => s.Entities[entityID].Model.Translation;
+
+            f.Pause();
+            s.Options |= FieldOptions.CameraIsAsyncScrolling;
+            var start = s.GetBGScroll();
+
+            s.StartProcess(frame => {
+                var pos = s.ModelToBGPosition(target());
+                if (frame >= speed) {
+                    f.Resume();
+                    s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
+                    //TODO - should track entity instead of player from now on??
+                    s.BGScroll(pos.X, pos.Y, true);
+                    return true;
+                } else {
+                    float progress;
+                    switch (type) {
+                        case 2:
+                            progress = 1f * frame / speed;
+                            break;
+                        case 3:
+                            progress = Easings.QuadraticInOut(1f * frame / speed);
+                            break;
+                        default:
+                            progress = 1f;
+                            break;
+                    }
+                    var scroll = Vector2.Lerp(new Vector2(start.x, start.y), pos, progress);
+                    s.BGScroll(scroll.X, scroll.Y, true);
+                    return false;
+                }
+            });
+
+            return OpResult.Continue;
         }
 
         public static OpResult SCR2D(Fiber f, Entity e, FieldScreen s) {
@@ -1567,6 +1731,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     Start = new Vector2(scroll.x, scroll.y),
                 };
                 f.ResumeState = state;
+                s.Options |= FieldOptions.CameraIsAsyncScrolling;
             } else
                 state = (ScrollState)f.ResumeState;
             
@@ -1575,6 +1740,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             if (progress >= 1f) {
                 s.BGScroll(x, y, false);
+                s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
                 return OpResult.Continue;
             } else {
                 var pos = state.Start + (end - state.Start) * progress;
@@ -1641,12 +1807,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             int numFrames = sspeed * 60 / 32;
 
+            s.Options |= FieldOptions.CameraIsAsyncScrolling;
             f.Pause();
             s.StartProcess(frame => {
                 float progress = 1f * frame / numFrames;
                 s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress, false);
 
                 if (progress >= 1) {
+                    s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
                     f.Resume();
                     return true;
                 } else
@@ -1672,6 +1840,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 case 4: //FADE type 4 - both basically the same...?
                     s.Overlay.Fade(0, BlendState.Additive, Color.Black, Color.Black, null);
                     return OpResult.Continue;
+
+                case 1:
+                    s.Overlay.Fade(frames, GraphicsUtil.BlendSubtractive, cInverse4, Color.Black, null);
+                    return OpResult.Continue; //Probably?
+                case 2:
+                    s.Overlay.Fade(frames, GraphicsUtil.BlendSubtractive, Color.Black, cInverse4, null);
+                    return OpResult.Continue; //Probably?
+
                 default: //TODO - other types!
                     throw new NotImplementedException();
             }
@@ -1746,6 +1922,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int value = s.Game.Memory.Read(banks & 0xf, src);
             int current = s.Game.Memory.Read(banks >> 4, dest);
             s.Game.Memory.Write(banks >> 4, dest, (ushort)(current | value));
+            return OpResult.Continue;
+        }
+
+        public static OpResult MOD(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), den = f.ReadU8();
+            int value = s.Game.Memory.Read(banks & 0xf, den);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)(current % value));
             return OpResult.Continue;
         }
     }
