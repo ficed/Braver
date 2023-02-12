@@ -78,7 +78,13 @@ namespace Braver.Battle {
 
             bool noSplit = true;
 
-            switch(attack.DamageType & 0xf) {
+            int power = attack.Power;
+
+            switch (attack.DamageType & 0xf) {
+                case 0x0:
+                    formula = AttackFormula.Fixed;
+                    power = 0;
+                    break;
                 case 0x1:
                     formula = AttackFormula.Physical; noSplit = false;
                     break;
@@ -128,7 +134,7 @@ namespace Braver.Battle {
             }
 
             return new Ability {
-                Power = attack.Power,
+                Power = power,
                 IsReflectable = attack.SpecialAttackFlags.HasFlag(Ficedula.FF7.Battle.SpecialAttackFlags.Reflectable),
                 DamageMP = attack.SpecialAttackFlags.HasFlag(Ficedula.FF7.Battle.SpecialAttackFlags.DamageMP),
                 Formula = formula,

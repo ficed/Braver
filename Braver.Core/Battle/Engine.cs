@@ -27,6 +27,7 @@ namespace Braver.Battle {
         public ICombatant[] Targets { get; private set; }
         public ActionPriority Priority { get; private set; }
         public string Name { get; private set; }
+        public List<byte[]> QueuedText { get; private set; } = new();
 
         public Action AfterAction { get; set; }
 

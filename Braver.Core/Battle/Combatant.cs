@@ -55,6 +55,9 @@ namespace Braver.Battle {
 
         public Statuses Statuses { get; set; }
 
+        public int IdleBattleAnimation { get; set; }
+        public int HurtBattleAnimation { get; set; }
+
         void Init(Engine engine, AICallbacks callbacks);
         void TakeAction();
         void Hit(QueuedAction hitBy);
@@ -208,6 +211,8 @@ namespace Braver.Battle {
         public ICombatant LastAttacker { get; set; }
         public ICombatant LastPhysicalAttacker { get; set; }
         public ICombatant LastMagicAttacker { get; set; }
+        public int IdleBattleAnimation { get; set; } = 0;
+        public int HurtBattleAnimation { get; set; } = 14; //TODO - correct?
 
         public List<StatModifier> StatModifiers { get; } = new();
 
@@ -242,11 +247,13 @@ namespace Braver.Battle {
 
         public EnemyInstance Enemy => _enemy;
         public AI AI { get; set; }
+        public int InstanceID { get; set; }
 
         public EnemyCombatant(EnemyInstance enemy, int? indexInGroup) {
             _enemy = enemy;
             _currentHP = enemy.Enemy.HP;
             _currentMP = enemy.Enemy.MP;
+            InstanceID = indexInGroup.GetValueOrDefault();
             Row = enemy.Row;
             IsBackRow = Row > 0;
             if (indexInGroup != null)
@@ -289,6 +296,8 @@ namespace Braver.Battle {
         public ICombatant LastAttacker { get; set; }
         public ICombatant LastPhysicalAttacker { get; set; }
         public ICombatant LastMagicAttacker { get; set; }
+        public int IdleBattleAnimation { get; set; } = 0;
+        public int HurtBattleAnimation { get; set; } = 14; //TODO - almost certainly not correct?
 
         public bool IsPlayer => false;
         public int Level => _enemy.Enemy.Level;
@@ -309,21 +318,29 @@ namespace Braver.Battle {
         public void Init(Engine engine, AICallbacks callbacks) {
             _engine = engine;
             AI = new AI(Enemy.Enemy.AI, new CombatantMemory(engine, this), callbacks);
+            AI.Memory.ResetRegion2(_engine.Game.SaveData.Gil);
             AI.Run(AIScriptFunction.PreBattle);
         }
+
+        private static Ability NullAbility = new Ability {    
+            Elements = new(),            
+        };
 
         private QueuedAction RunAIAndQueueAction(AIScriptFunction function, ActionPriority priority) {
             AI.Memory.ResetRegion2(_engine.Game.SaveData.Gil);
             AI.Run(function);
 
             if (AI.ActionID.HasValue) {
-                var action = Enemy.Enemy.Actions.First(a => a.ActionID == AI.ActionID);
+                var action = Enemy.Enemy.Actions.FirstOrDefault(a => a.ActionID == AI.ActionID);
                 var targets = Utils.IndicesOfSetBits(AI.Memory.Read2(0x070))
                     .Select(i => _engine.Combatants[i]);
                 var q = new QueuedAction(
-                    this, action.Attack.ToAbility(this), targets.ToArray(),
-                    priority, action.Attack.Name
+                    this, 
+                    action == null ? NullAbility : action.Attack.ToAbility(this), 
+                    targets.ToArray(),
+                    priority, action?.Attack?.Name
                 );
+                q.QueuedText.AddRange(AI.QueuedText);
                 _engine.QueueAction(q);
                 return q;
             } else

@@ -19,6 +19,7 @@ Field - model lighting looks a bit too bright
 	  - background animations in nmkin_1 not working - perhaps palette effects?
 	  - Trigger sound effects are just wrong
 	  - Jessie's rotation in nmkin_3 far too slow
+	  - save point transparency is wrong
 
 Music looping works but still a noticeable break at the loop point
 
@@ -39,3 +40,4 @@ Battle
 	Don't allow targetting dead enemies
 	Animations?!?!?!?!?!
 	Hit effects...
+	Actions that shouldn't do anything still register a miss or 1pt of damage - see Guard Scorpion in battle 324

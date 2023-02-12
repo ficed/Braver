@@ -6,10 +6,7 @@ using Ficedula.FF7.Field;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.ConstrainedExecution;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.Battle {
 
@@ -39,10 +36,6 @@ namespace Braver.Battle {
                 _vmm = vmm;
             }
 
-            public override void DisplayText(byte[] text) {
-                //TODO encoding?!?!
-                Console.WriteLine(Encoding.ASCII.GetString(text));
-            }
         }
 
         public class UIHandler : UI.Layout.LayoutModel {
@@ -149,8 +142,11 @@ namespace Braver.Battle {
                     else if (chr.HP <= (chr.MaxHP / 4))
                         model.PlayAnimation(1, true, 1f, null);
                     else
-                        model.PlayAnimation(0, true, 1f, null);
+                        model.PlayAnimation(chr.IdleBattleAnimation, true, 1f, null);
                     //TODO - much more than this!
+                    break;
+                case EnemyCombatant enemy:
+                    model.PlayAnimation(enemy.IdleBattleAnimation, true, 1f, null);
                     break;
             }
         }
@@ -459,7 +455,8 @@ namespace Braver.Battle {
             }
 
             if (_actionInProgress != null) {
-                if (_actionInProgress.Step(elapsed)) {
+                _actionInProgress.Step(elapsed);
+                if (_actionInProgress.IsComplete) {
                     System.Diagnostics.Debug.WriteLine($"Action {_actionInProgress} now complete");
                     _actionInProgress = null;
                     _actionComplete?.Invoke();
@@ -483,7 +480,7 @@ namespace Braver.Battle {
                 else if (pendingDeadEnemies.Any()) {
                     _actionInProgress = new ActionInProgress("FadeDeadEnemies");
                     foreach (var enemy in pendingDeadEnemies) {
-                        _actionInProgress.Add(new EnemyDeath(60, enemy));
+                        _actionInProgress.Add(1, new EnemyDeath(60, enemy));
                         Game.Audio.PlaySfx(Sfx.EnemyDeath, 1f, 0f); //TODO 3d position?!
                     }
                 } else if (CheckForBattleEnd()) {
@@ -503,23 +500,37 @@ namespace Braver.Battle {
                     }
                 };
 
+                int phase = 0;
+
+                if (nextAction.QueuedText.Any()) {
+                    var chars = Game.SaveData.Characters.Select(c => c?.Name).ToArray();
+                    var party = Game.SaveData.Party.Select(c => c?.Name).ToArray();
+
+                    foreach (var text in nextAction.QueuedText) {
+                        _actionInProgress.Add(phase++, new BattleTitle(
+                            Ficedula.FF7.Text.Expand(Ficedula.FF7.Text.Convert(text, 0), chars, party),
+                            60, _menuUI, 1f
+                        ));
+                    }
+                }
+
                 //TODO this isn't always needed
-                _actionInProgress.Add(new BattleTitle(
-                    nextAction.Name, 60, _menuUI, 0.75f
+                _actionInProgress.Add(phase, new BattleTitle(
+                    nextAction.Name ?? "(Unknown)", 60, _menuUI, 0.75f
                 ));
 
                 //TODO all the animations!!
                 foreach (var result in results) {
                     if (result.Hit) {
                         if (result.HPDamage != 0) {
-                            _actionInProgress.Add(new BattleResultText(
+                            _actionInProgress.Add(phase, new BattleResultText(
                                 _menuUI, Math.Abs(result.HPDamage).ToString(), result.HPDamage < 0 ? Color.White : Color.Green,
                                 () => GetModelScreenPos(result.Target), new Vector2(0, -1),
                                 60
                             ));
                         }
                         if (result.MPDamage != 0) {
-                            _actionInProgress.Add(new BattleResultText(
+                            _actionInProgress.Add(phase, new BattleResultText(
                                 _menuUI, $"{Math.Abs(result.MPDamage)} {Font.BATTLE_MP}", result.MPDamage < 0 ? Color.White : Color.Green,
                                 () => GetModelScreenPos(result.Target), new Vector2(0, -1),
                                 60
@@ -527,7 +538,7 @@ namespace Braver.Battle {
                         }
                         //TODO anything else?!?!
                     } else {
-                        _actionInProgress.Add(new BattleResultText(
+                        _actionInProgress.Add(phase, new BattleResultText(
                             _menuUI, Font.BATTLE_MISS.ToString(), Color.White,
                             () => GetModelScreenPos(result.Target), new Vector2(0, -1),
                             60

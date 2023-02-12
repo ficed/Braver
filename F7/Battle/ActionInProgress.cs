@@ -6,28 +6,53 @@ namespace Braver.Battle {
 
     public interface IInProgress {
         bool Step(GameTime elapsed); //return true if done
+        bool IsIndefinite { get; }
     }
 
     public class ActionInProgress {
 
-        private List<IInProgress> _items = new();
+        private Dictionary<int?, List<IInProgress>> _items = new();
         private string _name;
+
+        public bool IsComplete => !_items.Keys.Any(phase => phase != null);
 
         public ActionInProgress(string name) {
             _name = name;
             System.Diagnostics.Debug.WriteLine($"Starting new action {name}");
         }
 
-        public void Add(IInProgress inProgress) {
-            _items.Add(inProgress);
+        public void Add(int? phase, IInProgress inProgress) {
+            if (!_items.TryGetValue(phase, out var list))
+                _items[phase] = list = new List<IInProgress>();
+            list.Add(inProgress);
         }
 
-        public bool Step(GameTime elapsed) {
-            for(int i = _items.Count - 1; i >= 0; i--) {
-                if (_items[i].Step(elapsed))
-                    _items.RemoveAt(i);
+        public void Step(GameTime elapsed) {
+            if (IsComplete) return;
+
+            int phase = _items
+                .Keys
+                .Where(phase => phase != null)
+                .Select(phase => phase.Value)
+                .Min();
+
+            var lists = _items
+                .Where(kv => (kv.Key == null) || (kv.Key == phase))
+                .Select(kv => kv.Value);
+
+            foreach(var list in lists) {
+                for (int i = list.Count - 1; i >= 0; i--) {
+                    if (list[i].Step(elapsed) && !list[i].IsIndefinite)
+                        list.RemoveAt(i);
+                }
             }
-            return _items.Count == 0;
+
+            var toRemove = _items
+                .Where(kv => !kv.Value.Any())
+                .Select(kv => kv.Key)
+                .ToArray();
+            foreach(var key in toRemove)
+                _items.Remove(key);
         }
 
         public override string ToString() => _name;
@@ -35,11 +60,14 @@ namespace Braver.Battle {
 
     public class BattleTitle : IInProgress {
         private string _title;
-        private int _frame, _frames;
+        private int _frame;
+        private int? _frames;
         private UI.UIBatch _ui;
         private float _alpha;
 
-        public BattleTitle(string title, int frames, UI.UIBatch ui, float alpha) {
+        public bool IsIndefinite => _frames == null;
+
+        public BattleTitle(string title, int? frames, UI.UIBatch ui, float alpha) {
             _title = title;
             _frames = frames;
             _ui = ui;
@@ -50,7 +78,7 @@ namespace Braver.Battle {
             _ui.DrawBox(new Rectangle(0, 0, 1280, 55), 0.97f, _alpha);
             _ui.DrawText("main", _title, 640, 15, 0.98f, Color.White, UI.Alignment.Center);
 
-            return _frame++ >= _frames;
+            return _frame++ >= _frames.GetValueOrDefault();
         }
     }
 
@@ -61,6 +89,7 @@ namespace Braver.Battle {
         private Func<Vector2> _start;
         private Vector2 _movement;
         private string _text;
+        public bool IsIndefinite => false;
 
         public BattleResultText(UI.UIBatch ui, string text, Color color, Func<Vector2> start, Vector2 movement, int frames) {
             _ui = ui;
@@ -81,6 +110,8 @@ namespace Braver.Battle {
     public class EnemyDeath : IInProgress {
         private int _frame, _frames;
         private Model _model;
+
+        public bool IsIndefinite => false;
 
         public EnemyDeath(int frames, Model model) {
             _frames = frames;

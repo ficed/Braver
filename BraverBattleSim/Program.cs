@@ -63,6 +63,11 @@ while (engine.Status == BattleStatus.InProgress) {
     bool didAnyActions = false;
     while (engine.ExecuteNextAction(out var action, out var results)) {
         Console.WriteLine($"{action.Source} targetting {string.Join<ICombatant>(",", action.Targets)} with {action.Name}");
+        
+        foreach(var text in action.QueuedText) {
+            Console.WriteLine(Ficedula.FF7.Text.Convert(text, 0));
+        }
+
         foreach (var result in results) {
             Console.WriteLine($"--Target {result.Target}, hit {result.Hit}, inflict {result.InflictStatus} remove {result.RemoveStatus} recovery {result.Recovery}, damage HP {result.HPDamage} MP {result.MPDamage}");
             result.Apply(action);
@@ -117,10 +122,5 @@ public class SimGame : BGame {
 public class SimCallbacks : AICallbacks {
     public SimCallbacks(VMM vmm) {
         _vmm = vmm;
-    }
-
-    public override void DisplayText(byte[] text) {
-        //TODO encoding?!?!
-        Console.WriteLine(System.Text.Encoding.ASCII.GetString(text));
     }
 }

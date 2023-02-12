@@ -47,8 +47,6 @@ namespace Braver.Battle {
             _vmm.Write(1, offset, value);
         }
 
-        public abstract void DisplayText(byte[] text);
-
     }
 
     public class CombatantMemory {
@@ -167,7 +165,21 @@ namespace Braver.Battle {
                     break;
 
                 case 0x040:
-                    getValue = (c, index) => (ushort)((index << 8) | c.Level); break;
+                    getValue = (c, index) => (ushort)((c.Level << 8) | index); break;
+
+                case 0x060:
+                    getValue = (c, index) => {
+                        if (c is EnemyCombatant enemy)
+                            return (ushort)enemy.InstanceID;
+                        else if (c is CharacterCombatant chr)
+                            return (ushort)(chr.Character.CharIndex + 0x10);
+                        else
+                            throw new NotImplementedException();
+                    };
+                    break;
+
+                case 0x080:
+                    getValue = (c, index) => (ushort)((c.HurtBattleAnimation << 8) | c.IdleBattleAnimation); break;
 
                 case 0x0D0:
                     getValue = (c, index) => (ushort)(c.LastAttacker != null ? 1 << _engine.Combatants.IndexOf(c.LastAttacker) : 0); break;
@@ -175,6 +187,11 @@ namespace Braver.Battle {
                     getValue = (c, index) => (ushort)(c.LastPhysicalAttacker != null ? 1 << _engine.Combatants.IndexOf(c.LastPhysicalAttacker) : 0); break;
                 case 0x0F0:
                     getValue = (c, index) => (ushort)(c.LastMagicAttacker != null ? 1 << _engine.Combatants.IndexOf(c.LastMagicAttacker) : 0); break;
+
+                case 0x100:
+                    getValue = (c, index) => (ushort)c.ModifiedStats().Def; break;
+                case 0x110:
+                    getValue = (c, index) => (ushort)c.ModifiedStats().MDf; break;
 
                 case 0x140:
                     getValue = (c, index) => (ushort)((c.MaxMP << 8) | c.MP); break;
@@ -325,9 +342,12 @@ namespace Braver.Battle {
         private CombatantMemory _memory;
         private AICallbacks _callbacks;
         private Random _random = new();
+        private List<byte[]> _queuedText = new();
 
         public ushort? ActionID { get; private set; }
         public ushort? ActionType { get; private set; }
+        public IEnumerable<byte[]> QueuedText => _queuedText.AsReadOnly();
+
         public CombatantMemory Memory => _memory;
 
         public AI(byte[] aiWithTable, CombatantMemory memory, AICallbacks callbacks) {
@@ -737,9 +757,9 @@ namespace Braver.Battle {
                 case 0x93:
                     List<byte> text = new();
                     byte b;
-                    while ((b = data.ReadU8()) != 0)
+                    while ((b = data.ReadU8()) != 255)
                         text.Add(b);
-                    _callbacks.DisplayText(text.ToArray());
+                    _queuedText.Add(text.ToArray());
                     break;
                 case 0x95:
                     var vmAddr = _stack.Pop();
@@ -785,6 +805,7 @@ namespace Braver.Battle {
 
         public AIScriptResult Run(AIScriptFunction function) {
             ActionID = ActionType = null;
+            _queuedText.Clear();
             var data = _functions[(int)function];
             if (data == null)
                 return AIScriptResult.End;
