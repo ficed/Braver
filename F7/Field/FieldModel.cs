@@ -22,7 +22,7 @@ namespace Braver.Field {
 
         private Vector3 _rotation, _rotation2, _translation, _translation2;
         private float _scale;
-        private bool _visible = true;
+        private bool _visible = true, _shineEffect;
         private AnimationState _animationState;
         private int _modelID;
 
@@ -63,6 +63,23 @@ namespace Braver.Field {
             get => _animationState;
             set => DoSetNet(ref _animationState, value, msg => msg.AnimationState = value);
         }
+
+        public Vector3 AmbientLightColour {
+            get => _colEffect.AmbientLightColor;
+            set {
+                _colEffect.AmbientLightColor = _texEffect.AmbientLightColor = value;
+                //TODO net message
+            }
+        }
+
+        public bool ShineEffect {
+            get => _shineEffect;
+            set {
+                _shineEffect = value;
+                _texEffect.DirectionalLight0.SpecularColor = _colEffect.DirectionalLight0.SpecularColor = _shineEffect ? Vector3.One : Vector3.Zero;
+            }
+        } //TODO net message
+
         public float GlobalAnimationSpeed { get; set; } = 1f;
         public Vector3 MinBounds { get; }
         public Vector3 MaxBounds { get; }
@@ -238,16 +255,28 @@ namespace Braver.Field {
             if (_vertexBuffer == null) return;
 
             if (_texEffect.LightingEnabled) {
+
+                Matrix lightRotate;
+                int r = (_shineRotation * 6) % 720;
+                if (ShineEffect && (r < 360))
+                    lightRotate = Matrix.CreateRotationZ(r * (float)Math.PI / 180);
+                else
+                    lightRotate = Matrix.Identity;
+                    
+
                 Vector3 direction = Translation - _light1Pos;
                 direction.Normalize();
+                direction = Vector3.Transform(direction, lightRotate);
                 _texEffect.DirectionalLight0.Direction = _colEffect.DirectionalLight0.Direction = direction;
 
                 direction = Translation - _light2Pos;
                 direction.Normalize();
+                direction = Vector3.Transform(direction, lightRotate);
                 _texEffect.DirectionalLight1.Direction = _colEffect.DirectionalLight1.Direction = direction;
 
                 direction = Translation - _light3Pos;
                 direction.Normalize();
+                direction = Vector3.Transform(direction, lightRotate);
                 _texEffect.DirectionalLight2.Direction = _colEffect.DirectionalLight2.Direction = direction;
             }
 
@@ -287,8 +316,11 @@ namespace Braver.Field {
         }
 
         private float _animCountdown;
+        private int _shineRotation;
+
         public void FrameStep() {
             _animCountdown -= AnimationState.AnimationSpeed * GlobalAnimationSpeed;
+            _shineRotation++;
             if (_animCountdown <= 0) {
                 _animCountdown = 1;
                 if (AnimationState.Frame == AnimationState.EndFrame) {

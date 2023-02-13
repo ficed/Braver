@@ -160,9 +160,18 @@ namespace Braver.Battle {
 
                 void AddItem(int itemID, byte chance) {
                     if (_engine.Random(64) <= chance) {
-                        var existing = results.Items.Find(inv => inv.ItemID == itemID);
+                        InventoryItemKind kind;
+                        if (itemID < 128)
+                            kind = InventoryItemKind.Item;
+                        else if (itemID < 256) {
+                            kind = InventoryItemKind.Weapon;
+                            itemID -= 128;
+                        } else
+                            throw new NotSupportedException();
+
+                        var existing = results.Items.Find(inv => (inv.ItemID == itemID) && (inv.Kind == kind));
                         if (existing == null)
-                            results.Items.Add(new InventoryItem { ItemID = itemID, Quantity = 1, Kind = InventoryItemKind.Item });
+                            results.Items.Add(new InventoryItem { ItemID = itemID, Quantity = 1, Kind = kind });
                         else
                             existing.Quantity++;
                     }

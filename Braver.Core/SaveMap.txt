@@ -4,6 +4,16 @@
 
 BA4		PPV					u16
 
+BB4		GameTimeHours		u8
+BB5		GameTimeMinutes		u8
+BB6		GameTimeSeconds		u8
+BB7		GameTimeFrames		u8
+
+BB8		CounterHours		u8
+BB9		CounterMinutes		u8
+BBA		CounterSeconds		u8
+BBB		CounterFrames		u8
+
 BBC		NumBattlesFought	u16
 BBE		NumEscapes			u16
 BC0		MenuHidden			u16		MenuMask

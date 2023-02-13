@@ -19,7 +19,16 @@ foreach (string file in Directory.GetFiles(@"C:\temp\wm_us", "*.hrc")) {
 */
 
 using(var l = new Ficedula.FF7.LGPFile(@"C:\games\FF7\data\menu\menu_us.lgp")) {
-    foreach(int i in Enumerable.Range(0, 4)) {
+
+    var tt = new Ficedula.FF7.TexFile(l.Open($"usfont_b_h.tex"));
+    foreach (int p in Enumerable.Range(0, tt.Palettes.Count)) {
+        File.WriteAllBytes(
+            $@"C:\temp\USFB{p}.png",
+            tt.ToBitmap(p).Encode(SkiaSharp.SKEncodedImageFormat.Png, 100).ToArray()
+        );
+    }
+
+    foreach (int i in Enumerable.Range(0, 4)) {
         char c = (char)('a' + i);
         var t = new Ficedula.FF7.TexFile(l.Open($"btl_win_{c}_h.tex"));
         foreach (int p in Enumerable.Range(0, t.Palettes.Count)) {

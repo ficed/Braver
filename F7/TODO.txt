@@ -24,6 +24,7 @@ Field - model lighting looks a bit too bright
 Music looping works but still a noticeable break at the loop point
 
 Same with audio sfx looping!
+	Loop detect not quite right - bomb setup sfx in nmkin_5 loop but shouldn't?
 
 Item menu: Icons, actually do arrange
 

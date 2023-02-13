@@ -55,6 +55,41 @@ namespace Braver {
             SaveMap = new SaveMap(Memory);
         }
 
+        public int GameTimeSeconds {
+            get => SaveMap.GameTimeSeconds + 60 * SaveMap.GameTimeMinutes + 60 * 60 * SaveMap.GameTimeHours;
+            set {
+                int v = value;
+                SaveMap.GameTimeSeconds = (byte)(v % 60);
+                v /= 60;
+                SaveMap.GameTimeMinutes = (byte)(v % 60);
+                v /= 60;
+                SaveMap.GameTimeHours = (byte)(v % 60);
+            }
+        }
+        public int CounterSeconds {
+            get => SaveMap.CounterSeconds + 60 * SaveMap.CounterMinutes + 60 * 60 * SaveMap.CounterHours;
+            set {
+                int v = value;
+                SaveMap.CounterSeconds = (byte)(v % 60);
+                v /= 60;
+                SaveMap.CounterMinutes = (byte)(v % 60);
+                v /= 60;
+                SaveMap.CounterHours = (byte)(v % 60);
+            }
+        }
+
+        protected void FrameIncrement() {
+            if (++SaveMap.GameTimeFrames >= 30) {
+                SaveMap.GameTimeFrames = 0;
+                GameTimeSeconds++;
+            }
+            if (CounterSeconds > 0) {
+                if (++SaveMap.CounterFrames >= 30) {
+                    SaveMap.CounterFrames = 0;
+                    CounterSeconds--;
+                }
+            }
+        }
 
         public void Save(string path) {
             Directory.CreateDirectory(Path.GetDirectoryName(path + ".sav"));

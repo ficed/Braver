@@ -91,12 +91,21 @@ namespace Braver {
             }
         }
 
-        public void StopLoopingSfx() {
-            foreach (var loop in _activeLoops) {
+        public void StopLoopingSfx(bool includeChannels) {
+            foreach (var loop in _activeLoops) {                
                 loop.Stop();
                 loop.Dispose();
             }
+
+            if (includeChannels) {
+                foreach (var chInstance in _channels.Values) {
+                    chInstance.Stop();
+                    chInstance.Dispose(); //TODO - reasonable or not?!
+                }
+            }
+
             _activeLoops.Clear();
+            _channels.Clear();
         }
 
         public void Update() {
@@ -222,6 +231,14 @@ namespace Braver {
 
             if (pin)
                 _pinned.Add(effect);
+        }
+
+        public void StopChannel(int channel) {
+            if (_channels.TryGetValue(channel, out var instance)) {
+                instance.Stop();
+                instance.Dispose();
+                _channels.Remove(channel);
+            }
         }
 
         public void PlaySfx(Sfx which, float volume, float pan, int? channel = null) => PlaySfx((int)which, volume, pan, channel);

@@ -25,9 +25,9 @@ namespace Braver.UI.Layout {
 
         public override void Step() {
             base.Step();
-            lTimeHrs.Text = (_game.SaveData.GameTimeSeconds / (60 * 60)).ToString();
-            lTimeMins.Text = ((_game.SaveData.GameTimeSeconds / 60) % 60).ToString("00");
-            lTimeSecs.Text = (_game.SaveData.GameTimeSeconds % 60).ToString("00");
+            lTimeHrs.Text = _game.SaveMap.GameTimeHours.ToString();
+            lTimeMins.Text = _game.SaveMap.GameTimeMinutes.ToString("00");
+            lTimeSecs.Text = _game.SaveMap.GameTimeSeconds.ToString("00");
             lTimeC1.Color = ((lTimeMins.Text == "00") && (lTimeSecs.Text == "00")) ? Color.Gray : Color.White;
             lTimeC2.Color = lTimeSecs.Text == "00" ? Color.Gray : Color.White;
         }

@@ -200,8 +200,31 @@
 				<Glyph X="144" Y="208" W="16" H="16" Layer="2">9829</Glyph> <!-- Heart -->
 			</Glyphs>
 		</FontSet>
+		<FontSet>
+			<Name>clock</Name>
+			<DefaultSize>2</DefaultSize>
+			<Glyphs>
+				<Glyph X="96" Y="160" W="32" H="42" Layer="3">48</Glyph>
+				<Glyph X="128" Y="160" W="32" H="42" Layer="3">49</Glyph>
+				<Glyph X="160" Y="160" W="32" H="42" Layer="3">50</Glyph>
+				<Glyph X="192" Y="160" W="32" H="42" Layer="3">51</Glyph>
+				<Glyph X="224" Y="160" W="32" H="42" Layer="3">52</Glyph>
+				<Glyph X="96" Y="208" W="32" H="42" Layer="3">53</Glyph>
+				<Glyph X="128" Y="208" W="32" H="42" Layer="3">54</Glyph>
+				<Glyph X="160" Y="208" W="32" H="42" Layer="3">55</Glyph>
+				<Glyph X="192" Y="208" W="32" H="42" Layer="3">56</Glyph>
+				<Glyph X="224" Y="208" W="32" H="42" Layer="3">57</Glyph>
+
+				<Glyph X="64" Y="208" W="32" H="42" Layer="3">45</Glyph>
+				<Glyph X="64" Y="160" W="16" H="42" Layer="3">58</Glyph>
+				<!-- Reuse ; character to mean "space instead of : character" -->
+				<Glyph X="80" Y="160" W="16" H="42" Layer="3">59</Glyph>
+				<Glyph X="32" Y="208" W="32" H="42" Layer="3">32</Glyph>
+			</Glyphs>
+		</FontSet>
 	</Fonts>
-	<Texture>menu\usfont_b_h.tex,0</Texture>
-	<Texture>menu\usfont_a_h.tex,0</Texture>
-	<Texture>menu\btl_win_d_h.tex,0</Texture>
+	<Texture>menu\usfont_b_h.tex,14</Texture>
+	<Texture>menu\usfont_a_h.tex,14</Texture>
+	<Texture>menu\btl_win_d_h.tex,7</Texture>
+	<Texture>menu\btl_win_b_h.tex,12</Texture>
 </FontData>

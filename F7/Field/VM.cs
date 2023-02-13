@@ -1295,9 +1295,15 @@ namespace Braver.Field {
             byte len = f.ReadU8(), op = f.ReadU8();
             byte[] data = Enumerable.Range(0, len - 3).Select(_ => f.ReadU8()).ToArray();
 
-            switch(op) {
+            switch (op) {
+
+                case 0x2: //Ambient light
+                    e.Model.AmbientLightColour = new Vector3(data[0] / 255f, data[1] / 255f, data[2] / 255f);
+                    //TODO - 7 bytes?
+                    break;
+
                 case 0xD: //SHINE
-                    //VERY TODO!
+                    e.Model.ShineEffect = (data.Length == 1) && (data[0] == 1); //VERY TODO!
                     break;
                 
                 default:
@@ -1366,6 +1372,22 @@ namespace Braver.Field {
             byte parm = f.ReadU8();
             string name = s.FieldDialog.Dialogs[parm];
             s.Game.SaveData.Location = name;
+            return OpResult.Continue;
+        }
+
+        public static OpResult STTIM(Fiber f, Entity e, FieldScreen s) {
+            byte bankhm = f.ReadU8(), banks = f.ReadU8(),
+                hs = f.ReadU8(), ms = f.ReadU8(), ss = f.ReadU8();
+
+            s.Game.CounterSeconds = s.Game.Memory.Read(banks, ss) +
+                60 * s.Game.Memory.Read(bankhm & 0xf, ms) +
+                60 * 60 * s.Game.Memory.Read(bankhm >> 4, hs);
+
+            return OpResult.Continue;
+        }
+        public static OpResult WSPCL(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8(), type = f.ReadU8(), x = f.ReadU8(), y = f.ReadU8();
+            s.Dialog.SetVariable(id, (DialogVariable)type, x, y);
             return OpResult.Continue;
         }
 
@@ -1526,21 +1548,29 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         }
 
         private static OpResult DoAKAO(Fiber f, Entity e, FieldScreen s, byte op, int parm1, int parm2, int parm3, int parm4, int parm5) {
+            
+            void DoChannel(int channel, float? pan) {
+                if (parm2 <= 0)
+                    s.Game.Audio.StopChannel(channel);
+                else
+                    s.Game.Audio.PlaySfx(parm2 - 1, 1f, pan ?? (parm1 - 64) / 64f, channel);
+            }
+
             switch (op) {
                 case 0x28:
-                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 1);
+                    DoChannel(1, null);
                     break;
                 case 0x29:
-                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 2);
+                    DoChannel(2, null);
                     break;
                 case 0x2A:
-                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 3);
+                    DoChannel(3, null);
                     break;
                 case 0x2B:
-                    s.Game.Audio.PlaySfx(parm2, 1f, (parm1 - 64) / 64f, 4);
+                    DoChannel(4, null);
                     break;
                 case 0x30:
-                    s.Game.Audio.PlaySfx(parm2, 1f, 0, 5);
+                    DoChannel(5, 0);
                     break;
 
                 case 0xc0:
@@ -1600,7 +1630,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int sound = s.Game.Memory.Read(banks & 0xf, ssound) - 1;
             int pan = s.Game.Memory.Read(banks >> 4, span);
             if (sound < 0)
-                s.Game.Audio.StopLoopingSfx();
+                s.Game.Audio.StopLoopingSfx(false);
             else
                 s.Game.Audio.PlaySfx(sound, 1f, (pan - 64) / 64f);
             return OpResult.Continue;
@@ -1969,6 +1999,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 Triangle = tri,
                 Orientation = rotation,
             };
+            s.Options |= FieldOptions.NoScripts; //Or we could not do a fade out...
             s.FadeOut(() => {
                 s.Game.ChangeScreen(s, new FieldScreen(destination));
             });

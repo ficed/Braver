@@ -42,6 +42,8 @@ namespace Braver.Field {
         CameraIsAsyncScrolling = 0x10,
         MusicLocked = 0x20,
 
+        NoScripts = 0x100,
+
         DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer,  
     }
 
@@ -143,7 +145,7 @@ namespace Braver.Field {
             g.Net.Listen<Net.FieldEntityModelMessage>(this);
             g.Net.Listen<Net.FieldBGScrollMessage>(this);
 
-            g.Audio.StopLoopingSfx();
+            g.Audio.StopLoopingSfx(true);
 
             Overlay = new Overlay(g, graphics);
 
@@ -412,7 +414,7 @@ namespace Braver.Field {
                 if ((_frame % 2) == 0) {
                     Overlay.Step();
                     foreach (var entity in Entities) {
-                        if (!Game.DebugOptions.NoFieldScripts)
+                        if (!Game.DebugOptions.NoFieldScripts && !Options.HasFlag(FieldOptions.NoScripts))
                             entity.Run(100);
                         entity.Model?.FrameStep();
                     }

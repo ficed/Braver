@@ -81,10 +81,7 @@ namespace Braver.UI {
                 var pixels = tex.Tex.ApplyPalette(tex.Pal);
                 Texture.SetData(0,
                     new Rectangle(0, offset, tex.Tex.Width, tex.Tex.Height),
-                    pixels.SelectMany(row => {
-                        Filter(row);
-                        return row;
-                    }).ToArray(),
+                    pixels.SelectMany(row => row).ToArray(),
                     0,
                     tex.Tex.Width * tex.Tex.Height
                 );
@@ -100,13 +97,6 @@ namespace Braver.UI {
                     s => s,
                     StringComparer.InvariantCultureIgnoreCase
                 );
-        }
-
-        private void Filter(uint[] pixels) {
-            foreach(int i in Enumerable.Range(0, pixels.Length)) {
-                if ((pixels[i] & 0xff) > 0x40)
-                    pixels[i] = 0xffffffff;
-            }
         }
 
     }

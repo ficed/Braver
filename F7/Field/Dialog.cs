@@ -18,6 +18,12 @@ namespace Braver.Field {
         IsPermanent = 0x4,
     }
 
+    public enum DialogVariable {
+        None,
+        Timer,
+        Counter,
+    }
+
     public class Dialog {
 
         private enum WindowState {
@@ -41,13 +47,15 @@ namespace Braver.Field {
             public int Choice;
             public int[] ChoiceLines;
             public DialogOptions Options;
+            public DialogVariable Variable;
+            public int VariableX, VariableY;
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
         private FGame _game;
         private UI.UIBatch _ui;
 
-        public bool IsActive => _windows.Any(w => w.State != WindowState.Hidden);
+        public bool IsActive => _windows.Any(w => (w.State != WindowState.Hidden) && !w.Options.HasFlag(DialogOptions.IsPermanent));
 
         public Dialog(FGame g, GraphicsDevice graphics) {
             _game = g;
@@ -63,6 +71,7 @@ namespace Braver.Field {
             SetupWindow(window, 5, 5, 0x130, 0x45);
             _windows[window].State = WindowState.Hidden;
             _windows[window].Options = DialogOptions.None;
+            _windows[window].Variable = DialogVariable.None;
         }
         public void SetupWindow(int window, int x, int y, int width, int height) {
             _windows[window].X = x * 3 + 160;
@@ -73,6 +82,11 @@ namespace Braver.Field {
         public void SetOptions(int window, DialogOptions options) {
             _windows[window].Options = options;
         }
+        public void SetVariable(int window, DialogVariable variable, int x, int y) {
+            _windows[window].Variable = variable;
+            _windows[window].VariableX = x;
+            _windows[window].VariableY = y;
+        }
 
         private void PrepareWindow(int window, string text) {
             var chars = _game.SaveData.Characters.Select(c => c?.Name).ToArray();
@@ -82,7 +96,11 @@ namespace Braver.Field {
                 .Select(line => Ficedula.FF7.Text.Expand(line, chars, party))
                 .ToArray();
             _windows[window].FrameProgress = _windows[window].ScreenProgress = 0;
-            _windows[window].State = WindowState.Expanding;
+
+            if (_windows[window].Options.HasFlag(DialogOptions.NoBorder))
+                _windows[window].State = WindowState.Displaying;
+            else
+                _windows[window].State = WindowState.Expanding;
         }
 
         public void Show(int window, string text, Action onClosed) {
@@ -173,6 +191,24 @@ namespace Braver.Field {
                 int y = w.Y + 10;
                 float tz = NextZ();
                 int lineCount = 0;
+
+                switch (w.Variable) {
+                    case DialogVariable.None:
+                        break;
+
+                    case DialogVariable.Timer:
+                        int secs = _game.CounterSeconds % 60,
+                            mins = _game.CounterSeconds / 60;
+                        if (mins > 99) mins = 99;
+                        string timeText = $"{mins:00}{((secs % 2) == 0 ? ':' : ';')}{secs:00}";
+                        _ui.DrawText("clock", timeText, w.X + w.VariableX, w.Y + w.VariableY, tz, Color.White);
+                        //TODO adjust Y in case of variable and text
+                        break;
+
+                    default:
+                        throw new NotSupportedException();
+                }
+
                 foreach (string line in w.Text[w.ScreenProgress].Split('\r')) {
                     string s = count < line.Length ? line.Substring(0, count) : line;
                     _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);

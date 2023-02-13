@@ -169,15 +169,14 @@ namespace Braver {
         }
 
         private List<Action> _invoke = new();
-        private int _lastSeconds;
+        private bool _frameStep;
         public void Step(GameTime gameTime, InputState input) {
             if (Screen.InputEnabled)
                 Screen.ProcessInput(input);
 
-            if ((int)gameTime.TotalGameTime.TotalSeconds != _lastSeconds) {
-                _lastSeconds = (int)gameTime.TotalGameTime.TotalSeconds;
-                SaveData.GameTimeSeconds++;
-            }
+            _frameStep = !_frameStep;
+            if (_frameStep)
+                FrameIncrement();
 
             var actions = _invoke.ToArray();
             _invoke.Clear();

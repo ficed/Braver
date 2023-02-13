@@ -227,7 +227,7 @@ namespace Braver {
 
         public string Location { get; set; }
         public int Gil { get; set; }
-        public int GameTimeSeconds { get; set; }
+
 
         [XmlIgnore]
         public Character[] Party => CharactersInParty().ToArray(); //Array so we can interop
