@@ -20,8 +20,13 @@ Field - model lighting looks a bit too bright
 	  - Trigger sound effects are just wrong
 	  - Jessie's rotation in nmkin_3 far too slow
 	  - save point transparency is wrong
+	  - md1_1 - biggs gets stuck
 
 Music looping works but still a noticeable break at the loop point
+
+Logging
+
+Gamepad support
 
 Same with audio sfx looping!
 	Loop detect not quite right - bomb setup sfx in nmkin_5 loop but shouldn't?
@@ -41,4 +46,5 @@ Battle
 	Don't allow targetting dead enemies
 	Animations?!?!?!?!?!
 	Hit effects...
+	Run away!
 	Actions that shouldn't do anything still register a miss or 1pt of damage - see Guard Scorpion in battle 324

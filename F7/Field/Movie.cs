@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Audio;
+using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,7 +18,7 @@ namespace Braver.Field {
 
         public int Frame => _frame;
         public bool Active => (_process != null) && (_frame >= 0);
-        public Ficedula.FF7.Field.CameraMatrix Camera => Active ? _cam.Camera.ElementAtOrDefault(Frame) : null;
+        public Ficedula.FF7.Field.CameraMatrix Camera => _cam.Camera.ElementAtOrDefault(Frame);
 
         private string _ffPath;
 
@@ -72,13 +73,13 @@ namespace Braver.Field {
                 psi.Arguments = string.Format(customCommand, filename);
             }
 
-            _process = Process.Start(psi);
+            var process = Process.Start(psi);
 
             bool stereo = false;
             int freq = 0;
 
             do {
-                string s = _process.StandardError.ReadLine();
+                string s = process.StandardError.ReadLine();
                 if (s == null) break;
                 if (s.Contains("Audio: pcm_s16le")) {
                     foreach (string part in s.Split(',')) {
@@ -90,23 +91,27 @@ namespace Braver.Field {
                 }
             } while (freq == 0);
 
-            _process.StandardError.Close();
+            process.StandardError.Close();
 
             if (freq > 0) {
                 var ms = new System.IO.MemoryStream();
-                _process.StandardOutput.BaseStream.CopyTo(ms);
+                process.StandardOutput.BaseStream.CopyTo(ms);
                 byte[] data = ms.ToArray();
 
                 _soundEffect = new SoundEffect(data, freq, stereo ? AudioChannels.Stereo : AudioChannels.Mono);
                 _effectInstance = _soundEffect.CreateInstance();
             }
 
+            process.Dispose();
         }
 
 
         public void Prepare(int movie) {
 
             string filename = _files[movie];
+
+            if (!File.Exists(filename))
+                throw new Exception($"Movie file {filename} not found");
 
             using (var s = _game.Open("cd", Path.GetFileName(Path.ChangeExtension(filename, ".cam"))))
                 _cam = new Ficedula.FF7.Field.MovieCam(s);
@@ -135,14 +140,14 @@ namespace Braver.Field {
                 CreateNoWindow = true,
             };
 
-            _process = Process.Start(psi);
+            var process = Process.Start(psi);
 
             int stride;
             int width = 0, height = 0;
             float fps = 0;
 
             do {
-                string s = _process.StandardError.ReadLine();
+                string s = process.StandardError.ReadLine();
                 if (s == null) return;
                 if (s.Contains("Video: rawvideo")) {
                     foreach (string part in s.Split(',')) {
@@ -157,7 +162,7 @@ namespace Braver.Field {
                 }
             } while (width == 0);
 
-            _process.StandardError.Close();
+            process.StandardError.Close();
             if (fps == 0) fps = 30;
 
             _gameFramesPerVideoFrame = 60 / fps;
@@ -173,6 +178,8 @@ namespace Braver.Field {
             _framebuffer = new byte[_texture.Width * _texture.Height * 4];
             _texture.SetData(_framebuffer);
 
+            //Now we have a texture, make it available to be played
+            _process = process;
             _frame = -1;
         }
 
@@ -184,6 +191,9 @@ namespace Braver.Field {
 
         public void Render() {
             if (_frame >= 0) {
+
+                Rectangle bar0, bar1;
+
                 _spriteBatch.Begin(depthStencilState: DepthStencilState.None);
 
                 float srcRatio = 1f * _texture.Width / _texture.Height,
@@ -191,12 +201,25 @@ namespace Braver.Field {
 
                 if (srcRatio <= destRatio) {
                     int widthUsed = (int)(_graphics.Viewport.Height * srcRatio);
-                    _spriteBatch.Draw(_texture, new Rectangle((_graphics.Viewport.Width - widthUsed) / 2, 0, widthUsed, _graphics.Viewport.Height), Color.White);
+                    int xoffset = (_graphics.Viewport.Width - widthUsed) / 2;
+                    _spriteBatch.Draw(_texture, new Rectangle(xoffset, 0, widthUsed, _graphics.Viewport.Height), Color.White);
+                    bar0 = new Rectangle(0, 0, xoffset, _graphics.Viewport.Height);
+                    bar1 = new Rectangle(_graphics.Viewport.Width - xoffset, 0, xoffset, _graphics.Viewport.Height);
                 } else {
                     int heightUsed = (int)(_texture.Width / srcRatio);
-                    _spriteBatch.Draw(_texture, new Rectangle(0, (_graphics.Viewport.Height - heightUsed) / 2, _graphics.Viewport.Width, heightUsed), Color.White);
+                    int yoffset = (_graphics.Viewport.Height - heightUsed) / 2;
+                    _spriteBatch.Draw(_texture, new Rectangle(0, yoffset, _graphics.Viewport.Width, heightUsed), Color.White);
+                    bar0 = new Rectangle(0, 0, _graphics.Viewport.Width, yoffset);
+                    bar1 = new Rectangle(0, _graphics.Viewport.Height - yoffset, _graphics.Viewport.Width, yoffset);
                 }
+                _spriteBatch.End();
 
+                _spriteBatch.Begin(
+                    depthStencilState: DepthStencilState.Default,
+                    transformMatrix: Matrix.CreateScale(1, 1, 0)
+                );
+                _spriteBatch.Draw(_texture, bar0, Color.Black);
+                _spriteBatch.Draw(_texture, bar1, Color.Black);
                 _spriteBatch.End();
             }
         }

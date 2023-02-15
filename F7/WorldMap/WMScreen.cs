@@ -455,7 +455,8 @@ namespace Braver.WorldMap {
                     Game.SaveData.WorldMapY = _avatarModel.Translation.Z;
                     Game.SaveData.Module = Module.WorldMap;
                     Game.SaveMap.MenuLocked &= ~(MenuMask.Save | MenuMask.PHS);
-                    Game.SaveMap.MenuHidden &= ~(MenuMask.Save | MenuMask.PHS);
+                    Game.SaveMap.MenuVisible |= MenuMask.Save | MenuMask.PHS;
+                    //TODO - can we skip these on the assumption script should have configured them already?!
                     Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     InputEnabled = true;
                 });

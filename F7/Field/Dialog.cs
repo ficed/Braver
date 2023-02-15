@@ -118,7 +118,7 @@ namespace Braver.Field {
         }
 
         public void ProcessInput(InputState input) { 
-            foreach(var window in _windows) {
+            foreach(var window in _windows.Reverse<Window>()) { 
                 switch (window.State) {
                     case WindowState.Displaying:
                         if (input.IsJustDown(InputKey.OK)) {
@@ -228,7 +228,7 @@ namespace Braver.Field {
                 }
             }
 
-            foreach (var window in _windows) {
+            foreach (var window in _windows.Reverse<Window>()) { //lower ID windows should appear on top of higher IDs {
                 float alpha = window.Options.HasFlag(DialogOptions.Transparent) ? 0.5f : 1f;
                 bool box = !window.Options.HasFlag(DialogOptions.NoBorder);
                 switch (window.State) {

@@ -24,11 +24,15 @@ namespace Braver.Field {
         public Vector3 P1 { get; set; }
         public bool Active { get; set; } = true;
 
-        public bool IntersectsWith(Vector3 entity, float entityRadius) {
+        public bool IntersectsWith(FieldModel m, float entityRadius) {
             if (!Active)
                 return false;
 
-            return GraphicsUtil.LineCircleIntersect(P0.XY(), P1.XY(), entity.XY(), entityRadius);
+            if ((m.Translation.Z - 5) > Math.Max(P0.Z, P1.Z)) return false;
+            float entHeight = (m.MaxBounds.Y - m.MinBounds.Y) * m.Scale;
+            if ((m.Translation.Z + entHeight + 5) < Math.Min(P0.Z, P1.Z)) return false;
+
+            return GraphicsUtil.LineCircleIntersect(P0.XY(), P1.XY(), m.Translation.XY(), entityRadius);
         }
     }
 
@@ -41,10 +45,11 @@ namespace Braver.Field {
         CameraTracksPlayer = 0x8,
         CameraIsAsyncScrolling = 0x10,
         MusicLocked = 0x20,
+        UseMovieCam = 0x40,
 
         NoScripts = 0x100,
 
-        DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer,  
+        DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer | UseMovieCam,   
     }
 
     public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
@@ -58,7 +63,7 @@ namespace Braver.Field {
         private string _file;
 
         private bool _debugMode = false;
-        private bool _renderBG = true, _renderDebug = true, _renderModels = true;
+        private bool _renderBG = true, _renderDebug = false, _renderModels = true;
         private float _controlRotation;
         private bool _renderUI = true;
 
@@ -132,13 +137,15 @@ namespace Braver.Field {
             };
         }
 
+        private static bool _isFirstLoad = true;
+
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
 
             UpdateSaveLocation();
-            if (g.DebugOptions.AutoSaveOnFieldEntry)
-                Game.Save(System.IO.Path.Combine(FGame.GetSavePath(), "auto"));
-
+            if (g.DebugOptions.AutoSaveOnFieldEntry && !_isFirstLoad)
+                Game.AutoSave();
+            _isFirstLoad = false;
 
             g.Net.Listen<Net.FieldModelMessage>(this);
             g.Net.Listen<Net.FieldBGMessage>(this);
@@ -373,7 +380,10 @@ namespace Braver.Field {
                     Background.Render(_view2D, _bgZFrom, _bgZTo, false);
             }
 
-            Viewer viewer3D = ViewFromCamera(Movie.Camera) ?? _view3D;
+            Viewer viewer3D = null;
+            if (Options.HasFlag(FieldOptions.UseMovieCam) && Movie.Active)
+                viewer3D = ViewFromCamera(Movie.Camera);
+            viewer3D ??= _view3D;
 
             if (_renderDebug)
                 _debug.Render(viewer3D);
@@ -677,7 +687,7 @@ namespace Braver.Field {
                             var oldLines = Player.LinesCollidingWith.ToArray();
                             Player.LinesCollidingWith.Clear();
                             foreach (var lineEnt in Entities.Where(e => e.Line != null)) {
-                                if (lineEnt.Line.IntersectsWith(Player.Model.Translation, Player.CollideDistance))
+                                if (lineEnt.Line.IntersectsWith(Player.Model, Player.CollideDistance))
                                     Player.LinesCollidingWith.Add(lineEnt);
                             }
 
@@ -979,7 +989,7 @@ namespace Braver.Field {
                 //to slide along an edge to end up closer to our desired end point.
                 //Calculate angles from end-start-v0 and end-start-v1 to find which vert we can slide towards
                 //while minimising the change in direction from our original heading.
-                //Only slide if the edge is < 90 degrees off our original heading as it's weird otherwise!
+                //Only slide if the edge is < 60 degrees off our original heading as it's weird otherwise!
 
                 var v0dir = (tv0 - startPos);
                 var v0Distance = v0dir.Length();
@@ -992,14 +1002,14 @@ namespace Braver.Field {
                 double v0angle = AngleBetweenVectors(v0dir, origDir),
                     v1angle = AngleBetweenVectors(v1dir, origDir);
 
-                if ((Math.Abs(v0angle) < Math.Abs(v1angle)) && (v0angle < (Math.PI / 2))) {
+                if ((Math.Abs(v0angle) < Math.Abs(v1angle)) && (v0angle < (Math.PI / 3))) {
                     //Try to slide towards v0
                     if (v0Distance < origDistance)
                         newDestination = tv0;
                     else
                         newDestination = startPos + v0dir * origDistance;
                     return LeaveTriResult.SlideCurrentTri;
-                } else if (Math.Abs(v1angle) < (Math.PI / 2)) {
+                } else if (Math.Abs(v1angle) < (Math.PI / 3)) {
                     //Try to slide towards v1
                     if (v1Distance < origDistance)
                         newDestination = tv1;

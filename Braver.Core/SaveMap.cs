@@ -14,7 +14,7 @@ namespace Braver {
 		public byte CounterFrames { get => (byte)_memory.Read(1, 0x17); set => _memory.Write(1, 0x17, (byte)value); }
 		public ushort NumBattlesFought { get => (ushort)_memory.Read(2, 0x18); set => _memory.Write(2, 0x18, (ushort)value); }
 		public ushort NumEscapes { get => (ushort)_memory.Read(2, 0x1a); set => _memory.Write(2, 0x1a, (ushort)value); }
-		public MenuMask MenuHidden { get => (MenuMask)_memory.Read(2, 0x1c); set => _memory.Write(2, 0x1c, (ushort)value); }
+		public MenuMask MenuVisible { get => (MenuMask)_memory.Read(2, 0x1c); set => _memory.Write(2, 0x1c, (ushort)value); }
 		public MenuMask MenuLocked { get => (MenuMask)_memory.Read(2, 0x1e); set => _memory.Write(2, 0x1e, (ushort)value); }
    }
 }

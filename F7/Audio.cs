@@ -1,5 +1,4 @@
-﻿using Braver.UI.Layout;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +13,7 @@ namespace Braver {
         private Channel<MusicCommand> _channel;
         private Ficedula.FF7.Audio _sfxSource;
         private FGame _game;
+        private byte _volume = 127;
 
         public Audio(FGame game, string ff7dir) {
             _game = game;
@@ -117,7 +117,6 @@ namespace Braver {
         private async Task RunMusic() {
             var contexts = new Stack<MusicContext>();
             contexts.Push(new MusicContext());
-            byte volume = 127;
 
             void DoStop() {
                 var context = contexts.Peek();
@@ -141,7 +140,7 @@ namespace Braver {
                 current.WaveOut = new NAudio.Wave.WaveOut();
                 //current.WaveOut.Init(current.Vorbis);
                 current.WaveOut.Init(new LoopProvider(current.Vorbis, loopStart, loopEnd).ToWaveProvider());
-                current.WaveOut.Volume = volume / 127f;
+                current.WaveOut.Volume = _volume / 127f;
                 current.WaveOut.Play();
                 current.Track = track;
             }
@@ -152,9 +151,9 @@ namespace Braver {
 
                 switch (command.Command) {
                     case CommandType.SetVolume:
-                        volume = command.Param;
+                        _volume = command.Param;
                         if (contexts.Peek().WaveOut != null)
-                            contexts.Peek().WaveOut.Volume = volume / 127f;
+                            contexts.Peek().WaveOut.Volume = _volume / 127f;
                         break;
 
                     case CommandType.Play:
@@ -184,13 +183,34 @@ namespace Braver {
             }
         }
 
-        public void SetMusicVolume(byte volume) {
-            _channel.Writer.TryWrite(new MusicCommand {
-                Command = CommandType.SetVolume,
-                Param = volume,
-            });
+        public void SetMusicVolume(byte? volumeFrom, byte volumeTo, float duration) {
             //TODO net
+            if (duration <= 0) {
+                _channel.Writer.TryWrite(new MusicCommand {
+                    Command = CommandType.SetVolume,
+                    Param = volumeTo,
+                });
+            } else {
+                byte current = volumeFrom ?? _volume;
+                Task.Run(async () => {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    while(sw.Elapsed.TotalSeconds < duration) {
+                        byte v = (byte)(current + (volumeTo - current) * (sw.Elapsed.TotalSeconds / duration));
+                        _channel.Writer.TryWrite(new MusicCommand {
+                            Command = CommandType.SetVolume,
+                            Param = v,
+                        });
+                        await Task.Delay(10);
+                    }
+                    _channel.Writer.TryWrite(new MusicCommand {
+                        Command = CommandType.SetVolume,
+                        Param = volumeTo,
+                    });
+                });
+            }
         }
+        public void SetMusicVolume(byte volume) => SetMusicVolume(null, volume, 0);
+
         public void PlayMusic(string name, bool pushContext = false) {
             _channel.Writer.TryWrite(new MusicCommand {
                 Track = name,
@@ -238,8 +258,21 @@ namespace Braver {
                 instance.Stop();
                 instance.Dispose();
                 _channels.Remove(channel);
+                _activeLoops.Remove(instance);
+                //TODO net
             }
         }
+
+        public void ChannelProperty(int channel, float? pan, float? volume) {
+            if (_channels.TryGetValue(channel, out var instance)) {
+                if (pan != null)
+                    instance.Pan = pan.Value;
+                if (volume != null)
+                    instance.Volume = volume.Value;
+            }
+            //TODO net
+        }
+
 
         public void PlaySfx(Sfx which, float volume, float pan, int? channel = null) => PlaySfx((int)which, volume, pan, channel);
         public void PlaySfx(int which, float volume, float pan, int? channel = null) {

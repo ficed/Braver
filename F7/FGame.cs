@@ -119,6 +119,16 @@ namespace Braver {
             }
         }
 
+
+        public void AutoSave() {
+            string path = GetSavePath();
+            foreach (string file1 in Directory.GetFiles(path, "auto1.*"))
+                File.Move(file1, Path.Combine(path, "auto2" + Path.GetExtension(file1)), true);
+            foreach (string file0 in Directory.GetFiles(path, "auto.*"))
+                File.Move(file0, Path.Combine(path, "auto1" + Path.GetExtension(file0)), true);
+            Save(Path.Combine(path, "auto"));
+        }
+
         public Stream WriteDebugBData(string category, string file) {
             return new FileStream(Path.Combine(_bdata, category, file), FileMode.Create);
         }

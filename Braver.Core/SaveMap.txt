@@ -16,5 +16,5 @@ BBB		CounterFrames		u8
 
 BBC		NumBattlesFought	u16
 BBE		NumEscapes			u16
-BC0		MenuHidden			u16		MenuMask
+BC0		MenuVisible			u16		MenuMask
 BC2		MenuLocked			u16		MenuMask

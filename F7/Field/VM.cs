@@ -1,7 +1,9 @@
-﻿using System;
+﻿using MonoGame.Framework.Utilities.Deflate;
+using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Braver.Field {
     public enum OpCode {
@@ -316,11 +318,13 @@ namespace Braver.Field {
             ResumeState = null;
         }
 
-        public void Pause() {
+        public void Pause([CallerMemberName] string caller = null) {
             Active = false;
+            System.Diagnostics.Debug.WriteLine($"Fiber {this._entity} paused by {caller}");
         }
-        public void Resume() {
+        public void Resume([CallerMemberName] string caller = null) {
             Active = true;
+            System.Diagnostics.Debug.WriteLine($"Fiber {this._entity} resumed by {caller}");
         }
 
         public void Stop() {
@@ -588,7 +592,7 @@ namespace Braver.Field {
         }
         public static OpResult REQEW(Fiber f, Entity e, FieldScreen s) {
             int entity = f.ReadU8(), parm = f.ReadU8();
-            if (s.Entities[entity].Call(parm >> 5, parm & 0x1f, f.Resume)) {
+            if (s.Entities[entity].Call(parm >> 5, parm & 0x1f, () => f.Resume())) {
                 f.Pause();
                 return OpResult.Continue;
             } else
@@ -994,7 +998,7 @@ namespace Braver.Field {
                 f.ResumeState = e.Model.AnimationState;
 
             if (remaining.Length() <= (e.MoveSpeed * 4)) {
-                if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), true)) {
+                if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), e.Flags.HasFlag(EntityFlags.CanCollide))) {
                     if (f.ResumeState != null)
                         e.Model.AnimationState = (AnimationState)f.ResumeState;
                     return OpResult.Continue;
@@ -1004,7 +1008,7 @@ namespace Braver.Field {
             } else {
                 remaining.Normalize();
                 remaining *= e.MoveSpeed * 4;
-                s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0), true);
+                s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0), e.Flags.HasFlag(EntityFlags.CanCollide));
                 if (doAnimation && (e.Model.AnimationState.Animation != 1))
                     e.Model.PlayAnimation(1, true, 1f, null);
                 return OpResult.Restart;
@@ -1462,7 +1466,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         public static OpResult MESSAGE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8(), dlg = f.ReadU8();
             f.Pause();
-            s.Dialog.Show(id, s.FieldDialog.Dialogs[dlg], f.Resume);
+            s.Dialog.Show(id, s.FieldDialog.Dialogs[dlg], () => f.Resume());
 
             return OpResult.Continue;
         }
@@ -1573,8 +1577,21 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     DoChannel(5, 0);
                     break;
 
+                case 0xa0:
+                case 0xa1:
+                case 0xa2:
+                case 0xa3:
+                    s.Game.Audio.ChannelProperty(op - 0xa0, null, parm1 / 127f);
+                    break;
+
                 case 0xc0:
                     s.Game.Audio.SetMusicVolume((byte)parm1);
+                    break;
+                case 0xc1:
+                    s.Game.Audio.SetMusicVolume(null, (byte)parm2, parm1 / 60f);
+                    break;
+                case 0xc2:
+                    s.Game.Audio.SetMusicVolume((byte)parm2, (byte)parm3, parm1 / 60f);
                     break;
 
                 case 0xc8:
@@ -1643,9 +1660,17 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         }
         public static OpResult MOVIE(Fiber f, Entity e, FieldScreen s) {
             f.Pause();
-            s.Movie.Play(f.Resume);
+            s.Movie.Play(() => f.Resume());
             return OpResult.Continue;
         }
+        public static OpResult MVCAM(Fiber f, Entity e, FieldScreen s) {
+            if (f.ReadU8() == 0)
+                s.Options |= FieldOptions.UseMovieCam;
+            else
+                s.Options &= ~FieldOptions.UseMovieCam;
+            return OpResult.Continue;
+        }
+
         public static OpResult MVIEF(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8(), addr = f.ReadU8();
             s.Game.Memory.Write(bank, addr, (ushort)Math.Max(0, s.Movie.Frame));
