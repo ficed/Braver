@@ -635,7 +635,7 @@ namespace Braver.Field {
                 steps = s.Game.Memory.Read(bankTS & 0xf, st);
 
             float startZ = e.Model.Translation.Z,
-                endZ = s.HeightInTriangle(triID, endX, endY).Value;
+                endZ = s.HeightInTriangle(triID, endX, endY, true).Value;
 
             s.StartProcess(frame => {
                 if (frame >= steps) {
@@ -932,6 +932,15 @@ namespace Braver.Field {
 
         }
 
+        public static OpResult DIRA(Fiber f, Entity e, FieldScreen s) {
+            byte entID = f.ReadU8();
+            var target = s.Entities[entID]?.Model?.Translation;
+            if (target != null) {
+                float r = (float)Math.Atan2(target.Value.Y - e.Model.Translation.Y, target.Value.X - e.Model.Translation.X);
+                e.Model.Rotation = new Vector3(0, 0, r * (float)Math.PI / 180f);
+            }
+            return OpResult.Continue;
+        }
         public static OpResult PDIRA(Fiber f, Entity e, FieldScreen s) {
             byte chr = f.ReadU8();
             var target = s.Entities
@@ -1338,6 +1347,25 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+        public static OpResult HMPMAX3(Fiber f, Entity e, FieldScreen s) {
+            foreach(var chr in s.Game.SaveData.Party) {
+                chr.CurrentHP = chr.MaxHP;
+                chr.CurrentMP = chr.MaxMP;
+                chr.Statuses &= ~Ficedula.FF7.Statuses.Death;
+            }
+            return OpResult.Continue;
+        }
+        public static OpResult HMPMAX1(Fiber f, Entity e, FieldScreen s) => HMPMAX3(f, e, s);
+        public static OpResult HMPMAX2(Fiber f, Entity e, FieldScreen s) => HMPMAX3(f, e, s);
+
+        public static OpResult PRTYM(Fiber f, Entity e, FieldScreen s) {
+            byte charID = f.ReadU8();
+            s.Game.SaveData.Party = s.Game.SaveData.Party
+                .Where(chr => chr.CharIndex != charID)
+                .ToArray();
+            return OpResult.Continue;
+        }
+
         public static OpResult MMBLK(Fiber f, Entity e, FieldScreen s) {
             byte charID = f.ReadU8();
             s.Game.SaveData.Characters[charID].Flags |= CharFlags.Locked;
@@ -1552,7 +1580,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         }
 
         private static OpResult DoAKAO(Fiber f, Entity e, FieldScreen s, byte op, int parm1, int parm2, int parm3, int parm4, int parm5) {
-            
+
             void DoChannel(int channel, float? pan) {
                 if (parm2 <= 0)
                     s.Game.Audio.StopChannel(channel);
@@ -1599,7 +1627,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 case 0xca:
                     //Music pan - Not implemented in original FF7 (but maybe we could?)
                     break;
-                
+
                 case 0xf0:
                     if (!s.Options.HasFlag(FieldOptions.MusicLocked))
                         s.Game.Audio.StopMusic();
@@ -1789,7 +1817,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 s.Options |= FieldOptions.CameraIsAsyncScrolling;
             } else
                 state = (ScrollState)f.ResumeState;
-            
+
             Vector2 end = new Vector2(x, y);
             var progress = Easings.QuadraticInOut(1f * state.Frame / speed); //TODO - is interpreting speed as framecount vaguely correct?
 
@@ -1830,7 +1858,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 s.Options |= FieldOptions.CameraIsAsyncScrolling;
                 s.StartProcess(frame => {
                     float progress = easing(1f * frame / speed);
-                    var target = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
+                        var target = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
 
                     if (progress >= 1f) {
                         s.BGScroll(target.X, target.Y, true);
@@ -1879,7 +1907,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
 
-        private static OpResult DoFade(Fiber f, Entity e, FieldScreen s, byte bankRG, byte bankB, 
+        private static OpResult DoFade(Fiber f, Entity e, FieldScreen s, byte bankRG, byte bankB,
             byte r, byte g, byte b, byte frames, byte fadeType, byte adjust) {
 
             int cR = (byte)s.Game.Memory.Read(bankRG >> 4, r),
@@ -1909,7 +1937,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         }
 
         public static OpResult NFADE(Fiber f, Entity e, FieldScreen s) {
-            byte bankRG = f.ReadU8(), bankB = f.ReadU8(), fadeType = f.ReadU8(), 
+            byte bankRG = f.ReadU8(), bankB = f.ReadU8(), fadeType = f.ReadU8(),
                 r = f.ReadU8(), g = f.ReadU8(), b = f.ReadU8(),
                 speed = f.ReadU8(), adjust = f.ReadU8();
 
@@ -1921,10 +1949,16 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             return DoFade(f, e, s, bankRG, bankB, r, g, b, (byte)(240 / speed), fadeType, adjust);
         }
+        public static OpResult FADEW(Fiber f, Entity e, FieldScreen s) {
+            if (s.Overlay.IsFading)
+                return OpResult.Restart;
+            else
+                return OpResult.Continue;
+        }
 
     }
 
-    internal static class Maths {
+        internal static class Maths {
 
         private static Random _random = new();
 
@@ -1987,6 +2021,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             s.Game.Memory.Write(banks >> 4, dest, (byte)(current % value));
             return OpResult.Continue;
         }
+
+        public static OpResult INC(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), addr = f.ReadU8();
+            int value = s.Game.Memory.Read(bank, addr) + 1;
+            s.Game.Memory.Write(bank, addr, (byte)value);
+            return OpResult.Continue;
+        }
+
     }
 
     public static class SystemControl {

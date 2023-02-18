@@ -19,6 +19,7 @@ namespace Braver.Field {
         private Color _cFrom, _cTo;
 
         public bool HasTriggered { get; private set; }
+        public bool IsFading => _progress < _duration;
 
         public Overlay(FGame g, GraphicsDevice graphics) {
             _spriteBatch = new SpriteBatch(graphics);

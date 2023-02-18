@@ -21,6 +21,7 @@ Field - model lighting looks a bit too bright
 	  - Jessie's rotation in nmkin_3 far too slow
 	  - save point transparency is wrong
 	  - md1_1 - biggs gets stuck
+	  - Maybe two passes for normal/transparent background tiles is wrong - need to do them all in Z order?
 
 Music looping works but still a noticeable break at the loop point
 

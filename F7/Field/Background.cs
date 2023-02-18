@@ -99,9 +99,11 @@ namespace Braver.Field {
                     float maxS = 1f * (maxX - minX) / texWidth,
                         maxT = 1f * (maxY - minY) / texHeight;
 
+                    var blend = (Ficedula.FF7.Field.BlendType)group.First().TypeTrans;
+
                     float zcoord;
                     bool isFixedZ;
-                    if (group.First().ID >= DEPTH_CUTOFF) {
+                    if ((group.First().ID >= DEPTH_CUTOFF) || (blend != Ficedula.FF7.Field.BlendType.None)) {
                         zcoord = 1f; isFixedZ = true;
                     } else if (group.First().ID <= 1) {
                         zcoord = 0f; isFixedZ = true;
@@ -114,7 +116,7 @@ namespace Braver.Field {
                         OffsetX = -minX,
                         OffsetY = -minY,
                         FixedZ = isFixedZ,
-                        Blend = (Ficedula.FF7.Field.BlendType)group.First().TypeTrans,
+                        Blend = blend,
                         Sprites = group.ToArray(),
                         Data = Enumerable.Range(0, texHeight)
                             .Select(_ => new uint[texWidth])

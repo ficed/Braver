@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Braver.Field {
 
@@ -67,6 +68,8 @@ namespace Braver.Field {
         private float _controlRotation;
         private bool _renderUI = true;
 
+        private string _debugEntity = "___";
+
         private List<WalkmeshTriangle> _walkmesh;
 
 
@@ -107,8 +110,7 @@ namespace Braver.Field {
             if (Player == null) {
                 var autoPlayer = Entities
                     .Where(e => e.Character != null)
-                    .Where(e => e.Model?.Visible == true)
-                    .FirstOrDefault();
+                    .FirstOrDefault(e => e.Character == Game.SaveData.Party.FirstOrDefault());
                 if (autoPlayer != null)
                     SetPlayer(Entities.IndexOf(autoPlayer));
             }
@@ -621,6 +623,11 @@ namespace Braver.Field {
                 else if (input.IsDown(InputKey.PanRight))
                     BGScrollOffset(0, +1, false);
 
+                if (input.IsDown(InputKey.Up))
+                    _view3D.CameraPosition += _view3D.CameraUp;
+                if (input.IsDown(InputKey.Down))
+                    _view3D.CameraPosition -= _view3D.CameraUp;
+
             } else {
 
                 if (Dialog.IsActive) {
@@ -946,7 +953,7 @@ namespace Braver.Field {
                     return false;
                 else {
                     var tt = _walkmesh[t.Value];
-                    return HeightInTriangle(tt, pos.X, pos.Y) != null;
+                    return HeightInTriangle(tt, pos.X, pos.Y, false) != null;
                 }
             }
 
@@ -959,7 +966,7 @@ namespace Braver.Field {
             foreach (int step in Enumerable.Range(1, steps)) {
                 var pos = startPos + vector * step;
 
-                if (HeightInTriangle(currentTri, pos.X, pos.Y) != null) {
+                if (HeightInTriangle(currentTri, pos.X, pos.Y, false) != null) {
                     continue;
                 }
 
@@ -1052,48 +1059,75 @@ namespace Braver.Field {
             }
 
             var currentTri = _walkmesh[eMove.WalkmeshTri];
-            var newHeight = HeightInTriangle(currentTri, newPosition.X, newPosition.Y);
+            var newHeight = HeightInTriangle(currentTri, newPosition.X, newPosition.Y, false);
             if (newHeight != null) {
                 //We're staying in the same tri, so just update height
+
+                if (!CalculateTriLeave(newPosition.XY(), new Vector2(9999, 9999), currentTri, out _, out _, out _, out _))
+                    throw new Exception($"Sanity check failed");
+
                 eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
+                ReportDebugEntityPos(eMove);
                 return true;
             } else {
                 switch (DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), currentTri, true, out short? newTri, out Vector2 newDest)) {
                     case LeaveTriResult.Failure:
                         return false;
                     case LeaveTriResult.SlideCurrentTri:
+                        ClampToTriangle(ref newDest, currentTri);
                         break;
                     case LeaveTriResult.Success:
                     case LeaveTriResult.SlideNewTri:
                         eMove.WalkmeshTri = newTri.Value;
                         currentTri = _walkmesh[newTri.Value];
+                        ClampToTriangle(ref newDest, currentTri);
                         break; //Treat same as success, code below will move us accordingly
                     default:
                         throw new NotImplementedException();
                 }
 
-                newHeight = HeightInTriangle(currentTri, newDest.X, newDest.Y);
+                newHeight = HeightInTriangle(currentTri, newDest.X, newDest.Y, true);
                 if (newHeight == null)
                     throw new Exception();
                 eMove.Model.Translation = new Vector3(newDest.X, newDest.Y, newHeight.Value);
+                ReportDebugEntityPos(eMove);
                 return true;
             }
         }
 
-        public float? HeightInTriangle(int triID, float x, float y) {
-            return HeightInTriangle(_walkmesh[triID], x, y);
-        }
-        private static float? HeightInTriangle(WalkmeshTriangle tri, float x, float y) {
-            return HeightInTriangle(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), x, y);
-        }
-        private static float? HeightInTriangle(Vector3 p0, Vector3 p1, Vector3 p2, float x, float y) {
-            double denominator = (p1.Y - p2.Y) * (p0.X - p2.X) + (p2.X - p1.X) * (p0.Y - p2.Y);
-            var a = ((p1.Y - p2.Y) * (x - p2.X) + (p2.X - p1.X) * (y - p2.Y)) / denominator;
-            var b = ((p2.Y - p0.Y) * (x - p2.X) + (p0.X - p2.X) * (y - p2.Y)) / denominator;
+        private void ClampToTriangle(ref Vector2 position, WalkmeshTriangle tri) {
+            CalculateBarycentric(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), position,
+                out float a, out float b, out float c);
 
-            a = Math.Round(a, 2);
-            b = Math.Round(b, 2);
-            var c = Math.Round(1 - a - b, 2);
+            if ((a < 0) || (a > 1) || (b < 0) || (b > 1) || (c < 0) || (c > 1)) {
+                a = Math.Min(Math.Max(a, 0), 1);
+                b = Math.Min(Math.Max(b, 0), 1);
+                c = Math.Min(Math.Max(c, 0), 1);
+
+                position = new Vector2(
+                    tri.V0.X * a + tri.V1.X * b + tri.V2.X * c,
+                    tri.V0.Y * a + tri.V1.Y * b + tri.V2.Y * c
+                );
+            }
+        }
+
+        public float? HeightInTriangle(int triID, float x, float y, bool allowClampAndRound) {
+            return HeightInTriangle(_walkmesh[triID], x, y, allowClampAndRound);
+        }
+        private static float? HeightInTriangle(WalkmeshTriangle tri, float x, float y, bool allowClampAndRound) {
+            return HeightInTriangle(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), x, y, allowClampAndRound);
+        }
+        private static float? HeightInTriangle(Vector3 p0, Vector3 p1, Vector3 p2, float x, float y, bool allowClampAndRound) {
+
+            CalculateBarycentric(p0, p1, p2, new Vector2(x, y), out var a, out var b, out var c);
+
+            if (allowClampAndRound) {
+                //For height specifically, when we've already determined this is definitely the tri we're inside,
+                //allow being *slightly* outside the triangle due to floating point imprecision
+                a = (float)Math.Round(a, 4);
+                b = (float)Math.Round(b, 4);
+                c = (float)Math.Round(c, 4);
+            }
 
             if (a < 0) return null;
             if (b < 0) return null;
@@ -1105,15 +1139,34 @@ namespace Braver.Field {
             return (float)(p0.Z * a + p1.Z * b + p2.Z * c);
         }
 
+        private static void CalculateBarycentric(Vector3 va, Vector3 vb, Vector3 vc, Vector2 pos, out float a, out float b, out float c) {
+            double denominator = (vb.Y - vc.Y) * (va.X - vc.X) + (vc.X - vb.X) * (va.Y - vc.Y);
+            
+            a = (float)(((vb.Y - vc.Y) * (pos.X - vc.X) + (vc.X - vb.X) * (pos.Y - vc.Y)) / denominator);
+            b = (float)(((vc.Y - va.Y) * (pos.X - vc.X) + (va.X - vc.X) * (pos.Y - vc.Y)) / denominator);
+
+            c = 1 - a - b;
+        }
+
+        private void ReportDebugEntityPos(Entity e) {
+            if (e.Name == _debugEntity) {
+                System.Diagnostics.Debug.WriteLine($"Ent {e.Name} at pos {e.Model.Translation} wmtri {e.WalkmeshTri}");
+                var tri = _walkmesh[e.WalkmeshTri];
+                CalculateBarycentric(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), e.Model.Translation.XY(), out var a, out var b, out var c);
+                System.Diagnostics.Debug.WriteLine($"---Barycentric pos {a} / {b} / {c}");
+            }
+        }
+
         public void DropToWalkmesh(Entity e, Vector2 position, int walkmeshTri) {
             var tri = _walkmesh[walkmeshTri];
 
             e.Model.Translation = new Vector3(
                 position.X,
                 position.Y,
-                HeightInTriangle(tri, position.X, position.Y).Value
+                HeightInTriangle(tri, position.X, position.Y, true).Value
             );
             e.WalkmeshTri = walkmeshTri;
+            ReportDebugEntityPos(e);
         }
 
         public void CheckPendingPlayerSetup() {

@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace Braver {
@@ -135,6 +133,8 @@ namespace Braver {
         public int XP { get; set; }
         public int XPTNL { get; set; }
 
+        public Statuses Statuses { get; set; }
+
         public List<OwnedMateria> WeaponMateria { get; set; }
         public List<OwnedMateria> ArmourMateria { get; set; }
 
@@ -230,7 +230,22 @@ namespace Braver {
 
 
         [XmlIgnore]
-        public Character[] Party => CharactersInParty().ToArray(); //Array so we can interop
+        public Character[] Party {
+            get => CharactersInParty().ToArray(); //Array so we can interop
+            set {
+                foreach (var chr in Characters)
+                    if (chr != null)
+                        chr.Flags &= ~CharFlags.ANY_PARTY_SLOT;
+
+                var members = value.Where(c => c != null);
+                if (members.Count() > 0)
+                    members.ElementAt(0).Flags |= CharFlags.Party1;
+                if (members.Count() > 1)
+                    members.ElementAt(1).Flags |= CharFlags.Party2;
+                if (members.Count() > 2)
+                    members.ElementAt(2).Flags |= CharFlags.Party3;
+            }
+        }
 
         public void CleanUp() {
             Characters.Sort((c1, c2) => (c1?.CharIndex ?? 999).CompareTo(c2?.CharIndex ?? 999));
