@@ -23,7 +23,7 @@ namespace Braver {
             graphics.BlendState = BlendState.AlphaBlend;
 
             _model = new Field.FieldModel(graphics, g, 0, "AAAA.hrc", _anims, "field");
-            _model.PlayAnimation(_anim, true, 1f, null);
+            _model.PlayAnimation(_anim, true, 1f);
             _model.Scale = 0.5f;
             //_model.Rotation2 = new Vector3(0, 0, 180);
 
@@ -39,7 +39,7 @@ namespace Braver {
             if (input.IsJustDown(InputKey.OK)) {
                 _anim = (_anim + 1) % _anims.Length;
                 System.Diagnostics.Debug.WriteLine($"Anim: {_anims[_anim]}");
-                _model.PlayAnimation(_anim, true, 1f, null);
+                _model.PlayAnimation(_anim, true, 1f);
             }
         }
 

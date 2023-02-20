@@ -270,7 +270,7 @@ namespace Braver.WorldMap {
 
         private void AnimateAvatar(string name) {
             int index = _avatar.Animations.FindIndex(a => a.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
-            _avatarModel.PlayAnimation(index, true, 0.5f, null);
+            _avatarModel.PlayAnimation(index, true, 0.5f);
         }
 
         private float _initAvatarX, _initAvatarY;

@@ -57,6 +57,7 @@ namespace Braver {
             [Keys.F1] = InputKey.Start,
             [Keys.F2] = InputKey.Select,
             [Keys.F3] = InputKey.Menu,
+            [Keys.F4] = InputKey.Pause,
 
             [Keys.F5] = InputKey.Debug1,
             [Keys.F6] = InputKey.Debug2,

@@ -109,7 +109,7 @@ namespace Braver.Battle {
             _indexBuffer = new IndexBuffer(graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
             _indexBuffer.SetData(indices.ToArray());
 
-            PlayAnimation(0, true, 1f, null);
+            PlayAnimation(0, true, 1f);
 
             Vector3 minBounds = Vector3.Zero, maxBounds = Vector3.Zero;
             Descend(_root, Matrix.Identity,
@@ -231,8 +231,6 @@ namespace Braver.Battle {
             if (_animCountdown <= 0) {
                 _animCountdown = 1;
                 if (AnimationState.Frame == AnimationState.EndFrame) {
-                    AnimationState.AnimationComplete?.Invoke();
-                    AnimationState.AnimationComplete = null;
                     if (AnimationState.AnimationLoop)
                         AnimationState.Frame = AnimationState.StartFrame;
                 } else {
@@ -241,18 +239,16 @@ namespace Braver.Battle {
             }
         }
 
-        public void PlayAnimation(int animation, bool loop, float speed, Action onComplete, int startFrame = 0, int endFrame = -1, bool onlyIfDifferent = true) {
+        public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int endFrame = -1, bool onlyIfDifferent = true) {
             if ((AnimationState != null) && (AnimationState.Animation == animation) &&
                 (AnimationState.AnimationLoop == loop) && (AnimationState.AnimationSpeed == speed) &&
-                (AnimationState.StartFrame == startFrame) && (AnimationState.EndFrame == endFrame) &&
-                (AnimationState.AnimationComplete == onComplete))
+                (AnimationState.StartFrame == startFrame) && (AnimationState.EndFrame == endFrame))
                 return;
 
             AnimationState = new AnimationState {
                 Animation = animation,
                 AnimationLoop = loop,
                 AnimationSpeed = speed,
-                AnimationComplete = onComplete,
                 StartFrame = startFrame,
                 Frame = startFrame,
                 EndFrame = endFrame < 0 ? _animations.Anims[animation].Frames.Length - 1 : endFrame,

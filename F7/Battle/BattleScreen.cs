@@ -138,15 +138,15 @@ namespace Braver.Battle {
             switch(combatant) {
                 case CharacterCombatant chr:
                     if (chr.HP <= 0)
-                        model.PlayAnimation(6, true, 1f, null);
+                        model.PlayAnimation(6, true, 1f);
                     else if (chr.HP <= (chr.MaxHP / 4))
-                        model.PlayAnimation(1, true, 1f, null);
+                        model.PlayAnimation(1, true, 1f);
                     else
-                        model.PlayAnimation(chr.IdleBattleAnimation, true, 1f, null);
+                        model.PlayAnimation(chr.IdleBattleAnimation, true, 1f);
                     //TODO - much more than this!
                     break;
                 case EnemyCombatant enemy:
-                    model.PlayAnimation(enemy.IdleBattleAnimation, true, 1f, null);
+                    model.PlayAnimation(enemy.IdleBattleAnimation, true, 1f);
                     break;
             }
         }

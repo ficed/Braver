@@ -372,6 +372,7 @@ namespace Braver.Field {
         }
 
         protected override void DoRender() {
+            //System.Diagnostics.Debug.WriteLine($"FieldScreen:Render");
             Graphics.DepthStencilState = DepthStencilState.Default;
             Graphics.BlendState = BlendState.AlphaBlend;
             if (_renderBG) {
@@ -797,7 +798,7 @@ namespace Braver.Field {
                     }
 
                     if ((Player.Model.AnimationState.Animation != desiredAnim) || (Player.Model.AnimationState.AnimationSpeed != animSpeed))
-                        Player.Model.PlayAnimation(desiredAnim, true, animSpeed, null);
+                        Player.Model.PlayAnimation(desiredAnim, true, animSpeed);
 
                     //Lines we're just within
                     foreach (var isIn in Player.LinesCollidingWith) {
@@ -1192,7 +1193,7 @@ namespace Braver.Field {
             else {
                 Options &= ~FieldOptions.PlayerControls;
                 if (Player?.Model != null)
-                    Player.Model.PlayAnimation(0, true, 1f, null);
+                    Player.Model.PlayAnimation(0, true, 1f);
                 //TODO - is this reasonable? Disable current (walking) animation when we take control away from the player? 
                 //(We don't want e.g. walk animation to be continuing after our control is disabled and we're not moving any more!)
             }

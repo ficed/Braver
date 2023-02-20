@@ -12,10 +12,10 @@ namespace Braver.Field {
         public float AnimationSpeed { get; set; }
         public int Animation { get; set; }
         public int Frame { get; set; }
-        public Action AnimationComplete { get; set; }
         public bool AnimationLoop { get; set; }
         public int StartFrame { get; set; }
         public int EndFrame { get; set; }
+        public int CompletionCount { get; set; }
     }
 
     public class FieldModel {
@@ -192,7 +192,7 @@ namespace Braver.Field {
                 .Select(a => new Ficedula.FF7.Field.FieldAnim(g.Open(category, a)))
                 .ToList();
 
-            PlayAnimation(0, true, 1f, null);
+            PlayAnimation(0, true, 1f);
 
             Vector3 minBounds = Vector3.Zero, maxBounds = Vector3.Zero;
             Descend(_hrcModel.Root, Matrix.Identity,
@@ -324,22 +324,22 @@ namespace Braver.Field {
             if (_animCountdown <= 0) {
                 _animCountdown = 1;
                 if (AnimationState.Frame == AnimationState.EndFrame) {
-                    AnimationState.AnimationComplete?.Invoke();
-                    AnimationState.AnimationComplete = null;
-                    if (AnimationState.AnimationLoop)
+                    if (AnimationState.AnimationLoop) {
                         AnimationState.Frame = AnimationState.StartFrame;
+                        AnimationState.CompletionCount++;
+                    } else
+                        AnimationState.CompletionCount = 1;
                 } else {
                     AnimationState.Frame++;
                 }
             }
         }
 
-        public void PlayAnimation(int animation, bool loop, float speed, Action onComplete, int startFrame = 0, int endFrame = -1) {
+        public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int endFrame = -1) {            
             AnimationState = new AnimationState {
                 Animation = animation,
                 AnimationLoop = loop,
                 AnimationSpeed = speed,
-                AnimationComplete = onComplete,
                 StartFrame = startFrame,
                 Frame = startFrame,
                 EndFrame = endFrame < 0 ? _animations[animation].Frames.Count - 1 : endFrame,

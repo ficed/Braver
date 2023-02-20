@@ -17,6 +17,7 @@ namespace Braver {
         Start,
         Select,
         Menu,
+        Pause,
 
         PanLeft,
         PanRight,

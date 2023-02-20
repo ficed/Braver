@@ -21,7 +21,8 @@ Field - model lighting looks a bit too bright
 	  - Jessie's rotation in nmkin_3 far too slow
 	  - save point transparency is wrong
 	  - md1_1 - biggs gets stuck
-	  - Maybe two passes for normal/transparent background tiles is wrong - need to do them all in Z order?
+	  - Maybe two passes for normal/transparent background tiles is wrong - need to do them all in Z order? (see MD8_1)
+	  - md8_2 - aeris' animations seem to restart badly?
 
 Music looping works but still a noticeable break at the loop point
 

@@ -105,7 +105,7 @@ namespace Braver.Field {
                     bool isFixedZ;
                     if ((group.First().ID >= DEPTH_CUTOFF) || (blend != Ficedula.FF7.Field.BlendType.None)) {
                         zcoord = 1f; isFixedZ = true;
-                    } else if (group.First().ID <= 1) {
+                    } else if (group.First().ID <= 2) {
                         zcoord = 0f; isFixedZ = true;
                     } else {
                         zcoord = group.First().ID; isFixedZ = false;
@@ -156,8 +156,10 @@ namespace Braver.Field {
                     Draw(tl.Sprites, tl.Data, -minX, -minY, false);
                     foreach (int y in Enumerable.Range(0, tl.Tex.Height))
                         tl.Tex.SetData(0, new Rectangle(0, y, tl.Tex.Width, 1), tl.Data[y], 0, tl.Tex.Width);
+                    /*
                     using (var fs = new System.IO.FileStream($@"C:\temp\BG{_layers.Count}.png", System.IO.FileMode.Create))
                         tl.Tex.SaveAsPng(fs, tl.Tex.Width, tl.Tex.Height);
+                    */
                 }
             }
         }
@@ -165,11 +167,13 @@ namespace Braver.Field {
         public void SetParameter(int parm, int value) {
             _parameters[parm] = value;
             _game.Net.Send(new Net.FieldBGMessage { Parm = parm, Value = value });
+            //System.Diagnostics.Debug.WriteLine($"BG parameter {parm} = {value}");
         }
         public void ModifyParameter(int parm, Func<int, int> modify) {
             int value;
             _parameters.TryGetValue(parm, out value);
             _parameters[parm] = modify(value);
+            //System.Diagnostics.Debug.WriteLine($"BG parameter {parm} changed {value}->{_parameters[parm]}");
             _game.Net.Send(new Net.FieldBGMessage { Parm = parm, Value = _parameters[parm] });
         }
 

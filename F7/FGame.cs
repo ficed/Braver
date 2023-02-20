@@ -180,7 +180,18 @@ namespace Braver {
 
         private List<Action> _invoke = new();
         private bool _frameStep;
+
+        private bool _isPaused; //TODO - pause visuals
+
         public void Step(GameTime gameTime, InputState input) {
+
+            if (input.IsJustDown(InputKey.Pause))
+                _isPaused = !_isPaused;
+
+            if (_isPaused) {
+                return;
+            }
+
             if (Screen.InputEnabled)
                 Screen.ProcessInput(input);
 

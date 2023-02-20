@@ -35,7 +35,7 @@ namespace Braver.Field {
         public Entity(Ficedula.FF7.Field.Entity entity, FieldScreen screen) {
             _entity = entity;
             _priorities = Enumerable.Range(0, 8)
-                .Select(_ => new Fiber(this, screen, screen.FieldDialog.ScriptBytecode))
+                .Select(p => new Fiber(this, screen, screen.FieldDialog.ScriptBytecode, p))
                 .ToArray();
             Flags = EntityFlags.CanTalk | EntityFlags.CanCollide;
             MoveSpeed = 1f;
@@ -45,6 +45,7 @@ namespace Braver.Field {
             if (_priorities[priority].InProgress)
                 return false;
 
+            System.Diagnostics.Debug.WriteLine($"Entity {Name} running script {script} at priority {priority}");
             _priorities[priority].OnStop = onComplete;
             _priorities[priority].Start(_entity.Scripts[script]);
             return true;
