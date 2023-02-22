@@ -298,8 +298,18 @@ namespace Braver.UI.Layout {
         protected FGame _game;
         protected LayoutScreen _screen;
 
-        public Container FocusGroup => _focus.Any() ? _focus.Peek().Container : null;
-        public Component Focus => _focus.Any() ? _focus.Peek().Focus : null;
+        public Container FocusGroup => (Container)(_focus.Any() ? _components[_focus.Peek().ContainerID] : null);
+        public Component Focus {
+            get {
+                if (_focus.Any()) {
+                    string id = _focus.Peek().FocusID;
+                    if (!string.IsNullOrEmpty(id))
+                        return _components[id];
+                }
+                return null;
+            }
+        }
+
         public Component FlashFocus { get; set; }
         public bool InputEnabled { get; set; } = true;
         public FGame Game => _game;
@@ -307,8 +317,8 @@ namespace Braver.UI.Layout {
         public virtual bool IsRazorModel => false;
 
         private class FocusEntry {
-            public Container Container { get; set; }
-            public Component Focus { get; set; }
+            public string ContainerID { get; set; }
+            public string FocusID { get; set; }
         }
 
         private Stack<FocusEntry> _focus = new();
@@ -324,8 +334,8 @@ namespace Braver.UI.Layout {
 
         public void PushFocus(Container group, Component focus) {
             _focus.Push(new FocusEntry {
-                Container = group,
-                Focus = focus,
+                ContainerID = group.ID,
+                FocusID = focus?.ID,
             });
             FlashFocus = null;
             FocusUpdated();
@@ -337,7 +347,7 @@ namespace Braver.UI.Layout {
         }
         public void ChangeFocus(Component focus) {
             System.Diagnostics.Debug.Assert(focus.FocusParent == FocusGroup);
-            _focus.Peek().Focus = focus;
+            _focus.Peek().FocusID = focus?.ID;
             FocusUpdated();
         }
 

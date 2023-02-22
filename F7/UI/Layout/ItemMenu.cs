@@ -65,19 +65,22 @@ namespace Braver.UI.Layout {
 		public static (string Item, string Description) GetInventory(FGame game, int index) {
 			return GetInventory(game, game.SaveData.Inventory[index]);
 		}
-        public static (string Item, string Description) GetInventory(FGame game, InventoryItem inv) {
-                switch (inv.Kind) {
+		public static (string Item, string Description) GetInventory(FGame game, InventoryItem inv) {
+			return GetInventory(game, inv.Kind, inv.ItemID);
+		}
+        public static (string Item, string Description) GetInventory(FGame game, InventoryItemKind kind, int itemID) {
+                switch (kind) {
 				case InventoryItemKind.Item:
-					var item = game.Singleton<Items>()[inv.ItemID];
+					var item = game.Singleton<Items>()[itemID];
 					return (item.Name, item.Description);
 				case InventoryItemKind.Weapon:
-					var weapon = game.Singleton<Weapons>()[inv.ItemID];
+					var weapon = game.Singleton<Weapons>()[itemID];
 					return (weapon.Name, weapon.Description);
 				case InventoryItemKind.Armour:
-					var armour = game.Singleton<Armours>()[inv.ItemID];
+					var armour = game.Singleton<Armours>()[itemID];
 					return (armour.Name, armour.Description);
 				case InventoryItemKind.Accessory:
-					var accessory = game.Singleton<Accessories>()[inv.ItemID];
+					var accessory = game.Singleton<Accessories>()[itemID];
                     return (accessory.Name, accessory.Description);
 				default:
 					throw new NotImplementedException();

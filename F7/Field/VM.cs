@@ -1534,6 +1534,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     else
                         throw new NotImplementedException();
                     break;
+
+                case 0x8:
+                    s.Game.PushScreen(new UI.Layout.LayoutScreen("Shop", parm: parmValue));
+                    break;
+
                 case 0x9:
                     s.Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
                     break;

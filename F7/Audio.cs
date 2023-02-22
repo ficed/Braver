@@ -323,6 +323,7 @@ namespace Braver {
         Cancel = 3,
         EnemyDeath = 21,
         BattleSwirl = 42,
+        BuyItem = 261,
         DeEquip = 446,
     }
 }

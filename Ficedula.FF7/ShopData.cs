@@ -23,10 +23,14 @@ namespace Ficedula.FF7 {
     public class ShopData {
 
         private List<Shop> _shops = new();
+        private List<int> _itemCosts = new(), _materiaCosts = new();
 
         public IReadOnlyList<Shop> Shops => _shops.AsReadOnly();
+        public IReadOnlyList<int> ItemCosts => _itemCosts.AsReadOnly();
+        public IReadOnlyList<int> MateriaCosts => _materiaCosts.AsReadOnly();
 
-        public ShopData(Stream s) {
+        public ShopData(Stream s, int dataOffset, int priceOffset) {
+            s.Position = dataOffset;
             while (true) {
                 byte text = s.ReadU8(), dummy = s.ReadU8();
                 short name = s.ReadI16();
@@ -48,6 +52,17 @@ namespace Ficedula.FF7 {
                         });
                     }
                 }
+            }
+
+            s.Position = priceOffset;
+            foreach(int _ in Enumerable.Range(0, 320)) { //items, weapons, armour, accessories
+                _itemCosts.Add(s.ReadI16());
+                s.ReadI16();
+            }
+            s.Seek(256, SeekOrigin.Current);
+            foreach (int _ in Enumerable.Range(0, 96)) { //materia
+                _materiaCosts.Add(s.ReadI16());
+                s.ReadI16();
             }
         }
     }

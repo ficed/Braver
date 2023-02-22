@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720">
+
+		<Component xsi:type="Box" X="0" Y="0" W="1280" H="60" ID="bMenu">
+			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="50" ID="lBuy">Buy</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="250" ID="lSell">Sell</Component>
+			<Component xsi:type="Label" Click="MenuSelected" Y="15" X="450" ID="lExit">Exit</Component>
+
+			<Component xsi:type="Label" Y="15" X="1100">Gil</Component>
+			<Component xsi:type="Label" Y="15" X="1200" Alignment="Right">@Model.Game.SaveData.Gil</Component>
+		</Component>		
+		
+		<Component xsi:type="Box" X="300" Y="90" W="680" H="600">
+			<Component xsi:type="Box" X="0" Y="0" W="680" H="60">
+				<Component xsi:type="Label" Y="15" X="50" ID="lDescription" Visible="@Bool(Model.ShowDescription)">@Model.CurrentBuyItem?.Description</Component>
+			</Component>
+			<Component xsi:type="List" X="0" Y="80" W="680" H="500" ID="lbBuy" Visible="@Bool(Model.ShowBuyItems)">
+				@foreach(int i in Enumerable.Range(0, Model.Items.Count)) {
+					<Component xsi:type="Group" X="20" W="680" Click="BuyItemSelected" ID='@("Item" + i)' Focussed="BuyItemFocussed">
+						<Component xsi:type="Label" Y="0" X="0">@Model.Items[i].Name</Component>
+						<Component xsi:type="Label" Y="0" X="630" Alignment="Right">@Model.Items[i].Cost</Component>
+					</Component>
+				}
+			</Component>
+
+			<Component xsi:type="Box" X="240" Y="150" W="200" H="140" ID="bBuyItem" Visible="@Bool(Model.ShowBuyTotal)">
+				<Component xsi:type="Label" X="20" Y="30">@Model.CurrentBuyItem?.Name</Component>
+				<Component xsi:type="Label" X="20" Y="60">Quantity</Component>
+				<Component xsi:type="Label" X="20" Y="90">Total</Component>
+				<Component xsi:type="Label" X="180" Y="60" Alignment="Right">@Model.BuyQuantity</Component>
+				<Component xsi:type="Label" X="180" Y="90" Alignment="Right">@Model.TotalCost</Component>
+			</Component>
+
+		</Component>
+
+	</Root>
+</Layout>
