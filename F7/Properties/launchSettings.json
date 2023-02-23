@@ -2,7 +2,7 @@
   "profiles": {
     "Braver": {
       "commandName": "Project",
-      "commandLineArgs": "_host=localhost port=12508 key=ficedula"
+      "commandLineArgs": "_host=localhost port=12508 key=ficedula ff7=C:\\games\\ff7 braver=C:\\Users\\ficed\\Projects\\F7\\data Debug=true Debug.AutoSaveOnFieldEntry=true"
     }
   }
 }

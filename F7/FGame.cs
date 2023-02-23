@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace Braver {
@@ -25,7 +23,20 @@ namespace Braver {
         public bool NoFieldScripts { get; set; }
         public bool NoRandomBattles { get; set; }
         public bool SkipBattleMenu { get; set; }
-        public bool AutoSaveOnFieldEntry { get; set; } = true;
+        public bool AutoSaveOnFieldEntry { get; set; }
+
+        public DebugOptions(Dictionary<string, string> settings) {
+            if (settings.TryGetValue("Debug", out string d) && bool.Parse(d)) {
+                foreach(var prop in typeof(DebugOptions).GetProperties()) {
+                    if (settings.TryGetValue($"Debug.{prop.Name}", out string value)) {
+                        if (prop.PropertyType == typeof(bool))
+                            prop.SetValue(this, bool.Parse(value));
+                        else
+                            throw new NotImplementedException();
+                    }
+                }
+            }
+        }
     }
 
 
@@ -38,52 +49,55 @@ namespace Braver {
 
         public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
-        public DebugOptions DebugOptions { get; } = new();
-
-        public string FFMpegPath { get; private set; } //TODO - better place to put/calculate this?
+        public DebugOptions DebugOptions { get; }
 
         private Dictionary<string, string> _prefs;
-        private string _bdata;
+        private Dictionary<string, string> _paths = new(StringComparer.InvariantCultureIgnoreCase);
 
-        public FGame(GraphicsDevice graphics, string root, string bdata) {
+        public FGame(GraphicsDevice graphics) {
             _graphics = graphics;
-            _bdata = bdata;
-            string data = Path.Combine(root, "data");
-            _data["field"] = new List<DataSource> {
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "flevel.lgp"))),
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "field", "char.lgp"))),
-            };
-            _data["menu"] = new List<DataSource> {
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "menu", "menu_us.lgp"))),
-            };
-            _data["cd"] = new List<DataSource> {
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "disc_us.lgp"))),
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "cr_us.lgp"))),
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "cd", "moviecam.lgp"))),
-            };
-            _data["wm"] = new List<DataSource> {
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "wm", "world_us.lgp"))),
-                new FileDataSource(Path.Combine(data, "wm"))
-            };
-            _data["battle"] = new List<DataSource> {
-                new LGPDataSource(new Ficedula.FF7.LGPFile(Path.Combine(data, "battle", "battle.lgp"))),
-                new FileDataSource(Path.Combine(data, "battle"))
-            };
-            _data["kernel"] = new List<DataSource> {
-                new FileDataSource(Path.Combine(data, "kernel"))
-            };
-            _data["root"] = new List<DataSource> {
-                new FileDataSource(root),
-            };
-            foreach (string dir in Directory.GetDirectories(bdata)) {
-                string category = Path.GetFileName(dir);
-                if (!_data.TryGetValue(category, out var L))
-                    L = _data[category] = new();
-                L.Add(new FileDataSource(dir));
-            }
-            FFMpegPath = Path.Combine(bdata, "ffmpeg.exe");
 
-            Audio = new Audio(this, data);
+            Dictionary<string, string> settings = Environment.GetCommandLineArgs()
+                .Select(s => s.Split(new[] { '=' }, 2))
+                .Where(sa => sa.Length == 2)
+                .ToDictionary(sa => sa[0], sa => sa[1], StringComparer.InvariantCultureIgnoreCase);
+
+            DebugOptions = new DebugOptions(settings);
+
+            string dataFile = Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "data.txt");
+            if (settings.ContainsKey("Data"))
+                dataFile = settings["Data"];
+
+            string[] data = File.ReadAllLines(dataFile);
+
+            string Expand(string s) {
+                foreach (string setting in settings.Keys)
+                    s = s.Replace($"%{setting}%", settings[setting]);
+                return s;
+            }
+
+            foreach(string spec in data.Where(s => !string.IsNullOrWhiteSpace(s) && !s.StartsWith("#"))) {
+                string[] parts = spec.Split((char[])null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (parts[0] == "DATA") {
+                    if (!_data.TryGetValue(parts[2], out var list))
+                        list = _data[parts[2]] = new List<DataSource>();
+
+                    string path = Expand(parts[3]);
+                    if (parts[1] == "LGP")
+                        list.Add(new LGPDataSource(new Ficedula.FF7.LGPFile(path)));
+                    else if (parts[1] == "FILE")
+                        list.Add(new FileDataSource(path));
+                    else
+                        throw new NotSupportedException($"Unrecognised data source {spec}");
+
+                } else if (parts[0] == "PATH") {
+                    string path = Expand(parts[2]);
+                    _paths[parts[1]] = path;
+                } else
+                    throw new NotSupportedException($"Unrecognised data spec {spec}");
+            }
+
+            Audio = new Audio(this, _paths["MUSIC"], _paths["SFX"]);
 
             Audio.Precache(Sfx.Cursor, true);
             Audio.Precache(Sfx.Cancel, true);
@@ -101,6 +115,8 @@ namespace Braver {
                 _prefs = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 
         }
+
+        public string GetPath(string name) => _paths[name];
 
         public static string GetSavePath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "save");
         private static string GetPrefsPath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "prefs.xml");
@@ -130,7 +146,7 @@ namespace Braver {
         }
 
         public Stream WriteDebugBData(string category, string file) {
-            return new FileStream(Path.Combine(_bdata, category, file), FileMode.Create);
+            return new FileStream(Path.Combine(_paths["DEBUG"], category, file), FileMode.Create);
         }
 
         public override void Load(string path) {

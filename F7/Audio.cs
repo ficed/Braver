@@ -9,20 +9,20 @@ using System.Threading.Tasks;
 namespace Braver {
     public class Audio {
 
-        private string _ff7Dir;
+        private string _musicFolder;
         private Channel<MusicCommand> _channel;
         private Ficedula.FF7.Audio _sfxSource;
         private FGame _game;
         private byte _volume = 127;
 
-        public Audio(FGame game, string ff7dir) {
+        public Audio(FGame game, string musicFolder, string soundFolder) {
             _game = game;
-            _ff7Dir = ff7dir;
+            _musicFolder = musicFolder;
             _channel = Channel.CreateBounded<MusicCommand>(8);
             Task.Run(RunMusic);
             _sfxSource = new Ficedula.FF7.Audio(
-                System.IO.Path.Combine(ff7dir, "sound", "audio.dat"),
-                System.IO.Path.Combine(ff7dir, "sound", "audio.fmt")
+                System.IO.Path.Combine(soundFolder, "audio.dat"),
+                System.IO.Path.Combine(soundFolder, "audio.fmt")
             );
         }
 
@@ -130,7 +130,7 @@ namespace Braver {
             void DoPlay(string track) {
                 var current = contexts.Peek();
                 DoStop();
-                string file = System.IO.Path.Combine(_ff7Dir, "music_ogg", track + ".ogg");
+                string file = System.IO.Path.Combine(_musicFolder, track + ".ogg");
                 int loopStart, loopEnd;
                 using (var reader = new NVorbis.VorbisReader(file)) {
                     loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));

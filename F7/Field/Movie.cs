@@ -20,8 +20,6 @@ namespace Braver.Field {
         public bool Active => (_process != null) && (_frame >= 0);
         public Ficedula.FF7.Field.CameraMatrix Camera => _cam.Camera.ElementAtOrDefault(Frame);
 
-        private string _ffPath;
-
         private Process _process;
         private Action _onComplete;
         private SoundEffect _soundEffect;
@@ -42,19 +40,18 @@ namespace Braver.Field {
             _game = g;
             _graphics = graphics;
             _spriteBatch = new SpriteBatch(graphics);
-            _ffPath = g.FFMpegPath;
 
             _files = g.OpenString("movies", "movielist.txt")
                 .Split('\n')
                 .Select(s => s.Trim('\r'))
-                .Select(s => Path.Combine(Path.GetDirectoryName(_ffPath), "movies", s + ".mp4")) //TODO!!!
+                .Select(s => Path.Combine(g.GetPath("Movies"), s + ".mp4")) //TODO!!!
                 .ToArray();
         }
 
         private unsafe void GetAudioData(string filename, string customCommand) {
 
             var psi = new ProcessStartInfo {
-                FileName = _ffPath,
+                FileName = _game.GetPath("FFMpeg"),
                 ArgumentList = {
                         "-i", filename,
                         "-map", "0:a",
@@ -124,7 +121,7 @@ namespace Braver.Field {
             bytesPerPixel = 4;
 
             var psi = new ProcessStartInfo {
-                FileName = _ffPath,
+                FileName = _game.GetPath("FFMpeg"),
                 ArgumentList = {
                         "-hwaccel", "auto",
                         "-i", filename,

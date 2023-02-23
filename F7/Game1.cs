@@ -28,7 +28,7 @@ namespace Braver {
 
         protected override void LoadContent() {
 
-            _g = new FGame(GraphicsDevice, @"C:\games\ff7", @"C:\Users\ficed\Projects\F7\data");
+            _g = new FGame(GraphicsDevice);
             _g.NewGame();
 
             Dictionary<string, string> parms = Environment.GetCommandLineArgs()

@@ -13,6 +13,8 @@ Shops!
 
 Compressed/single file saves
 
+Test on non-hidpi
+
 Field - model lighting looks a bit too bright
 	  - player hand pointer is jumpy (due to int coordinates maybe...?)
 	  - easy way of debugging/configure Z ranges

@@ -1,0 +1,31 @@
+DATA    LGP     field   %ff7%\data\field\flevel.lgp
+DATA    LGP     field   %ff7%\data\field\char.lgp
+
+DATA    LGP     menu    %ff7%\data\menu\menu_us.lgp
+
+DATA    LGP     cd      %ff7%\data\cd\disc_us.lgp
+DATA    LGP     cd      %ff7%\data\cd\cr_us.lgp
+DATA    LGP     cd      %ff7%\data\cd\moviecam.lgp
+
+DATA    LGP     wm      %ff7%\data\wm\world_us.lgp
+DATA    FILE    wm      %ff7%\data\wm
+
+DATA    LGP     battle  %ff7%\data\battle\battle.lgp
+DATA    FILE    battle  %ff7%\data\battle
+
+DATA    FILE    kernel  %ff7%\data\kernel
+
+DATA    FILE    root    %ff7%
+
+DATA	FILE	field	%braver%\field
+DATA	FILE	layout	%braver%\layout
+DATA	FILE	movies	%braver%\movies
+DATA	FILE	save	%braver%\save
+DATA	FILE	ui		%braver%\ui
+DATA	FILE	wm		%braver%\wm
+
+PATH	MUSIC	%ff7%\data\music_ogg
+PATH	SFX		%ff7%\data\sound
+PATH	FFMPEG	%braver%\ffmpeg.exe
+PATH	MOVIES	%braver%\movies
+PATH	DEBUG	%braver%
