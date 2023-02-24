@@ -458,23 +458,13 @@ namespace Braver.Field {
                 (int)(_view2D.CenterY / 3)
             );
         }
-        public void BGScroll(float x, float y, bool clampToViewport) {
-            BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3), clampToViewport);
+        public void BGScroll(float x, float y) {
+            BGScrollOffset(x - (-_view2D.CenterX / 3), y - (_view2D.CenterY / 3));
         }
-        public void BGScrollOffset(float ox, float oy, bool clampToViewport) {
+        public void BGScrollOffset(float ox, float oy) {
 
             _view2D.CenterX -= 3 * ox;
             _view2D.CenterY += 3 * oy;
-
-            if (clampToViewport) {
-                int minYScroll = Background.MinY >= -120 ? 0 : -Background.MinY - 120,
-                    maxYScroll = Background.MaxY <= 120 ? 0 : Background.MaxY - 120,
-                    minXScroll = Background.MinX >= -213 ? 0 : -Background.MinX - 213,
-                    maxXScroll = Background.MaxX <= 213 ? 0 : Background.MaxX - 213;
-
-                _view2D.CenterX = Math.Min(Math.Max(-3 * maxXScroll, _view2D.CenterX), 3 * minXScroll);
-                _view2D.CenterY = Math.Min(Math.Max(-3 * minYScroll, _view2D.CenterY), 3 * maxYScroll);
-            }
 
             var newScroll = GetBGScroll();
             _view3D.ScreenOffset = new Vector2(newScroll.x * 3f * 2 / 1280, newScroll.y * -3f * 2 / 720);
@@ -523,19 +513,19 @@ namespace Braver.Field {
                 var highPosOnBG = ModelToBGPosition(Player.Model.Translation + new Vector3(0, 0, playerHeight));
                 var scroll = GetBGScroll();
                 var newScroll = scroll;
-                if (posOnBG.X > (scroll.x + 150))
-                    newScroll.x = (int)posOnBG.X - 150;
-                else if (posOnBG.X < (scroll.x - 150))
-                    newScroll.x = (int)posOnBG.X + 150;
+                if (posOnBG.X > (scroll.x + 100))
+                    newScroll.x = (int)posOnBG.X - 100;
+                else if (posOnBG.X < (scroll.x - 100))
+                    newScroll.x = (int)posOnBG.X + 100;
 
-                if (highPosOnBG.Y > (scroll.y + 100))
-                    newScroll.y = (int)highPosOnBG.Y - 100;
-                else if (posOnBG.Y < (scroll.y - 110))
-                    newScroll.y = (int)posOnBG.Y + 110;
+                if (highPosOnBG.Y > (scroll.y + 85))
+                    newScroll.y = (int)highPosOnBG.Y - 85;
+                else if (posOnBG.Y < (scroll.y - 85))
+                    newScroll.y = (int)posOnBG.Y + 85;
 
                 if (newScroll != scroll) {
                     System.Diagnostics.Debug.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
-                    BGScroll(newScroll.x, newScroll.y, true);
+                    BGScroll(newScroll.x, newScroll.y);
                 }
             }
         }
@@ -620,9 +610,9 @@ namespace Braver.Field {
             if (_debugMode) {
 
                 if (input.IsDown(InputKey.PanLeft))
-                    BGScrollOffset(0, -1, false);
+                    BGScrollOffset(0, -1);
                 else if (input.IsDown(InputKey.PanRight))
-                    BGScrollOffset(0, +1, false);
+                    BGScrollOffset(0, +1);
 
                 if (input.IsDown(InputKey.Up))
                     _view3D.CameraPosition += _view3D.CameraUp;
@@ -1226,7 +1216,7 @@ namespace Braver.Field {
             Background.SetParameter(message.Parm, message.Value);
         }
         public void Received(Net.FieldBGScrollMessage message) {
-            BGScroll(message.X, message.Y, false);
+            BGScroll(message.X, message.Y);
         }
 
         public void Received(Net.FieldEntityModelMessage message) {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpDX.Direct2D1;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -15,8 +16,8 @@ namespace Braver.Field {
         public int Height => _bg.Height;
         public int MinX { get; private set; }
         public int MinY { get; private set; }
-        public int MaxX => _bg.Width + MinX;
-        public int MaxY => _bg.Height + MinY;
+        public int MaxX => _bg.Width + MinX - 16; //TODO - why are our calculations giving us MaxX/Y one tile too big?
+        public int MaxY => _bg.Height + MinY - 16;
 
         private class TexLayer {
             public Texture2D Tex;
@@ -35,25 +36,36 @@ namespace Braver.Field {
         private FGame _game;
         private GraphicsDevice _graphics;
         private AlphaTestEffect _effect;
+        private BasicEffect _blankingEffect;
         private Dictionary<int, int> _parameters = new();
+        private VertexPositionColor[] _blankingVerts;
 
         public float AutoDetectZFrom { get; private set; }
         public float AutoDetectZTo { get; private set; }
 
-        private void Draw(IEnumerable<Ficedula.FF7.Field.Sprite> sprites, List<uint[]> data, int offsetX, int offsetY, bool clear) {
-            foreach(var tile in sprites) {
-                int destX = tile.DestX + offsetX, destY = tile.DestY + offsetY;
+        private Dictionary<int, List<TexLayer>> _layersByPalette = new();
+        private List<Ficedula.FF7.Field.BackgroundPalette> _palettes;
+
+        private uint[] _paletteStore = new uint[16 * 16 * 2]; //TODO - how many 256-colour palettes do we need to store? At least two...
+
+        private void RedrawLayer(TexLayer layer, bool clear) {
+
+            foreach (var tile in layer.Sprites) {
+                int destX = tile.DestX + layer.OffsetX, destY = tile.DestY + layer.OffsetY;
                 var src = _bg.Pages[tile.TextureID].Data;
-                var pal = _bg.Palettes[tile.PaletteID].Colours;
+                var pal = _palettes[tile.PaletteID].Colours;
                 foreach (int y in Enumerable.Range(0, 16)) {
                     foreach (int x in Enumerable.Range(0, 16)) {
                         byte p = src[tile.SrcY + y][tile.SrcX + x];
                         uint c = pal[p];
                         if (((c >> 24) != 0) || clear)
-                            data[destY + y][destX + x] = c;
+                            layer.Data[destY + y][destX + x] = c;
                     }
                 }
             }
+
+            foreach (int y in Enumerable.Range(0, layer.Tex.Height))
+                layer.Tex.SetData(0, new Rectangle(0, y, layer.Tex.Width, 1), layer.Data[y], 0, layer.Tex.Width);
         }
 
         public Background(FGame game, GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
@@ -64,6 +76,13 @@ namespace Braver.Field {
                 VertexColorEnabled = false,
                 FogEnabled = false,
             };
+            _blankingEffect = new BasicEffect(graphics) {
+                VertexColorEnabled = true,
+                FogEnabled = false,
+                TextureEnabled = false,
+                LightingEnabled = false,
+            };
+            _palettes = bg.Palettes.ToList();
 
             MinX = bg.AllSprites.Min(s => s.DestX);
             MinY = bg.AllSprites.Min(s => s.DestY);
@@ -153,15 +172,75 @@ namespace Braver.Field {
                     };
 
                     _layers.Add(tl);
-                    Draw(tl.Sprites, tl.Data, -minX, -minY, false);
-                    foreach (int y in Enumerable.Range(0, tl.Tex.Height))
-                        tl.Tex.SetData(0, new Rectangle(0, y, tl.Tex.Width, 1), tl.Data[y], 0, tl.Tex.Width);
+                    RedrawLayer(tl, false);
+
+                    foreach(int palette in tl.Sprites.Select(spr => spr.PaletteID).Distinct()) {
+                        if (!_layersByPalette.TryGetValue(palette, out var list))
+                            list = _layersByPalette[palette] = new List<TexLayer>();
+                        list.Add(tl);
+                    }
+
+
                     /*
                     using (var fs = new System.IO.FileStream($@"C:\temp\BG{_layers.Count}.png", System.IO.FileMode.Create))
                         tl.Tex.SaveAsPng(fs, tl.Tex.Width, tl.Tex.Height);
                     */
                 }
             }
+
+            _blankingVerts = new[] {
+                new VertexPositionColor {
+                    Position = new Vector3(MinX, -8192, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(-8192, 0, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(MinX, 8192, 0f),
+                    Color = Color.Black,
+                },
+
+                new VertexPositionColor {
+                    Position = new Vector3(MaxX, -8192, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(MaxX, 8192, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(8192, 0, 0f),
+                    Color = Color.Black,
+                },
+
+                new VertexPositionColor {
+                    Position = new Vector3(-8192, MinY, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(8192, MinY, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(0, -8192, 0f),
+                    Color = Color.Black,
+                },
+
+                new VertexPositionColor {
+                    Position = new Vector3(-8192, MaxY, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(0, 8192, 0f),
+                    Color = Color.Black,
+                },
+                new VertexPositionColor {
+                    Position = new Vector3(8192, MaxY, 0f),
+                    Color = Color.Black,
+                },
+            };
         }
 
         public void SetParameter(int parm, int value) {
@@ -227,7 +306,39 @@ namespace Braver.Field {
                     }
                 }
 
+                if (!blendLayers) {
+                    //Blank out everything beyond background bounds
+                    _blankingEffect.Projection = viewer.Projection;
+                    _blankingEffect.View = viewer.View;
+                    _blankingEffect.World = Matrix.CreateTranslation(ScrollX, ScrollY, 0)
+                        * Matrix.CreateScale(3f, 3f, 1f);
+                    foreach (var pass in _blankingEffect.CurrentTechnique.Passes) {
+                        pass.Apply();
+                        _graphics.DrawUserPrimitives(PrimitiveType.TriangleList, _blankingVerts, 0, _blankingVerts.Length / 3);
+                    }                    
+                }
+
             }
+        }
+
+        public void StorePalette(int sourcePalette, int destIndex, int count) {
+            Array.Copy(_palettes[sourcePalette].Colours, 0, _paletteStore, destIndex * 16, count);
+        }
+
+        public void MulPaletteStore(int storeSource, int storeDest, Vector4 factor, int count) {
+            foreach(int c in Enumerable.Range(0, count)) {
+                Color current = new Color(_paletteStore[storeSource * 16 + c]);
+                var output = current.ToVector4() * factor;
+                _paletteStore[storeDest * 16 + c] = new Color(output).PackedValue;
+            }
+        }
+
+        public void CopyPaletteStore(int storeSource, int storeDest, int count) => MulPaletteStore(storeSource, storeDest, Vector4.One, count);
+
+        public void LoadPalette(int storeSource, int destPalette, int count) {
+            Array.Copy(_paletteStore, storeSource * 16, _palettes[destPalette].Colours, 0, count);
+            foreach (var layer in _layersByPalette[destPalette])
+                RedrawLayer(layer, false);
         }
     }
 }

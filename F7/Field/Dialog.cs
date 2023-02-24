@@ -91,16 +91,29 @@ namespace Braver.Field {
         private void PrepareWindow(int window, string text) {
             var chars = _game.SaveData.Characters.Select(c => c?.Name).ToArray();
             var party = _game.SaveData.Party.Select(c => c?.Name).ToArray();
-
-            _windows[window].Text = text.Split('\xC')
+            var win = _windows[window];
+            win.Text = text.Split('\xC')
                 .Select(line => Ficedula.FF7.Text.Expand(line, chars, party))
                 .ToArray();
-            _windows[window].FrameProgress = _windows[window].ScreenProgress = 0;
+            win.FrameProgress = win.ScreenProgress = 0;
 
-            if (_windows[window].Options.HasFlag(DialogOptions.NoBorder))
-                _windows[window].State = WindowState.Displaying;
+            if (win.Options.HasFlag(DialogOptions.NoBorder))
+                win.State = WindowState.Displaying;
             else
-                _windows[window].State = WindowState.Expanding;
+                win.State = WindowState.Expanding;
+
+            if ((win.Width == 0) && (win.Height == 0)) {
+                win.Width = win.Text
+                    .SelectMany(s => s.Split('\r'))
+                    .Select(s => _ui.TextWidth("main", s)).Max() + 24;
+                win.Height = win.Text
+                    .Select(line => line.Split('\r').Length)
+                    .Max() * 25 + 16;
+            }
+            if ((win.X == 0) && (win.Y == 0)) {
+                win.X = 640 - win.Width / 2;
+                win.Y = 720 - win.Height;
+            }
         }
 
         public void Show(int window, string text, Action onClosed) {

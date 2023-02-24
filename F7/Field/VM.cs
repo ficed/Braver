@@ -628,6 +628,48 @@ namespace Braver.Field {
             s.Background.SetParameter(area, 0);
             return OpResult.Continue;
         }
+
+        public static OpResult STPAL(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), ssource = f.ReadU8(), sdest = f.ReadU8(), count = f.ReadU8();
+            int source = s.Game.Memory.Read(banks >> 4, ssource),
+                dest = s.Game.Memory.Read(banks & 0xf, sdest);
+            s.Background.StorePalette(source, dest, count + 1);
+            return OpResult.Continue;
+        }
+
+        public static OpResult LDPAL(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), ssource = f.ReadU8(), sdest = f.ReadU8(), count = f.ReadU8();
+            int source = s.Game.Memory.Read(banks >> 4, ssource),
+                dest = s.Game.Memory.Read(banks & 0xf, sdest);
+            s.Background.LoadPalette(source, dest, count + 1);
+            return OpResult.Continue;
+        }
+
+        public static OpResult CPPAL(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), ssource = f.ReadU8(), sdest = f.ReadU8(), count = f.ReadU8();
+            int source = s.Game.Memory.Read(banks >> 4, ssource),
+                dest = s.Game.Memory.Read(banks & 0xf, sdest);
+            s.Background.CopyPaletteStore(source, dest, count + 1);
+            return OpResult.Continue;
+        }
+
+        public static OpResult MPPAL2(Fiber f, Entity e, FieldScreen s) {
+            byte banksP = f.ReadU8(), banksBG = f.ReadU8(), bankR = f.ReadU8(),
+                ssource = f.ReadU8(), sdest = f.ReadU8(),
+                sb = f.ReadU8(), sg = f.ReadU8(), sr = f.ReadU8(),
+                count = f.ReadU8();
+
+            int source = s.Game.Memory.Read(banksP >> 4, ssource),
+                dest = s.Game.Memory.Read(banksP & 0xf, sdest),
+                b = s.Game.Memory.Read(banksBG >> 4, sb),
+                g = s.Game.Memory.Read(banksBG & 0xf, sg),
+                r = s.Game.Memory.Read(bankR, sr);
+
+            //TODO - is this right, that the colours are 4.4 fixed point?
+            s.Background.MulPaletteStore(source, dest, new Vector4(r / 16f, g / 16f, b / 16f, 1f), count + 1);
+            return OpResult.Continue;
+        }
+
     }
 
     internal static class FieldModels {
@@ -1735,7 +1777,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 y = s.Game.Memory.Read(banks & 0xf, sy);
             //VERY TODO, this is guesswork
             System.Diagnostics.Debugger.Break();
-            s.BGScroll(x, y, false);
+            s.BGScroll(x, y);
             return OpResult.Continue;
         }
 
@@ -1769,7 +1811,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     f.Resume();
                     s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
                     //TODO - should track entity instead of player from now on??
-                    s.BGScroll(pos.X, pos.Y, true);
+                    s.BGScroll(pos.X, pos.Y);
                     return true;
                 } else {
                     float progress;
@@ -1785,7 +1827,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                             break;
                     }
                     var scroll = Vector2.Lerp(new Vector2(start.x, start.y), pos, progress);
-                    s.BGScroll(scroll.X, scroll.Y, true);
+                    s.BGScroll(scroll.X, scroll.Y);
                     return false;
                 }
             });
@@ -1799,7 +1841,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int x = s.Game.Memory.Read(banks & 0xf, sx),
                 y = s.Game.Memory.Read(banks >> 4, sy);
 
-            s.BGScroll(x, y, false);
+            s.BGScroll(x, y);
             return OpResult.Continue;
         }
 
@@ -1807,11 +1849,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             if (s.Player == null) {
                 s.WhenPlayerSet += () => {
                     var pos = s.ModelToBGPosition(s.Player.Model.Translation);
-                    s.BGScroll(pos.X, pos.Y, true);
+                    s.BGScroll(pos.X, pos.Y);
                 };
             } else {
                 var pos = s.ModelToBGPosition(s.Player.Model.Translation);
-                s.BGScroll(pos.X, pos.Y, true);
+                s.BGScroll(pos.X, pos.Y);
             }
             return OpResult.Continue;
         }
@@ -1842,12 +1884,12 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             var progress = Easings.QuadraticInOut(1f * state.Frame / speed); //TODO - is interpreting speed as framecount vaguely correct?
 
             if (progress >= 1f) {
-                s.BGScroll(x, y, false);
+                s.BGScroll(x, y);
                 s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
                 return OpResult.Continue;
             } else {
                 var pos = state.Start + (end - state.Start) * progress;
-                s.BGScroll(pos.X, pos.Y, false);
+                s.BGScroll(pos.X, pos.Y);
                 state.Frame++;
                 return OpResult.Restart;
             }
@@ -1881,14 +1923,13 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                         var target = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
 
                     if (progress >= 1f) {
-                        s.BGScroll(target.X, target.Y, true);
+                        s.BGScroll(target.X, target.Y);
                         s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
                         return true;
                     } else {
                         s.BGScroll(
                             curX + (target.X - curX) * progress,
-                            curY + (target.Y - curY) * progress,
-                            true
+                            curY + (target.Y - curY) * progress
                         );
                         return false;
                     }
@@ -1914,7 +1955,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             f.Pause();
             s.StartProcess(frame => {
                 float progress = 1f * frame / numFrames;
-                s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress, false);
+                s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress);
 
                 if (progress >= 1) {
                     s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
