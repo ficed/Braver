@@ -325,12 +325,12 @@ namespace Braver.Field {
         public void Pause(string pauseReason = null, [CallerMemberName] string caller = null) {
             Active = false;
             PauseReason = pauseReason;
-            System.Diagnostics.Debug.WriteLine($"Fiber {this._entity} priority {Priority} paused by {caller}");
+            System.Diagnostics.Trace.WriteLine($"Fiber {this._entity} priority {Priority} paused by {caller}");
         }
         public void Resume([CallerMemberName] string caller = null) {
             Active = true;
             PauseReason = null;
-            System.Diagnostics.Debug.WriteLine($"Fiber {this._entity} priority {Priority} resumed by {caller}");
+            System.Diagnostics.Trace.WriteLine($"Fiber {this._entity} priority {Priority} resumed by {caller}");
         }
 
         public void Stop() {
@@ -349,7 +349,7 @@ namespace Braver.Field {
                 int opIP = _ip;
                 OpCode op = (OpCode)ReadU8();
                 //if (_entity.Name == "av_j")
-                //    System.Diagnostics.Debug.WriteLine($"Entity {_entity.Name} executing {op} ({(byte)op}) at IP {opIP}");
+                //    System.Diagnostics.Trace.WriteLine($"Entity {_entity.Name} executing {op} ({(byte)op}) at IP {opIP}");
                 switch (VM.Execute(op, this, _entity, _screen)) {
                     case OpResult.Continue:
                         OpcodeAttempts = 0;
@@ -396,7 +396,7 @@ namespace Braver.Field {
                     throw new F7Exception($"Cannot execute opcode {op}");
                 f.Stop();
                 f.Jump(f.IP - 1); //So if we retry, the opcode is actually retried [and will fail again] rather than trying the next operand byte as an opcode
-                System.Diagnostics.Debug.WriteLine($"Aborting script on {e.Name} due to unrecognised opcode {op}");
+                System.Diagnostics.Trace.WriteLine($"Aborting script on {e.Name} due to unrecognised opcode {op}");
                 return OpResult.Continue;
             } else
                 return _executors[(int)op](f, e, s);
@@ -594,7 +594,7 @@ namespace Braver.Field {
             if (s.Entities[entity].Call(parm >> 5, parm & 0x1f, null))
                 return OpResult.Continue;
             else {
-                System.Diagnostics.Debug.WriteLine($"REQSW: Entity {e} waiting for {s.Entities[entity]} to be available on priority {parm >> 5}");
+                System.Diagnostics.Trace.WriteLine($"REQSW: Entity {e} waiting for {s.Entities[entity]} to be available on priority {parm >> 5}");
                 return OpResult.Restart;
             }
         }
@@ -604,7 +604,7 @@ namespace Braver.Field {
                 f.Pause($"Waiting for entity {entity}");
                 return OpResult.Continue;
             } else {
-                System.Diagnostics.Debug.WriteLine($"REQEW: Entity {e} waiting for {s.Entities[entity]} to be available on priority {parm >> 5}");
+                System.Diagnostics.Trace.WriteLine($"REQEW: Entity {e} waiting for {s.Entities[entity]} to be available on priority {parm >> 5}");
                 return OpResult.Restart;
             }
         }
@@ -849,7 +849,7 @@ namespace Braver.Field {
             byte parm = f.ReadU8();
             int modelIndex = s.GetNextModelIndex();
             if (parm != modelIndex)
-                System.Diagnostics.Debug.WriteLine($"CHAR opcode - parameter {parm} did not match auto-assign ID {modelIndex}");
+                System.Diagnostics.Trace.WriteLine($"CHAR opcode - parameter {parm} did not match auto-assign ID {modelIndex}");
             e.Model = s.FieldModels[modelIndex];
             if (s.Player == e)
                 s.CheckPendingPlayerSetup();
@@ -1021,7 +1021,7 @@ namespace Braver.Field {
 
             e.WalkmeshTri = tri;
             e.Model.Translation = new Vector3(x, y, z);
-            System.Diagnostics.Debug.WriteLine($"VM:XYZI moving {e.Name} to {e.Model.Translation} wmtri {tri}");
+            System.Diagnostics.Trace.WriteLine($"VM:XYZI moving {e.Name} to {e.Model.Translation} wmtri {tri}");
 
             return OpResult.Continue;
         }
@@ -1502,13 +1502,13 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
         public static OpResult WREST(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
-            System.Diagnostics.Debug.WriteLine($"Entity {e.Name} closing window {id}");
+            System.Diagnostics.Trace.WriteLine($"Entity {e.Name} closing window {id}");
             s.Dialog.ResetWindow(id);
             return OpResult.Continue;
         }
         public static OpResult WCLSE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
-            System.Diagnostics.Debug.WriteLine($"Entity {e.Name} closing window {id}");
+            System.Diagnostics.Trace.WriteLine($"Entity {e.Name} closing window {id}");
             s.Dialog.ResetWindow(id);
             return OpResult.Continue;
         }

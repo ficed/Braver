@@ -29,7 +29,7 @@ namespace Braver.Net {
                 var writer = new NetDataWriter();
                 writer.Put((int)GetMessageType(message));
                 message.Save(writer);
-                //System.Diagnostics.Debug.WriteLine($"Sending message {message.GetType()}");
+                //System.Diagnostics.Trace.WriteLine($"Sending message {message.GetType()}");
                 _server.SendToAll(writer, DeliveryMethod.ReliableOrdered);
             }
         }

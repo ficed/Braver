@@ -7,6 +7,7 @@
 		<Component xsi:type="Label" X="200" Y="160" ID="lNoRandomBattles" Click="LabelClick">No Random Battles</Component>
 		<Component xsi:type="Label" X="200" Y="200" ID="lSkipBattleMenu" Click="LabelClick">Skip Battle Menu</Component>
 		<Component xsi:type="Label" X="200" Y="240" ID="lAutoSaveOnFieldEntry" Click="LabelClick">Auto Save on Field Entry</Component>
+		<Component xsi:type="Label" X="200" Y="280" ID="lSeparateSaveFiles" Click="LabelClick">Separate Save Files</Component>
 
 	</Root>
 </Layout>

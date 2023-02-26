@@ -27,5 +27,8 @@ DATA	FILE	wm		%braver%\wm
 PATH	MUSIC	%ff7%\data\music_ogg
 PATH	SFX		%ff7%\data\sound
 PATH	FFMPEG	%braver%\ffmpeg.exe
-PATH	MOVIES	%braver%\movies
+PATH	MOVIES	%movies%
 PATH	DEBUG	%braver%
+PATH	SAVE	%save%
+
+LOG		%braver%\log.txt

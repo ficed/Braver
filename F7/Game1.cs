@@ -75,11 +75,32 @@ namespace Braver {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            HashSet<InputKey> isDown = new();
+            void SetInput(InputKey k, bool down) {
+                if (down) isDown.Add(k);
+            }
+
             var keyState = Keyboard.GetState();
             foreach(var key in _keyMap.Keys) {
-                var ik = _keyMap[key];
-                bool down = keyState.IsKeyDown(key);
-                if (down) {
+                SetInput(_keyMap[key], keyState.IsKeyDown(key));
+            }
+
+            var padState = GamePad.GetState(PlayerIndex.One, GamePadDeadZone.Circular);
+            SetInput(InputKey.Down, padState.DPad.Down == ButtonState.Pressed);
+            SetInput(InputKey.Left, padState.DPad.Left == ButtonState.Pressed);
+            SetInput(InputKey.Right, padState.DPad.Right == ButtonState.Pressed);
+            SetInput(InputKey.Up, padState.DPad.Up == ButtonState.Pressed);
+
+            SetInput(InputKey.OK, padState.Buttons.A == ButtonState.Pressed);
+            SetInput(InputKey.Cancel, padState.Buttons.B == ButtonState.Pressed);
+            SetInput(InputKey.Menu, padState.Buttons.Y == ButtonState.Pressed);
+            SetInput(InputKey.PanLeft, padState.Buttons.LeftShoulder == ButtonState.Pressed);
+            SetInput(InputKey.PanRight, padState.Buttons.RightShoulder == ButtonState.Pressed);
+            SetInput(InputKey.Start, padState.Buttons.Start == ButtonState.Pressed);
+            SetInput(InputKey.Select, padState.Buttons.Back == ButtonState.Pressed);
+
+            foreach(var ik in Enum.GetValues<InputKey>()) {
+                if (isDown.Contains(ik)) {
                     if (_input.DownFor[ik] > 0)
                         _input.DownFor[ik]++;
                     else

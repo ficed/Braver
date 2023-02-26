@@ -18,7 +18,7 @@ namespace Braver.Battle {
 
         public ActionInProgress(string name) {
             _name = name;
-            System.Diagnostics.Debug.WriteLine($"Starting new action {name}");
+            System.Diagnostics.Trace.WriteLine($"Starting new action {name}");
         }
 
         public void Add(int? phase, IInProgress inProgress) {

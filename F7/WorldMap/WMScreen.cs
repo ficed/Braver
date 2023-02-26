@@ -255,7 +255,7 @@ namespace Braver.WorldMap {
                 var block = new MapBlock(_source.ExportBlock(which.x + which.y * BLOCKS_X));
                 Game.InvokeOnMainThread(() => {
                     if (_blockState != null) { //things may have already been disposed, if so, don't upload!
-                        Debug.WriteLine($"Uploading block {which.x},{which.y}");
+                        Trace.WriteLine($"Uploading block {which.x},{which.y}");
                         block.Upload(Graphics);
                         _blockState[which.x, which.y] = MapBlockState.Ready;
                         _blocks[which.x, which.y] = block;
@@ -368,7 +368,7 @@ namespace Braver.WorldMap {
                     pos.Y = height + _avatarModel.Scale * _avatarModel.MaxBounds.Y;
                     _walkingOn = walkmap;
                 } else {
-                    Debug.WriteLine($"Denying move to {pos} because destination walkmap is {walkmap}");
+                    Trace.WriteLine($"Denying move to {pos} because destination walkmap is {walkmap}");
                     return;
                 }
             }            
@@ -466,7 +466,7 @@ namespace Braver.WorldMap {
                 _isDebug = !_isDebug;
 
             if (input.IsJustDown(InputKey.Debug2))
-                Debug.WriteLine($"Position {_avatarModel.Translation}, walking on {_walkingOn}");
+                Trace.WriteLine($"Position {_avatarModel.Translation}, walking on {_walkingOn}");
         }
 
         private double _frame = 0;
@@ -490,7 +490,7 @@ namespace Braver.WorldMap {
 
         private void RequestBlock(int bx, int by) {
             _blockState[bx, by] = MapBlockState.Loading;
-            Debug.WriteLine($"Loading block {bx},{by}");
+            Trace.WriteLine($"Loading block {bx},{by}");
             _load.Writer.TryWrite((bx, by));
         }
 

@@ -45,7 +45,7 @@ namespace Braver.Field {
                 verts.Select(v => v.Position.Y).Max(),
                 verts.Select(v => v.Position.Z).Max()
             );
-            System.Diagnostics.Debug.WriteLine($"Walkmesh min bounds {minWM} max {maxWM}");
+            System.Diagnostics.Trace.WriteLine($"Walkmesh min bounds {minWM} max {maxWM}");
 
             _vertexBuffer = new VertexBuffer(graphics, typeof(VertexPositionColor), verts.Count, BufferUsage.WriteOnly);
             _vertexBuffer.SetData(verts.ToArray());

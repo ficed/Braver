@@ -38,7 +38,7 @@ namespace Braver {
             base.ProcessInput(input);
             if (input.IsJustDown(InputKey.OK)) {
                 _anim = (_anim + 1) % _anims.Length;
-                System.Diagnostics.Debug.WriteLine($"Anim: {_anims[_anim]}");
+                System.Diagnostics.Trace.WriteLine($"Anim: {_anims[_anim]}");
                 _model.PlayAnimation(_anim, true, 1f);
             }
         }

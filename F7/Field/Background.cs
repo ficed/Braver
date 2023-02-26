@@ -246,13 +246,13 @@ namespace Braver.Field {
         public void SetParameter(int parm, int value) {
             _parameters[parm] = value;
             _game.Net.Send(new Net.FieldBGMessage { Parm = parm, Value = value });
-            //System.Diagnostics.Debug.WriteLine($"BG parameter {parm} = {value}");
+            //System.Diagnostics.Trace.WriteLine($"BG parameter {parm} = {value}");
         }
         public void ModifyParameter(int parm, Func<int, int> modify) {
             int value;
             _parameters.TryGetValue(parm, out value);
             _parameters[parm] = modify(value);
-            //System.Diagnostics.Debug.WriteLine($"BG parameter {parm} changed {value}->{_parameters[parm]}");
+            //System.Diagnostics.Trace.WriteLine($"BG parameter {parm} changed {value}->{_parameters[parm]}");
             _game.Net.Send(new Net.FieldBGMessage { Parm = parm, Value = _parameters[parm] });
         }
 

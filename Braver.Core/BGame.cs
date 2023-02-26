@@ -91,19 +91,41 @@ namespace Braver {
             }
         }
 
-        public void Save(string path) {
+        public void Save(string path, bool packed) {
             Directory.CreateDirectory(Path.GetDirectoryName(path + ".sav"));
-            using (var fs = File.Create(path + ".sav"))
-                Serialisation.Serialise(SaveData, fs);
-            using (var fs = File.Create(path + ".mem"))
-                Memory.Save(fs);
+
+            if (packed) {
+                var sav = new MemoryStream();
+                Serialisation.Serialise(SaveData, sav);
+                var mem = new MemoryStream();
+                Memory.Save(mem);
+                using (var fs = File.Create(path + ".sav"))
+                    Pack.Create(fs,
+                        ("SaveData", sav.ToArray()),
+                        ("Memory", mem.ToArray())
+                    );
+            } else {
+                using (var fs = File.Create(path + ".sav"))
+                    Serialisation.Serialise(SaveData, fs);
+                using (var fs = File.Create(path + ".mem"))
+                    Memory.Save(fs);
+            }
         }
 
         public virtual void Load(string path) {
-            using (var fs = File.OpenRead(path + ".mem"))
-                Memory.Load(fs);
-            using (var fs = File.OpenRead(path + ".sav"))
-                SaveData = Serialisation.Deserialise<SaveData>(fs);
+            using (var fs = File.OpenRead(path + ".sav")) {
+                if (Pack.IsPack(fs)) {
+                    var pack = new Pack(fs);
+                    using (var data = pack.Read("SaveData"))
+                        SaveData = Serialisation.Deserialise<SaveData>(data);
+                    using (var data = pack.Read("Memory"))
+                        Memory.Load(data);
+                } else {
+                    SaveData = Serialisation.Deserialise<SaveData>(fs);
+                    using (var memfs = File.OpenRead(path + ".mem"))
+                        Memory.Load(memfs);
+                }
+            }
             SaveData.CleanUp();
         }
 

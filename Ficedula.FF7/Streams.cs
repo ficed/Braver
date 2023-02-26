@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 namespace Ficedula.FF7 {
     public static class Streams {
 
+        public static long ReadI64(this Stream s) {
+            byte[] buffer = new byte[8];
+            s.Read(buffer, 0, 8);
+            return BitConverter.ToInt64(buffer, 0);
+        }
         public static int ReadI32(this Stream s) {
             byte[] buffer = new byte[4];
             s.Read(buffer, 0, 4);
@@ -21,6 +26,10 @@ namespace Ficedula.FF7 {
         public static void WriteI32(this Stream s, int i) {
             byte[] buffer = BitConverter.GetBytes(i);
             s.Write(buffer, 0, 4);
+        }
+        public static void WriteI64(this Stream s, long L) {
+            byte[] buffer = BitConverter.GetBytes(L);
+            s.Write(buffer, 0, 8);
         }
 
         public static short ReadI16(this Stream s) {

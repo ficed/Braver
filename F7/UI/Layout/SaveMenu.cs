@@ -27,7 +27,7 @@ namespace Braver.UI.Layout {
             base.Created(g, screen);
 
             foreach(int slot in Enumerable.Range(0, 9)) {
-                string path = Path.Combine(FGame.GetSavePath(), $"save{slot}");
+                string path = Path.Combine(g.GetPath("save"), $"save{slot}");
                 string sav = path + ".sav";
                 if (File.Exists(sav)) {
                     var saveData = Serialisation.Deserialise<SaveData>(File.ReadAllText(sav));
@@ -63,7 +63,7 @@ namespace Braver.UI.Layout {
 
         public void SaveSelected(Box bSave) {
             string path = bSave.ID;
-            _game.Save(path);
+            _game.Save(path, !_game.DebugOptions.SeparateSaveFiles);
             InputEnabled = false;
             _screen.FadeOut(() => _game.PopScreen(_screen));
         }

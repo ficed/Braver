@@ -466,7 +466,7 @@ namespace Braver.Battle {
             if (_actionInProgress != null) {
                 _actionInProgress.Step(elapsed);
                 if (_actionInProgress.IsComplete) {
-                    System.Diagnostics.Debug.WriteLine($"Action {_actionInProgress} now complete");
+                    System.Diagnostics.Trace.WriteLine($"Action {_actionInProgress} now complete");
                     _actionInProgress = null;
                     _actionComplete?.Invoke();
                     _actionComplete = null;
@@ -642,7 +642,7 @@ namespace Braver.Battle {
                     int newIndex = current + groupShift;
                     if ((newIndex >= 0) && (newIndex < groups.Count)) {
                         _targets = groups[newIndex];
-                        System.Diagnostics.Debug.WriteLine($"Now targetting {_targets}");
+                        System.Diagnostics.Trace.WriteLine($"Now targetting {_targets}");
                         blip = true;
                     }
                 }

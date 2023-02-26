@@ -8,7 +8,8 @@ using System.Threading.Tasks;
 namespace Braver.UI.Layout {
     public class Debug : LayoutModel {
 
-        public Label lNoFieldScripts, lNoRandomBattles, lSkipBattleMenu, lAutoSaveOnFieldEntry;
+        public Label lNoFieldScripts, lNoRandomBattles, lSkipBattleMenu, lAutoSaveOnFieldEntry,
+            lSeparateSaveFiles;
         public Box Root;
 
         protected override void OnInit() {
@@ -22,6 +23,7 @@ namespace Braver.UI.Layout {
             lNoRandomBattles.Color = Game.DebugOptions.NoRandomBattles ? Color.White : Color.Gray;
             lSkipBattleMenu.Color = Game.DebugOptions.SkipBattleMenu ? Color.White : Color.Gray;
             lAutoSaveOnFieldEntry.Color = Game.DebugOptions.AutoSaveOnFieldEntry ? Color.White : Color.Gray;
+            lSeparateSaveFiles.Color = Game.DebugOptions.SeparateSaveFiles ? Color.White : Color.Gray;
         }
 
         public void LabelClick(Label L) {
@@ -33,6 +35,8 @@ namespace Braver.UI.Layout {
                 Game.DebugOptions.SkipBattleMenu = !Game.DebugOptions.SkipBattleMenu;
             else if (L == lAutoSaveOnFieldEntry)
                 Game.DebugOptions.AutoSaveOnFieldEntry = !Game.DebugOptions.AutoSaveOnFieldEntry;
+            else if (L == lSeparateSaveFiles)
+                Game.DebugOptions.SeparateSaveFiles = !Game.DebugOptions.SeparateSaveFiles;
 
             Update();
         }

@@ -268,20 +268,20 @@ namespace Braver.Field {
                 //So now we know the walkmap would cover xRange screens across and yRange screens down
                 //Compare that to the background width/height and scale it to match...
 
-                System.Diagnostics.Debug.WriteLine($"Walkmap range {wMin} - {wMax}");
-                System.Diagnostics.Debug.WriteLine($"Transformed {vMin} - {vMax}");
-                System.Diagnostics.Debug.WriteLine($"Walkmap covers range {xRange}/{yRange}");
-                System.Diagnostics.Debug.WriteLine($"Background is size {Background.Width} x {Background.Height}");
-                System.Diagnostics.Debug.WriteLine($"Background covers {Background.Width / 320f} x {Background.Height / 240f} screens");
-                System.Diagnostics.Debug.WriteLine($"...or in widescreen, {Background.Width / 427f} x {Background.Height / 240f} screens");
+                System.Diagnostics.Trace.WriteLine($"Walkmap range {wMin} - {wMax}");
+                System.Diagnostics.Trace.WriteLine($"Transformed {vMin} - {vMax}");
+                System.Diagnostics.Trace.WriteLine($"Walkmap covers range {xRange}/{yRange}");
+                System.Diagnostics.Trace.WriteLine($"Background is size {Background.Width} x {Background.Height}");
+                System.Diagnostics.Trace.WriteLine($"Background covers {Background.Width / 320f} x {Background.Height / 240f} screens");
+                System.Diagnostics.Trace.WriteLine($"...or in widescreen, {Background.Width / 427f} x {Background.Height / 240f} screens");
 
                 camWidth = 1280f * xRange / (Background.Width / 320f);
                 camHeight = 720f * yRange / (Background.Height / 240f);
-                System.Diagnostics.Debug.WriteLine($"Auto calculated ortho w/h to {camWidth}/{camHeight}");
+                System.Diagnostics.Trace.WriteLine($"Auto calculated ortho w/h to {camWidth}/{camHeight}");
 
                 camWidth = 1280f * xRange / (Background.Width / 427f);
                 camHeight = 720f * yRange / (Background.Height / 240f);
-                System.Diagnostics.Debug.WriteLine($"...or in widescreen, {camWidth}/{camHeight}");
+                System.Diagnostics.Trace.WriteLine($"...or in widescreen, {camWidth}/{camHeight}");
 
                 _base3DOffset = Vector2.Zero;
             }
@@ -311,9 +311,9 @@ namespace Braver.Field {
                     v1 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V1.X, wTri.V1.Y, wTri.V1.Z, 1), vp),
                     v2 = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(wTri.V2.X, wTri.V2.Y, wTri.V2.Z, 1), vp);
                 /*
-                System.Diagnostics.Debug.WriteLine(v0 / v0.W);
-                System.Diagnostics.Debug.WriteLine(v1 / v1.W);
-                System.Diagnostics.Debug.WriteLine(v2 / v2.W);
+                System.Diagnostics.Trace.WriteLine(v0 / v0.W);
+                System.Diagnostics.Trace.WriteLine(v1 / v1.W);
+                System.Diagnostics.Trace.WriteLine(v2 / v2.W);
                 */
                 minZ = Math.Min(minZ, v0.Z / v0.W);
                 minZ = Math.Min(minZ, v1.Z / v1.W);
@@ -322,7 +322,7 @@ namespace Braver.Field {
                 maxZ = Math.Max(maxZ, v1.Z / v1.W);
                 maxZ = Math.Max(maxZ, v2.Z / v2.W);
             }
-            System.Diagnostics.Debug.WriteLine($"Walkmesh Z varies from {minZ}-{maxZ} (recip {1f / minZ} to {1f / maxZ}");
+            System.Diagnostics.Trace.WriteLine($"Walkmesh Z varies from {minZ}-{maxZ} (recip {1f / minZ} to {1f / maxZ}");
             _debug = new FieldDebug(graphics, field);
 
             if (_info.BGZFrom != 0) {
@@ -372,7 +372,7 @@ namespace Braver.Field {
         }
 
         protected override void DoRender() {
-            //System.Diagnostics.Debug.WriteLine($"FieldScreen:Render");
+            //System.Diagnostics.Trace.WriteLine($"FieldScreen:Render");
             Graphics.DepthStencilState = DepthStencilState.Default;
             Graphics.BlendState = BlendState.AlphaBlend;
             if (_renderBG) {
@@ -477,7 +477,7 @@ namespace Braver.Field {
 
         private void ReportAllModelPositions() {
             foreach (var entity in Entities.Where(e => e.Model != null)) {
-                System.Diagnostics.Debug.WriteLine($"Entity {entity.Name} at pos {entity.Model.Translation}, 2D background pos {ModelToBGPosition(entity.Model.Translation)}");
+                System.Diagnostics.Trace.WriteLine($"Entity {entity.Name} at pos {entity.Model.Translation}, 2D background pos {ModelToBGPosition(entity.Model.Translation)}");
             }
         }
 
@@ -524,7 +524,7 @@ namespace Braver.Field {
                     newScroll.y = (int)posOnBG.Y + 85;
 
                 if (newScroll != scroll) {
-                    System.Diagnostics.Debug.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
+                    System.Diagnostics.Trace.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
                     BGScroll(newScroll.x, newScroll.y);
                 }
             }
@@ -539,7 +539,7 @@ namespace Braver.Field {
                   ty = (_view2D.CenterY / 3) + screenPos.Y * 0.5f * (720f / 3);
 
             if (debug)
-                System.Diagnostics.Debug.WriteLine($"ModelToBG: {modelPosition} -> screen {screenPos} -> BG {tx}/{ty}");
+                System.Diagnostics.Trace.WriteLine($"ModelToBG: {modelPosition} -> screen {screenPos} -> BG {tx}/{ty}");
 
             return new Vector2(-tx, ty);
         }
@@ -603,7 +603,7 @@ namespace Braver.Field {
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"BGZFrom {_bgZFrom} ZTo {_bgZTo}");
+                System.Diagnostics.Trace.WriteLine($"BGZFrom {_bgZFrom} ZTo {_bgZTo}");
                 return;
             }
 
@@ -646,7 +646,7 @@ namespace Braver.Field {
                             .FirstOrDefault();
                         if (talkTo != null) {
                             if (!talkTo.Call(7, 1, null))
-                                System.Diagnostics.Debug.WriteLine($"Could not start talk script for entity {talkTo}");
+                                System.Diagnostics.Trace.WriteLine($"Could not start talk script for entity {talkTo}");
                         }
                     }
 
@@ -690,12 +690,12 @@ namespace Braver.Field {
                             }
 
                             foreach (var entered in Player.LinesCollidingWith.Except(oldLines)) {
-                                System.Diagnostics.Debug.WriteLine($"Player has entered line {entered}");
+                                System.Diagnostics.Trace.WriteLine($"Player has entered line {entered}");
                                 entered.Call(3, 5, null); //TODO PRIORITY!?!
                             }
 
                             foreach (var left in oldLines.Except(Player.LinesCollidingWith)) {
-                                System.Diagnostics.Debug.WriteLine($"Player has left line {left}");
+                                System.Diagnostics.Trace.WriteLine($"Player has left line {left}");
                                 left.Call(3, 6, null); //TODO PRIORITY!?!
                             }
 
@@ -763,7 +763,7 @@ namespace Braver.Field {
                             if ((_frame % 20) == 0) {
                                 Game.SaveData.FieldDangerCounter += (int)(1024 * animSpeed * animSpeed / _encounters[BattleTable].Rate);
                                 if (_r.Next(256) < (Game.SaveData.FieldDangerCounter / 256)) {
-                                    System.Diagnostics.Debug.WriteLine($"FieldDangerCounter: trigger encounter and reset");
+                                    System.Diagnostics.Trace.WriteLine($"FieldDangerCounter: trigger encounter and reset");
                                     Game.SaveData.FieldDangerCounter = 0;
                                     if (BattleOptions.BattlesEnabled && _encounters[BattleTable].Enabled) {
                                         Battle.BattleScreen.Launch(Game, _encounters[BattleTable], BattleOptions.Flags, _r);
@@ -778,11 +778,11 @@ namespace Braver.Field {
                         //Lines we're moving through
                         //Both events seem necessary; presumably priorities should be different though...?
                         foreach (var isIn in Player.LinesCollidingWith) {
-                            System.Diagnostics.Debug.WriteLine($"Player colliding with {isIn.Name}, triggering script 2");
+                            System.Diagnostics.Trace.WriteLine($"Player colliding with {isIn.Name}, triggering script 2");
                             isIn.Call(3, 2, null); //TODO PRIORITY!?!
                         }
                         foreach (var isIn in Player.LinesCollidingWith) {
-                            System.Diagnostics.Debug.WriteLine($"Player colliding with {isIn.Name}, triggering script 3");
+                            System.Diagnostics.Trace.WriteLine($"Player colliding with {isIn.Name}, triggering script 3");
                             isIn.Call(2, 3, null); //TODO PRIORITY!?!
                         }
                     }
@@ -1039,7 +1039,7 @@ namespace Braver.Field {
                         var dist = (entity.Model.Translation.XY() - newPosition.XY()).Length();
                         var collision = eMove.CollideDistance + entity.CollideDistance;
                         if (dist <= collision) {
-                            System.Diagnostics.Debug.WriteLine($"Entity {eMove} is now colliding with {entity}");
+                            System.Diagnostics.Trace.WriteLine($"Entity {eMove} is now colliding with {entity}");
                             eMove.CollidingWith.Add(entity);
                             entity.CollidingWith.Add(eMove);
                         }
@@ -1141,10 +1141,10 @@ namespace Braver.Field {
 
         private void ReportDebugEntityPos(Entity e) {
             if (e.Name == _debugEntity) {
-                System.Diagnostics.Debug.WriteLine($"Ent {e.Name} at pos {e.Model.Translation} wmtri {e.WalkmeshTri}");
+                System.Diagnostics.Trace.WriteLine($"Ent {e.Name} at pos {e.Model.Translation} wmtri {e.WalkmeshTri}");
                 var tri = _walkmesh[e.WalkmeshTri];
                 CalculateBarycentric(tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX(), e.Model.Translation.XY(), out var a, out var b, out var c);
-                System.Diagnostics.Debug.WriteLine($"---Barycentric pos {a} / {b} / {c}");
+                System.Diagnostics.Trace.WriteLine($"---Barycentric pos {a} / {b} / {c}");
             }
         }
 

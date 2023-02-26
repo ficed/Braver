@@ -130,7 +130,7 @@ namespace Braver.Battle {
             );
             MinBounds = minBounds;
             MaxBounds = maxBounds;
-            System.Diagnostics.Debug.WriteLine($"Model {skeleton} with min bounds {minBounds}, max {maxBounds}");
+            System.Diagnostics.Trace.WriteLine($"Model {skeleton} with min bounds {minBounds}, max {maxBounds}");
         }
 
         private void Descend(BBone bone, Matrix m, Action<PFileChunk, Matrix> onChunk) {

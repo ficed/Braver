@@ -3,26 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Xml.Serialization;
 
 namespace Braver {
-
-    public class LocalPref {
-        [XmlAttribute]
-        public string Name { get; set; }
-        [XmlAttribute]
-        public string Value{ get; set; }
-    }
-    public class LocalPrefs {
-        [XmlElement("Pref")]
-        public List<LocalPref> Prefs { get; set; } = new();
-    }
 
     public class DebugOptions {
         public bool NoFieldScripts { get; set; }
         public bool NoRandomBattles { get; set; }
         public bool SkipBattleMenu { get; set; }
         public bool AutoSaveOnFieldEntry { get; set; }
+        public bool SeparateSaveFiles { get; set; }
 
         public DebugOptions(Dictionary<string, string> settings) {
             if (settings.TryGetValue("Debug", out string d) && bool.Parse(d)) {
@@ -50,7 +39,6 @@ namespace Braver {
         public Screen Screen => _screens.Peek();
         public DebugOptions DebugOptions { get; }
 
-        private Dictionary<string, string> _prefs;
         private Dictionary<string, string> _paths = new(StringComparer.InvariantCultureIgnoreCase);
 
         public FGame(GraphicsDevice graphics) {
@@ -58,8 +46,8 @@ namespace Braver {
 
             Dictionary<string, string> settings = new(StringComparer.InvariantCultureIgnoreCase);
             List<string> settingValues = new();
-
-            string configFile = Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "data.txt");
+            string root = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]);
+            string configFile = Path.Combine(root, "braver.cfg");
             if (File.Exists(configFile))
                 settingValues.AddRange(File.ReadAllLines(configFile));
 
@@ -68,7 +56,10 @@ namespace Braver {
             foreach(var setting in settingValues
                 .Select(s => s.Split(new[] { '=' }, 2))
                 .Where(sa => sa.Length == 2)) {
-                settings[setting[0]] = setting[1];
+                if (setting[1] == ".")
+                    settings[setting[0]] = root;
+                else
+                    settings[setting[0]] = setting[1];
             }
 
             DebugOptions = new DebugOptions(settings);
@@ -93,7 +84,7 @@ namespace Braver {
 
             string Expand(string s) {
                 foreach (string setting in settings.Keys)
-                    s = s.Replace($"%{setting}%", settings[setting]);
+                    s = s.Replace($"%{setting}%", settings[setting], StringComparison.InvariantCultureIgnoreCase);
                 return s;
             }
 
@@ -114,6 +105,9 @@ namespace Braver {
                 } else if (parts[0] == "PATH") {
                     string path = Expand(parts[2]);
                     _paths[parts[1]] = path;
+                } else if (parts[0] == "LOG") {
+                    string path = Expand(parts[1]);
+                    Trace.Listeners.Add(new TraceFile(path));
                 } else
                     throw new NotSupportedException($"Unrecognised data spec {spec}");
             }
@@ -124,46 +118,47 @@ namespace Braver {
             Audio.Precache(Sfx.Cancel, true);
             Audio.Precache(Sfx.Invalid, true);
 
-            string prefs = GetPrefsPath();
-            Directory.CreateDirectory(Path.GetDirectoryName(prefs));
-            if (File.Exists(prefs)) {
-                using (var fs = File.OpenRead(prefs)) {
-                    var lp = Serialisation.Deserialise<LocalPrefs>(fs);
-                    _prefs = lp.Prefs
-                        .ToDictionary(p => p.Name, p => p.Value, StringComparer.InvariantCultureIgnoreCase);
-                }
-            } else
-                _prefs = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+        }
 
+        private class TraceFile : TraceListener {
+
+            private StreamWriter _writer;
+            private DateTime _lastFlush = DateTime.Now;
+
+            public TraceFile(string file) {
+                _writer = new StreamWriter(file, false);
+            }
+
+            public override void Write(string message) {
+                lock (_writer) {
+                    _writer.Write(message);
+                    if (_lastFlush < DateTime.Now.AddSeconds(-10)) {
+                        _writer.Flush();
+                        _lastFlush = DateTime.Now;
+                    }
+                }
+            }
+
+            public override void WriteLine(string message) {
+                lock (_writer) {
+                    _writer.WriteLine(message);
+                    if (_lastFlush < DateTime.Now.AddSeconds(-10)) {
+                        _writer.Flush();
+                        _lastFlush = DateTime.Now;
+                    }
+                }
+            }
         }
 
         public string GetPath(string name) => _paths[name];
 
-        public static string GetSavePath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "save");
-        private static string GetPrefsPath() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Braver", "prefs.xml");
-
-        public string GetPref(string name, string def = "") {
-            _prefs.TryGetValue(name, out string v);
-            return v ?? def;
-        }
-        public void SetPref(string name, string value) {
-            _prefs[name] = value;
-            using (var fs = File.OpenWrite(GetPrefsPath())) {
-                var lp = new LocalPrefs {
-                    Prefs = _prefs.Select(kv => new LocalPref { Name = kv.Key, Value = kv.Value }).ToList()
-                };
-                Serialisation.Serialise(lp, fs);
-            }
-        }
-
-
         public void AutoSave() {
-            string path = GetSavePath();
+            string path = GetPath("save");
             foreach (string file1 in Directory.GetFiles(path, "auto1.*"))
                 File.Move(file1, Path.Combine(path, "auto2" + Path.GetExtension(file1)), true);
             foreach (string file0 in Directory.GetFiles(path, "auto.*"))
                 File.Move(file0, Path.Combine(path, "auto1" + Path.GetExtension(file0)), true);
-            Save(Path.Combine(path, "auto"));
+            Save(Path.Combine(path, "auto"), !DebugOptions.SeparateSaveFiles);
         }
 
         public Stream WriteDebugBData(string category, string file) {

@@ -268,7 +268,7 @@ namespace Ficedula.FF7.Field {
                 foreach (int x in Enumerable.Range(0, 16)) {
                     int index = pages[spr.TextureID][spr.SrcX + x + (spr.SrcY + y) * 256];
                     int colour = paletteData[spr.PaletteID][index];
-                    System.Diagnostics.Debug.WriteLine($"X{x} Y{y} Data {index} Colour {colour:x8}");
+                    System.Diagnostics.Trace.WriteLine($"X{x} Y{y} Data {index} Colour {colour:x8}");
                 }
                 */
 

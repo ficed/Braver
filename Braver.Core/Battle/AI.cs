@@ -793,7 +793,7 @@ namespace Braver.Battle {
                         "%d",
                         _ => string.Join(",", _stack.Pop().Data)
                     );
-                    System.Diagnostics.Debug.WriteLine(s);
+                    System.Diagnostics.Trace.WriteLine(s);
                     break;
                 case 0xA1:
                     _stack.Pop();

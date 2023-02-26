@@ -213,7 +213,7 @@ namespace Braver.Field {
             );
             MinBounds = minBounds;
             MaxBounds = maxBounds;
-            System.Diagnostics.Debug.WriteLine($"Model {hrc} with min bounds {minBounds}, max {maxBounds}");
+            System.Diagnostics.Trace.WriteLine($"Model {hrc} with min bounds {minBounds}, max {maxBounds}");
         }
 
         private void Descend(Ficedula.FF7.Field.HRCModel.Bone bone, Matrix m, Action<Ficedula.FF7.PFileChunk, Matrix> onChunk) {

@@ -47,7 +47,7 @@ namespace Braver.Field {
             if (_priorities[priority].InProgress)
                 return false;
 
-            System.Diagnostics.Debug.WriteLine($"Entity {Name} running script {script} at priority {priority}");
+            System.Diagnostics.Trace.WriteLine($"Entity {Name} running script {script} at priority {priority}");
             _priorities[priority].OnStop = onComplete;
             _priorities[priority].Start(_entity.Scripts[script]);
             return true;
@@ -58,7 +58,7 @@ namespace Braver.Field {
             foreach (var fiber in _priorities.Reverse()) {
                 if (fiber.InProgress) {
                     if (DEBUG_OUT)
-                        System.Diagnostics.Debug.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
+                        System.Diagnostics.Trace.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
                     fiber.Run(maxOps, isInit);
                     if (isInit) fiber.Resume();
                     

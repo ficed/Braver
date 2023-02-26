@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BraverBuild", "BraverBuild\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Braver.Core", "Braver.Core\Braver.Core.csproj", "{2726C5DC-E964-4EBF-80D6-6561B633DDB1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BraverBattleSim", "BraverBattleSim\BraverBattleSim.csproj", "{D2704960-29CC-4A4D-B725-73AC95C1E5F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BraverBattleSim", "BraverBattleSim\BraverBattleSim.csproj", "{D2704960-29CC-4A4D-B725-73AC95C1E5F5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BraverSetup", "BraverSetup\BraverSetup.csproj", "{BC7A0739-2DEE-4396-BF05-9242D4833A5F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{D2704960-29CC-4A4D-B725-73AC95C1E5F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2704960-29CC-4A4D-B725-73AC95C1E5F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2704960-29CC-4A4D-B725-73AC95C1E5F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

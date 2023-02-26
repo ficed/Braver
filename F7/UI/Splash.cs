@@ -83,7 +83,7 @@ namespace Braver.UI {
                             break;
 
                         case 1:
-                            Game.Load(System.IO.Path.Combine(FGame.GetSavePath(), "auto"));
+                            Game.Load(System.IO.Path.Combine(Game.GetPath("save"), "auto"));
                             break;
 
                         case 2:
