@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -57,10 +56,20 @@ namespace Braver {
         public FGame(GraphicsDevice graphics) {
             _graphics = graphics;
 
-            Dictionary<string, string> settings = Environment.GetCommandLineArgs()
+            Dictionary<string, string> settings = new(StringComparer.InvariantCultureIgnoreCase);
+            List<string> settingValues = new();
+
+            string configFile = Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "data.txt");
+            if (File.Exists(configFile))
+                settingValues.AddRange(File.ReadAllLines(configFile));
+
+            settingValues.AddRange(Environment.GetCommandLineArgs());
+
+            foreach(var setting in settingValues
                 .Select(s => s.Split(new[] { '=' }, 2))
-                .Where(sa => sa.Length == 2)
-                .ToDictionary(sa => sa[0], sa => sa[1], StringComparer.InvariantCultureIgnoreCase);
+                .Where(sa => sa.Length == 2)) {
+                settings[setting[0]] = setting[1];
+            }
 
             DebugOptions = new DebugOptions(settings);
 
@@ -68,7 +77,19 @@ namespace Braver {
             if (settings.ContainsKey("Data"))
                 dataFile = settings["Data"];
 
-            string[] data = File.ReadAllLines(dataFile);
+            string[] data;
+
+            if (File.Exists(dataFile))
+                data = File.ReadAllLines(dataFile);
+            else {
+                using(var src = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Braver.data.txt")) { 
+                    using(var sr = new StreamReader(src)) {
+                        data = sr.ReadToEnd()
+                            .Split('\r', '\n')
+                            .ToArray();
+                    }
+                }
+            }
 
             string Expand(string s) {
                 foreach (string setting in settings.Keys)
