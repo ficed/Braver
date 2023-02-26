@@ -1,0 +1,228 @@
+00	RET
+01	REQ	u8:E	u8:P/F
+02	REQSW	u8:E	u8:P/F
+03	REQEW	u8:E	u8:P/F
+04	PREQ	u8:PM	u8:P/F
+05	PRQSW	u8:PM	u8:P/F
+06	PRQEW	u8:PM	u8:P/F
+07	RETTO	u8:P/F
+08	JOIN	u8:S
+09	SPLIT	u8:B1/B2	u8:B3/B4	u8:B5/B6	u16:XA	u16:YA	u8:DA	u16:XB	u16:YB	u8:DB	u8:S
+0A	SPTYE	u8:B1/B2	u8:B3/0	u8:A1	u8:A2	u8:A3
+0B	GTPYE	u8:B1/B2	u8:B3/0	u8:A1	u8:A2	u8:A3
+0E	DSKCG	u8:D
+0F	SPECIAL	u16:SUBOP	u8*:Args
+10	JMPF	u8:A
+11	JMPFL	u16:A
+12	JMPB	u8:A
+13	JMPBL	u16:A
+14	IFUB	u8:B1/B2	u8:A	u8:V	u8:C	u8:E
+15	IFUBL	u8:B1/B2	u8:A	u8:V	u8:C	u16:E
+16	IFSW	u8:B1/B2	u16:A	u16:V	u8:C	u8:E
+17	IFSWL	u8:B1/B2	u16:A	u16:V	u8:C	u16:E
+18	IFUW	u8:B1/B2	u16:A	u16:V	u8:C	u8:E
+19	IFUWL	u8:B1/B2	u16:A	u16:V	u8:C	u16:E
+20	MINIGAME	u16:M	u16:X	u16:Y	u16:Z	u8:G	u8:T
+21	TUTOR	u8:T
+22	BTMD2	u32:B
+23	BTRLD	u8:B	u8:A
+24	WAIT	u16:A
+25	NFADE	u8:B1/B2	u8:0/B3	u8:T	u8:R	u8:G	u8:B	u8:S	u8:unused
+26	BLINK	u8:S
+27	BGMOVIE	u8:S
+28	KAWAI	u8:L	u8:S	u8*:Args
+29	KAWIW
+2A	PMOVA	u8:P
+2B	SLIP	u8:S
+2C	BGPDH	u8:B/0	u8:L	u16:D
+2D	BGSCR	u8:B1/B2	u8:L	u16:X	u16:Y
+2F	WSIZW	u8:I	u16:X	u16:Y	u16:W	u16:H
+30	IFKEY	u16:B	u8:A
+31	IFKEYON	u16:B	u8:A
+32	IFKEYOFF	u16:B	u8:A
+33	UC	u8:S
+34	PDIRA	u8:C
+35	PTURA	u8:P	u8:S	u8:A
+36	WSPCL	u8:W	u8:T	u8:X	u8:Y
+37	WNUMB	u8:B1/B2	u8:W	u32:N	u8:C
+38	STTIM	u8:B1/B2	u8:0/B3	u8:H	u8:M	u8:S
+39	GOLDu	u8:0	u32:A
+3A	GOLDd	u8:0	u32:A
+3B	CHGLD	u8:B1/B2	u8:A1	u8:A2
+3C	HMPMAX1
+3D	HMPMAX2
+3E	MHMMX
+3F	HMPMAX3
+40	MESSAGE	u8:N	u8:D
+41	MPARA	u8:B	u8:W	u8:I	u8:V
+42	MPRA2	u8:B	u8:W	u8:I	u16:V
+43	MPNAM	u8:D
+45	MPu	u8:B	u8:P	u16:V
+47	MPd	u8:B	u8:P	u16:V
+48	ASK	u8:Bank	u8:Win	u8:Mess	u8:First	u8:Last	u8:Addr
+49	MENU	u8:B	u8:T	u8:E
+4A	MENU2	u8:S
+4B	BTLTB	u8:I
+4D	HPu	u8:B	u8:P	u16:V
+4F	HPd	u8:B	u8:P	u16:V
+50	WINDOW	u8:N	u16:X	u16:Y	u16:W	u16:H
+51	WMOVE	u8:I	u16:X	u16:Y
+52	WMODE	u8:N	u8:M	u8:C
+53	WREST	u8:N
+54	WCLSE	u8:N
+55	WROW	u8:N	u8:R
+56	GWCOL	u8:B1/B2	u8:B3/B4	u8:C	u8:R	u8:G	u8:B
+57	SWCOL	u8:B1/B2	u8:B3/B4	u8:C	u8:R	u8:G	u8:B
+58	STITM	u8:B1/B2	u16:T	u8:A
+59	DLITM	u8:B1/B2	u16:T	u8:A
+5A	CKITM	u8:B	u16:I	u8:A
+5B	SMTRA	u8:B1/B2	u8:B3/B4	u8:T	u32:AP
+5C	DMTRA	u8:B1/B2	u8:B3/B4	u8:T	u32:AP	u8:A
+5D	CMTRA	u8:B1/B2	u8:B3/B4	u8:B5	u8:T	u32:AP	u8:U	u8:A
+5E	SHAKE	u8:U1	u8:U2	u16:T	u16:xA	u16:xF	u16:vA	u16:vF
+5F	NOP
+60	MAPJUMP	u16:I	u16:X	u16:Y	u16:Z	u8:D
+61	SCRLO	u8:B	u16:S	u8:U	u8:T
+62	SCRLC	u8:B	u16:S	u8:U	u8:T
+63	SCRLA	u8:B	u16:S	u8:E	u8:T
+64	SCR2D	u8:B1/B2	u16:X	u16:Y
+65	SCRCC
+66	SCR2DC	u8:B1/B2	u8:0/B3	u16:X	u16:Y	u16:S
+67	SCRLW
+68	SCR2DL	u8:B1/B2	u8:0/B3	u16:X	u16:Y	u16:S
+6B	FADE	u8:B1/B2	u8:0/B3	u8:R	u8:G	u8:B	u8:S	u8:T	u8:A
+6C	FADEW
+6D	IDLCK	u16:I	u8:S
+6E	LSTMP	u8:B	u8:A
+6F	SCRLP	u8:B	u16:S	u8:P	u8:T
+70	BATTLE	u8:B	u16:N
+71	BTLON	u8:S
+72	BTLMD	u16:B
+73	PGTDR	u8:B	u8:P	u8:D
+74	GETPC	u8:B	u8:C	u8:A
+75	PXYZI	u8:B1/B2	u8:B3/B4	u8:P	u8:X	u8:Y	u8:Z	u8:I
+76	PLUS!	u8:D/S	u8:Dest	u8:Oper
+77	PLUS2!	u8:D/S	u8:Dest	u16:Oper
+78	MINUS!	u8:D/S	u8:Dest	u8:Oper
+79	MINUS2!	u8:D/S	u8:Dest	u16:Oper
+7A	INC!	u8:0/D	u8:Dest
+7B	INC2!	u8:0/D	u8:Dest
+7C	DEC!	u8:0/D	u8:Dest
+7D	DEC2!	u8:0/D	u8:Dest
+7E	TLKON	u8:S
+7F	RDMSD	u8:B	u8:S
+80	SETBYTE	u8:D/S	u8:A	u8:V
+81	SETWORD	u8:D/S	u8:A	u16:V
+82	BITON	u8:D/S	u8:Dest	u8:Bit
+83	BITOFF	u8:D/S	u8:Dest	u8:Bit
+84	BITXOR	u8:D/S	u8:Dest	u8:Bit
+85	PLUS	u8:D/S	u8:Dest	u8:Oper
+86	PLUS2	u8:D/S	u8:Dest	u8:Oper
+87	MINUS	u8:D/S	u8:Dest	u8:Oper
+88	MINUS2	u8:D/S	u8:Dest	u8:Oper
+89	MUL	u8:D/S	u8:Dest	u8:Oper
+8A	MUL2	u8:D/S	u8:Dest	u8:Oper
+8B	DIV	u8:D/S	u8:Dest	u8:Den
+8C	DIV2	u8:D/S	u8:Dest	u8:Den
+8D	MOD	u8:D/S	u8:Dest	u8:Den
+8E	MOD2	u8:D/S	u8:Dest	u8:Den
+8F	AND	u8:D/S	u8:Dest	u8:Oper
+90	AND2	u8:D/S	u8:Dest	u16:Oper
+91	OR	u8:D/S	u8:Dest	u8:Oper
+92	OR2	u8:D/S	u8:Dest	u16:Oper
+93	XOR	u8:D/S	u8:Dest	u8:Oper
+94	XOR2	u8:D/S	u8:Dest	u16:Oper
+95	INC	u8:B	u8:A
+96	INC2	u8:B	u8:A
+97	DEC	u8:B	u8:A
+98	DEC2	u8:B	u8:A
+99	RANDOM	u8:B	u8:A
+9A	LBYTE	u8:D/S	u8:DA	u8:SA
+9B	HBYTE	u8:D/S	u8:DA	u16:SA
+9C	2BYTE	u8:B1/B2	u8:B3	u8:D	u8:L	u8:H
+9F	SEARCHX	u8:B1/B2	u8:B3/B4	u8:0/B6	u8:Ofst	u16:Start	u16:End	u8:V	u8:R
+A0	PC	u8:C
+A1	CHAR	u8:N
+A2	DFANM	u8:A	u8:S
+A3	ANIME1	u8:A	u8:S
+A4	VISI	u8:S
+A5	XYZI	u8:B1/B2	u8:B3/B4	u16:X	u16:Y	u16:Z	u16:I
+A6	XYI	u8:B1/B2	u8:B3/0	u16:X	u16:Y	u16:I
+A7	XYZ	u8:B1/B2	u8:B3/0	u16:X	u16:Y	u16:Z
+A8	MOVE	u8:B1/B2	u16:X	u16:Y
+A9	CMOVE	u8:B1/B2	u16:X	u16:Y
+AA	MOVA	u8:E
+AB	TURA	u16:Entityid	u16:Rotatesidetype	u16:Stepsinrotation
+AC	ANIMW
+AD	FMOVE	u8:B1/B2	u16:X	u16:Y
+AE	ANIME2	u8:A	u8:S
+AF	ANIM!1	u8:A	u8:S
+B0	CANIM1	u8:A	u8:F	u8:L	u8:S
+B1	CANM!1	u8:A	u8:F	u8:L	u8:S
+B2	MSPED	u8:B	u16:S
+B3	DIR	u8:B	u8:D
+B4	TURNGEN	u8:00/B2	u16:Finalrotation	u16:Rotatesidetype	u16:Stepsinrotation	u16:Typeofstepscalculation
+B5	TURN	u8:00/B2	u16:Finalrotation	u16:ignored	u16:Stepsinrotation	u16:Typeofstepscalculation
+B6	DIRA	u8:E
+B7	GETDIR	u8:B	u8:E	u8:A
+B8	GETAXY	u8:B1/B2	u8:E	u8:X	u8:Y
+B9	GETAI	u8:B	u8:E	u8:A
+BA	ANIM!2	u8:A	u8:S
+BB	CANIM2	u8:A	u8:F	u8:L	u8:S
+BC	CANM!2	u8:A	u8:F	u8:L	u8:S
+BD	ASPED	u8:B	u16:S
+BF	CC	u8:E
+C0	JUMP	u8:B1/B2	u8:B3/B4	u16:X	u16:Y	u16:I	u16:Steps
+C1	AXYZI	u8:B1/B2	u8:B3/B4	u8:A	u8:X	u8:Y	u8:Z	u8:I
+C2	LADER	u8:B1/B2	u8:B3/B4	u16:X	u16:Y	u16:Z	u16:I	u8:K	u8:A	u8:D	u8:S
+C3	OFST	u8:B1/B2	u8:B3/B4	u8:T	u8:X	u8:Y	u8:Z	u8:S
+C4	OFSTW
+C5	TALKR	u8:B	u8:T
+C6	SLIDR	u8:B	u8:R
+C7	SOLID	u8:S
+C8	PRTYP	u8:C
+C9	PRTYM	u8:C
+CA	PRTYE	u8:1	u8:2	u8:3
+CB	IFPRTYQ	u8:C	u8:A
+CC	IFMEMBQ	u8:C	u8:A
+CD	MMBud	u8:S	u8:C
+CE	MMBLK	u8:C
+CF	MMBUK	u8:C
+D0	LINE	u16:XA	u16:YA	u16:ZA	u16:XB	u16:YB	u16:ZB
+D1	LINON	u8:S
+D2	MPJPO	u8:S
+D3	SLINE	u8:B1/B2	u8:B3/B4	u8:B5/B6	u16:XA	u16:YA	u16:ZA	u16:XB	u16:YB	u16:ZB
+D4	SIN	u8:B1/B2	u8:B3/B4	u8:D	u8:M	u8:A	u8:S
+D5	COS	u8:B1/B2	u8:B3/B4	u8:D	u8:M	u8:A	u8:S
+D6	TLKR2	u8:B	u16:T
+D7	SLDR2	u8:B	u16:R
+D8	PMJMP	u16:I
+DA	AKAO2	u8:B1/B2	u8:B3/B4	u8:0/B6	u8:Op	u16:Param1	u16:Param2	u16:Param3	u16:Param4	u16:Param5
+DB	FCFIX	u8:S
+DC	CCANM	u8:A	u8:unused	u8:I
+DD	ANIMB
+DE	TURNW
+DF	MPPAL	u8:B1/B2	u8:B3/B4	u8:0/B6	u8:Sourcepalettearrayid	u8:Destinationpalettearrayid	u8:Startcolour	u8:MultiplyBlue	u8:MultiplyGreen	u8:MultiplyRed	u8:Size
+E0	BGON	u8:B1/B2	u8:A	u8:L
+E1	BGOFF	u8:B1/B2	u8:A	u8:L
+E2	BGROL	u8:B	u8:A
+E3	BGROL2	u8:B	u8:A
+E4	BGCLR	u8:B	u8:A
+E5	STPAL	u8:B1/B2	u8:Vrampaletteid	u8:Palettearrayid	u8:Size
+E6	LDPAL	u8:B1/B2	u8:Palettearrayid	u8:Vrampaletteid	u8:Size
+E7	CPPAL	u8:B1/B2	u8:Sourcepalettearrayid	u8:Destinationpalettearrayid	u8:Size
+EA	MPPAL2	u8:B1/B2	u8:B3/B4	u8:B5/0	u8:Sourcepalettearrayid	u8:Destinationpalettearrayid	u8:MultiplyBlue	u8:MultiplyGreen	u8:MultiplyRed	u8:Size
+F0	MUSIC	u8:I
+F1	SOUND	u8:B1/B2	u16:I	u8:D
+F2	AKAO	u8:B1/B2	u8:B3/B4	u8:0/B6	u8:Op	u8:Param1	u16:Param2	u16:Param3	u16:Param4	u16:Param5
+F3	MUSVT	u8:id
+F5	MULCK	u16:S
+F6	BMUSC	u8:I
+F8	PMVIE	u8:M
+F9	MOVIE
+FA	MVIEF	u8:B	u8:A
+FB	MVCAM	u8:S
+FC	FMUSC	u8:I
+FD	CMUSC	u8:I	u8:p1	u8:p2	u8:p3	u8:p4	u8:p5	u8:p6
+FE	CHMST	u8:B	u8:A
+FF	GAMEOVER

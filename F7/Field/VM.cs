@@ -282,6 +282,7 @@ namespace Braver.Field {
         public bool InProgress => _ip >= 0;
         public Action OnStop { get; set; }
         public int IP => _ip;
+        public string PauseReason { get; private set; }
 
         public int Priority { get; private set; }
 
@@ -321,12 +322,14 @@ namespace Braver.Field {
             ResumeState = null;
         }
 
-        public void Pause([CallerMemberName] string caller = null) {
+        public void Pause(string pauseReason = null, [CallerMemberName] string caller = null) {
             Active = false;
+            PauseReason = pauseReason;
             System.Diagnostics.Debug.WriteLine($"Fiber {this._entity} priority {Priority} paused by {caller}");
         }
         public void Resume([CallerMemberName] string caller = null) {
             Active = true;
+            PauseReason = null;
             System.Diagnostics.Debug.WriteLine($"Fiber {this._entity} priority {Priority} resumed by {caller}");
         }
 
@@ -598,7 +601,7 @@ namespace Braver.Field {
         public static OpResult REQEW(Fiber f, Entity e, FieldScreen s) {
             int entity = f.ReadU8(), parm = f.ReadU8();
             if (s.Entities[entity].Call(parm >> 5, parm & 0x1f, () => f.Resume())) {
-                f.Pause();
+                f.Pause($"Waiting for entity {entity}");
                 return OpResult.Continue;
             } else {
                 System.Diagnostics.Debug.WriteLine($"REQEW: Entity {e} waiting for {s.Entities[entity]} to be available on priority {parm >> 5}");
@@ -701,7 +704,7 @@ namespace Braver.Field {
                 }
             });
 
-            f.Pause();
+            f.Pause("Waiting for JUMP to complete");
             return OpResult.Continue;
         }
 
@@ -800,7 +803,7 @@ namespace Braver.Field {
                 AnimSpeed = speed,
                 Fiber = f,
             };
-            f.Pause();
+            f.Pause("Waiting for LADER to complete");
 
             if (s.Player == e)
                 s.InputCapture = ladder;
@@ -1499,11 +1502,13 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
         public static OpResult WREST(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
+            System.Diagnostics.Debug.WriteLine($"Entity {e.Name} closing window {id}");
             s.Dialog.ResetWindow(id);
             return OpResult.Continue;
         }
         public static OpResult WCLSE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
+            System.Diagnostics.Debug.WriteLine($"Entity {e.Name} closing window {id}");
             s.Dialog.ResetWindow(id);
             return OpResult.Continue;
         }
@@ -1539,9 +1544,10 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 firstChoice = f.ReadU8(), lastChoice = f.ReadU8(),
                 addr = f.ReadU8();
 
-            f.Pause();
+            f.Pause($"Waiting for ASK on window {win}");
             s.Dialog.Ask(win, s.FieldDialog.Dialogs[msg], Enumerable.Range(firstChoice, lastChoice - firstChoice + 1), ch => {
-                s.Game.Memory.Write(bank, addr, (ushort)ch);
+                if (ch != null)
+                    s.Game.Memory.Write(bank, addr, (ushort)ch);
                 f.Resume();
             });
 
@@ -1550,7 +1556,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
         public static OpResult MESSAGE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8(), dlg = f.ReadU8();
-            f.Pause();
+            f.Pause($"Waiting for MESSAGE in window {id}");
             s.Dialog.Show(id, s.FieldDialog.Dialogs[dlg], () => f.Resume());
 
             return OpResult.Continue;
@@ -1749,7 +1755,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
         public static OpResult MOVIE(Fiber f, Entity e, FieldScreen s) {
-            f.Pause();
+            f.Pause("Waiting for MOVIE");
             s.Movie.Play(() => f.Resume());
             return OpResult.Continue;
         }
@@ -1801,7 +1807,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             else
                 target = () => s.Entities[entityID].Model.Translation;
 
-            f.Pause();
+            f.Pause($"Waiting for BG scroll");
             s.Options |= FieldOptions.CameraIsAsyncScrolling;
             var start = s.GetBGScroll();
 
@@ -1952,7 +1958,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int numFrames = sspeed * 60 / 32;
 
             s.Options |= FieldOptions.CameraIsAsyncScrolling;
-            f.Pause();
+            f.Pause("Waiting for BG scroll");
             s.StartProcess(frame => {
                 float progress = 1f * frame / numFrames;
                 s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress);

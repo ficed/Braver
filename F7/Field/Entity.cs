@@ -32,6 +32,8 @@ namespace Braver.Field {
         public HashSet<Entity> CollidingWith { get; } = new();
         public HashSet<Entity> LinesCollidingWith { get; } = new();
 
+        public IEnumerable<Fiber> DebugFibers => _priorities;
+
         public Entity(Ficedula.FF7.Field.Entity entity, FieldScreen screen) {
             _entity = entity;
             _priorities = Enumerable.Range(0, 8)

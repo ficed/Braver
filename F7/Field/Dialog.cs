@@ -43,7 +43,7 @@ namespace Braver.Field {
             public WindowState State = WindowState.Hidden;
             public int FrameProgress, ScreenProgress;
             public Action OnClosed;
-            public Action<int> OnChoice;
+            public Action<int?> OnChoice;
             public int Choice;
             public int[] ChoiceLines;
             public DialogOptions Options;
@@ -68,16 +68,21 @@ namespace Braver.Field {
             _windows[window].FrameProgress = 0;
         }
         public void ResetWindow(int window) {
+            var win = _windows[window];
+            win.OnClosed?.Invoke();
+            win.OnChoice?.Invoke(null);
             SetupWindow(window, 5, 5, 0x130, 0x45);
-            _windows[window].State = WindowState.Hidden;
-            _windows[window].Options = DialogOptions.None;
-            _windows[window].Variable = DialogVariable.None;
+            win.State = WindowState.Hidden;
+            win.Options = DialogOptions.None;
+            win.Variable = DialogVariable.None;
         }
         public void SetupWindow(int window, int x, int y, int width, int height) {
-            _windows[window].X = x * 3 + 160;
-            _windows[window].Y = y * 3;
-            _windows[window].Width = width * 3 / 2 + 8; //expand size to account for border...? 
-            _windows[window].Height = height * 3 / 2 + 8;
+            var win = _windows[window];
+            win.X = x * 3 + 160;
+            win.Y = y * 3;
+            win.Width = width * 3 / 2 + 8; //expand size to account for border...? 
+            win.Height = height * 3 / 2 + 8;
+            win.OnClosed = null;
         }
         public void SetOptions(int window, DialogOptions options) {
             _windows[window].Options = options;
@@ -122,7 +127,7 @@ namespace Braver.Field {
             _windows[window].OnChoice = null;
             _windows[window].ChoiceLines = null;
         }
-        public void Ask(int window, string text, IEnumerable<int> choices, Action<int> onChoice) {
+        public void Ask(int window, string text, IEnumerable<int> choices, Action<int?> onChoice) {
             PrepareWindow(window, text);
             _windows[window].ChoiceLines = choices.ToArray();
             _windows[window].OnClosed = null;

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Group" X="0" Y="0" W="1280" H="720" ID="Root">
+
+		<Component xsi:type="Box" X="0" Y="0" W="250" H="720">
+			<Component xsi:type="List" X="50" Y="20" W="190" H="680" ID="lbEntities">
+				@foreach(var entity in @Model.Entities) {
+					<Component xsi:type="Label" Y="0" X="0" ID='@("Entity" + entity.Name)' Click="EntitySelected">@entity.Name @(((Braver.Field.Entity)entity).DebugFibers.Any(f => f.InProgress) ? "*" : "")</Component>
+				}
+			</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="250" Y="0" W="250" H="720">
+			<Component xsi:type="List" X="0" Y="20" W="250" H="680" ID="lbFibers">
+				@if (Model.CurrentEntity != null) {
+					@foreach(var fiber in Model.CurrentEntity.DebugFibers) {
+						<Component xsi:type="Label" Y="0" X="20" ID='@("Fiber" + fiber.Priority)' Focussed="FiberFocussed">Fiber @fiber.Priority @(fiber.InProgress ? (fiber.Active ? "AP" : "_P") : "__")</Component>
+					}
+				}
+			</Component>
+		</Component>
+
+		<Component xsi:type="Box" X="500" Y="0" W="780" H="720">
+			@if (Model.CurrentFiber != null) {
+				<Component xsi:type="Label" Y="40" X="10">Priority: @Model.CurrentFiber.Priority      Active: @Model.CurrentFiber.Active    In Progress: @Model.CurrentFiber.InProgress   @Model.CurrentFiber.PauseReason</Component>
+				<Component xsi:type="List" X="0" Y="80" W="780" H="620">
+					@foreach(var disasm in Model.Disassembly) {
+						<Component xsi:type="Group" X="0" Y="0" W="780">
+							@if (disasm.Offset == Model.CurrentFiber.IP) {
+								<Component xsi:type="Label" Y="0" X="10">&gt;</Component>
+							}
+							<Component xsi:type="Label" Y="0" X="50">@disasm.ToString()</Component>
+						</Component>
+					}
+				</Component>
+			}
+		</Component>
+
+	</Root>
+</Layout>

@@ -580,7 +580,7 @@ namespace Braver.Field {
             }
 
             if (input.IsJustDown(InputKey.Debug5))
-                Entity.DEBUG_OUT = !Entity.DEBUG_OUT;
+                Game.PushScreen(new UI.Layout.LayoutScreen("FieldDebugger", parm: this));
 
             if (input.IsDown(InputKey.Debug4)) {
                 if (input.IsDown(InputKey.Up))
@@ -1148,21 +1148,22 @@ namespace Braver.Field {
             }
         }
 
-        public void DropToWalkmesh(Entity e, Vector2 position, int walkmeshTri) {
+        public void DropToWalkmesh(Entity e, Vector2 position, int walkmeshTri, bool exceptOnFailure = true) {
             var tri = _walkmesh[walkmeshTri];
 
-            e.Model.Translation = new Vector3(
-                position.X,
-                position.Y,
-                HeightInTriangle(tri, position.X, position.Y, true).Value
-            );
+            var height = HeightInTriangle(tri, position.X, position.Y, true);
+
+            if ((height == null) && exceptOnFailure)
+                throw new Exception($"Cannot DropToWalkmesh - position {position} does not have a height in walkmesh tri {walkmeshTri}");
+
+            e.Model.Translation = new Vector3(position.X, position.Y, height.GetValueOrDefault());
             e.WalkmeshTri = walkmeshTri;
             ReportDebugEntityPos(e);
         }
 
         public void CheckPendingPlayerSetup() {
             if ((_destination != null) && (Player.Model != null)) {
-                DropToWalkmesh(Player, new Vector2(_destination.X, _destination.Y), _destination.Triangle);
+                DropToWalkmesh(Player, new Vector2(_destination.X, _destination.Y), _destination.Triangle, false);
                 Player.Model.Rotation = new Vector3(0, 0, 360f * _destination.Orientation / 255f);
                 _destination = null;
             }
