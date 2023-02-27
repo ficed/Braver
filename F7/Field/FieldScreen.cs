@@ -86,6 +86,8 @@ namespace Braver.Field {
         public List<FieldModel> FieldModels { get; private set; }
         public DialogEvent FieldDialog { get; private set; }
         public TriggersAndGateways TriggersAndGateways { get; private set; }
+        public Shake ShakeEffect { get; private set; }
+
 
         private EncounterTable[] _encounters;
         public FieldOptions Options { get; set; } = FieldOptions.DEFAULT;
@@ -176,6 +178,8 @@ namespace Braver.Field {
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();
             _encounters = field.GetEncounterTables().ToArray();
+
+            ShakeEffect = new Shake();
 
             Entities = FieldDialog.Entities
                 .Select(e => new Entity(e, this))
@@ -375,18 +379,22 @@ namespace Braver.Field {
             //System.Diagnostics.Trace.WriteLine($"FieldScreen:Render");
             Graphics.DepthStencilState = DepthStencilState.Default;
             Graphics.BlendState = BlendState.AlphaBlend;
+
+            PerspView3D viewer3D = null;
+            if (Options.HasFlag(FieldOptions.UseMovieCam) && Movie.Active)
+                viewer3D = ViewFromCamera(Movie.Camera).Clone();
+            viewer3D ??= _view3D.Clone();
+
+            var view2D = _view2D.Clone();
+            ShakeEffect.Apply(view2D, viewer3D);
+
             if (_renderBG) {
                 //Render non-transparent background (or movie, if it's active)
                 if (Movie.Active)
                     Movie.Render();
                 else
-                    Background.Render(_view2D, _bgZFrom, _bgZTo, false);
+                    Background.Render(view2D, _bgZFrom, _bgZTo, false);
             }
-
-            Viewer viewer3D = null;
-            if (Options.HasFlag(FieldOptions.UseMovieCam) && Movie.Active)
-                viewer3D = ViewFromCamera(Movie.Camera);
-            viewer3D ??= _view3D;
 
             if (_renderDebug)
                 _debug.Render(viewer3D);
@@ -401,7 +409,7 @@ namespace Braver.Field {
 
             //Now render blend layers over actual background + models
             if (_renderBG && !Movie.Active)
-                Background.Render(_view2D, _bgZFrom, _bgZTo, true);
+                Background.Render(view2D, _bgZFrom, _bgZTo, true);
 
             Overlay.Render();
 
@@ -426,6 +434,7 @@ namespace Braver.Field {
             if (Game.Net is Net.Server) {
                 if ((_frame % 2) == 0) {
                     Overlay.Step();
+                    ShakeEffect.Step();
                     foreach (var entity in Entities) {
                         if (!Game.DebugOptions.NoFieldScripts && !Options.HasFlag(FieldOptions.NoScripts))
                             entity.Run(100);

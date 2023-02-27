@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using Braver.UI.Layout;
+using NAudio.Wave;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -102,10 +103,15 @@ namespace Braver {
                     chInstance.Stop();
                     chInstance.Dispose(); //TODO - reasonable or not?!
                 }
+                _channels.Clear();
             }
 
             _activeLoops.Clear();
-            _channels.Clear();
+
+            _game.Net.Send(new Net.SfxChannelMessage {
+                StopLoops = true,
+                StopChannelLoops = includeChannels,
+            });
         }
 
         public void Update() {
@@ -184,7 +190,6 @@ namespace Braver {
         }
 
         public void SetMusicVolume(byte? volumeFrom, byte volumeTo, float duration) {
-            //TODO net
             if (duration <= 0) {
                 _channel.Writer.TryWrite(new MusicCommand {
                     Command = CommandType.SetVolume,
@@ -208,6 +213,11 @@ namespace Braver {
                     });
                 });
             }
+            _game.Net.Send(new Net.MusicVolumeMessage {
+                VolumeFrom = volumeFrom,
+                VolumeTo = volumeTo,
+                Duration = duration
+            });
         }
         public void SetMusicVolume(byte volume) => SetMusicVolume(null, volume, 0);
 
@@ -259,7 +269,10 @@ namespace Braver {
                 instance.Dispose();
                 _channels.Remove(channel);
                 _activeLoops.Remove(instance);
-                //TODO net
+                _game.Net.Send(new Net.SfxChannelMessage {
+                    DoStop = true,
+                    Channel = channel,
+                });
             }
         }
 
@@ -269,8 +282,12 @@ namespace Braver {
                     instance.Pan = pan.Value;
                 if (volume != null)
                     instance.Volume = volume.Value;
+                _game.Net.Send(new Net.SfxChannelMessage {
+                    Channel = channel,
+                    Pan = pan,
+                    Volume = volume,
+                });
             }
-            //TODO net
         }
 
 

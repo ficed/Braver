@@ -25,7 +25,9 @@ namespace Braver.Net {
         UIState = 201,
 
         SfxMessage = 9001,
-        MusicMessage = 9002, 
+        MusicMessage = 9002,
+        MusicVolumeMessage = 9003,
+        SfxChannelMessage = 9004,
     }
 
     public interface IListen<T> where T : NetMessage {
@@ -57,7 +59,9 @@ namespace Braver.Net {
             Register<UIStateMessage>(MessageType.UIState);
 
             Register<SfxMessage>(MessageType.SfxMessage);
-            Register<MusicMessage>(MessageType.MusicMessage);   
+            Register<MusicMessage>(MessageType.MusicMessage);
+            Register<MusicVolumeMessage>(MessageType.MusicVolumeMessage);
+            Register<SfxChannelMessage>(MessageType.SfxChannelMessage);
         }
 
         protected NetMessage GetMessage(MessageType type) => _getMessage[type]();

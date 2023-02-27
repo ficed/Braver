@@ -25,6 +25,18 @@ namespace Braver {
                     ZNear, ZFar
                 );
         public override Matrix View => Matrix.Identity;
+
+        public View2D Clone() {
+            return new View2D {
+                Width = Width,
+                Height = Height,
+                CenterX = CenterX,
+                CenterY = CenterY,
+                ZNear = ZNear,
+                ZFar = ZFar,
+            };
+        }
+
     }
 
     public abstract class View3D : Viewer {

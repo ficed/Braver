@@ -686,8 +686,12 @@ namespace Braver.Field {
                 triID = s.Game.Memory.Read(bankTS >> 4, t),
                 steps = s.Game.Memory.Read(bankTS & 0xf, st);
 
+            var destHeight = s.HeightInTriangle(triID, endX, endY, true);
+
             float startZ = e.Model.Translation.Z,
-                endZ = s.HeightInTriangle(triID, endX, endY, true).Value;
+                endZ = destHeight.GetValueOrDefault(e.Model.Translation.Z);
+            //...because the script sometimes does a JUMP into a triangle that doesn't actually contain the
+            //dest coordinates (e.g. cargoin). Maybe always with triID=0?
 
             s.StartProcess(frame => {
                 if (frame >= steps) {
@@ -1119,31 +1123,38 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
-        private static OpResult DoAnim(Fiber f, FieldModel model, int anim, bool loop, float speed, int? startFrame, int? endFrame) {
+        private static OpResult DoAnim(Fiber f, FieldModel model, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
             int start = startFrame ?? 0,
-                end = endFrame ?? -1;
+                end = endFrame ?? -1;    
             
             if ((model.AnimationState == null) || (model.AnimationState.Animation != anim) ||
                 (model.AnimationState.AnimationLoop != loop) || (model.AnimationState.StartFrame != start) ||
                 ((model.AnimationState.EndFrame != end) && (end != -1)) || 
                 (model.AnimationState.AnimationSpeed != speed)) {
                 f.OtherState["AnimPlaying"] = true;
+                f.OtherState["AnimResume"] = model.AnimationState;
                 model.PlayAnimation(anim, loop, speed, start, end);
             } else {
                 if (model.AnimationState.CompletionCount > 0) {
                     f.OtherState["AnimPlaying"] = false;
+                    if (restoreState)
+                        model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                    f.OtherState["AnimResume"] = null;
                     return OpResult.Continue;
                 }
             }
             return OpResult.Restart;
         }
 
-        private static void DoAnimContinue(Fiber f, FieldModel model, FieldScreen s, int anim, bool loop, float speed, int? startFrame, int? endFrame) {
-            DoAnim(f, model, anim, false, speed, null, null);
+        private static void DoAnimContinue(Fiber f, FieldModel model, FieldScreen s, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
+            DoAnim(f, model, anim, false, speed, null, null, restoreState);
             var state = model.AnimationState;
             s.StartProcess(_ => {
                 if (state.CompletionCount > 0) {
                     f.OtherState["AnimPlaying"] = false;
+                    if (restoreState)
+                        model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                    f.OtherState["AnimResume"] = null;
                     return true;
                 } else
                     return false;
@@ -1153,31 +1164,36 @@ namespace Braver.Field {
         public static OpResult CANIM2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), first = f.ReadU8(), last = f.ReadU8(), speed = f.ReadU8();
 
-            return DoAnim(f, e.Model, anim, false, 1f / speed, first, last);
+            return DoAnim(f, e.Model, anim, false, 1f / speed, first, last, true);
+            //TODO is this speed even vaguely correct?
+        }
+        public static OpResult ANIM_1(Fiber f, Entity e, FieldScreen s) {
+            byte anim = f.ReadU8(), speed = f.ReadU8();
+            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null, false);
             //TODO is this speed even vaguely correct?
         }
         public static OpResult ANIME1(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null);
+            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null, true);
             //TODO is this speed even vaguely correct?
         }
         public static OpResult ANIME2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            DoAnimContinue(f, e.Model, s, anim, false, 1f / speed, null, null);
+            DoAnimContinue(f, e.Model, s, anim, false, 1f / speed, null, null, true);
             return OpResult.Continue;
         }
         public static OpResult ANIM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null);
+            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null, false);
         }
         public static OpResult CANM_1(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
-            DoAnimContinue(f, e.Model, s, anim, false, 1f / speed, fstart, fend);
+            DoAnimContinue(f, e.Model, s, anim, false, 1f / speed, fstart, fend, false);
             return OpResult.Continue;
         }
         public static OpResult CANM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, fstart, fend);
+            return DoAnim(f, e.Model, anim, false, 1f / speed, fstart, fend, false);
         }
         public static OpResult DFANM(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
@@ -1773,6 +1789,32 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
 
+
+        public static OpResult SHAKE(Fiber f, Entity e, FieldScreen s) {
+            byte bankX = f.ReadU8(), bankY = f.ReadU8(),
+                type = f.ReadU8(), xsize = f.ReadU8(), xtime = f.ReadU8(),
+                ysize = f.ReadU8(), ytime = f.ReadU8();
+
+            int xAmount = s.Game.Memory.Read(bankX, xsize),
+                yAmount = s.Game.Memory.Read(bankY, ysize);
+
+            switch (type) {
+                case 0:
+                    s.ShakeEffect.Queue(0, 0, 0, 0);
+                    break;
+                case 1:
+                    s.ShakeEffect.Queue(xtime, 0, xAmount, 0);
+                    break;
+                case 2:
+                    s.ShakeEffect.Queue(0, ytime, 0, yAmount);
+                    break;
+                case 3:
+                    s.ShakeEffect.Queue(xtime, ytime, xAmount, yAmount);
+                    break;
+            }
+
+            return OpResult.Continue;
+        }
 
         public static OpResult VWOFT(Fiber f, Entity e, FieldScreen s) {
             byte banks = f.ReadU8();

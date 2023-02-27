@@ -90,13 +90,16 @@ namespace Braver.Net {
     }
 
 
-    public class ClientAudio : IListen<SfxMessage>, IListen<MusicMessage> {
+    public class ClientAudio : IListen<SfxMessage>, IListen<MusicMessage>, IListen<MusicVolumeMessage>,
+        IListen<SfxChannelMessage> {
 
         private FGame _game;
         public ClientAudio(FGame game, Net net) {
             _game = game;
             net.Listen<SfxMessage>(this);
             net.Listen<MusicMessage>(this);
+            net.Listen<MusicVolumeMessage>(this);
+            net.Listen<SfxChannelMessage>(this);
         }
 
         public void Received(SfxMessage message) {
@@ -108,6 +111,19 @@ namespace Braver.Net {
                 _game.Audio.StopMusic();
             else
                 _game.Audio.PlayMusic(message.Track);
+        }
+
+        public void Received(MusicVolumeMessage message) {
+            _game.Audio.SetMusicVolume(message.VolumeFrom, message.VolumeTo, message.Duration);
+        }
+
+        public void Received(SfxChannelMessage message) {
+            if (message.StopLoops)
+                _game.Audio.StopLoopingSfx(message.StopChannelLoops);
+            else if (message.DoStop)
+                _game.Audio.StopChannel(message.Channel);
+            else
+                _game.Audio.ChannelProperty(message.Channel, message.Pan, message.Volume);
         }
     }
 }
