@@ -17,7 +17,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Braver.Core", "Braver.Core\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BraverBattleSim", "BraverBattleSim\BraverBattleSim.csproj", "{D2704960-29CC-4A4D-B725-73AC95C1E5F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BraverSetup", "BraverSetup\BraverSetup.csproj", "{BC7A0739-2DEE-4396-BF05-9242D4833A5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BraverSetup", "BraverSetup\BraverSetup.csproj", "{BC7A0739-2DEE-4396-BF05-9242D4833A5F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{54809439-31F3-4C7E-B002-98BC2B476EB9}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
