@@ -7,6 +7,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using SharpDX.Direct2D1.Effects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,15 +18,22 @@ namespace Braver {
 
         public Game1() {
             _graphics = new GraphicsDeviceManager(this);
-            _graphics.PreferredBackBufferWidth = 1280 * 2;
-            _graphics.PreferredBackBufferHeight = 720 * 2;
+            _graphics.PreferredBackBufferWidth = 1280;
+            _graphics.PreferredBackBufferHeight = 720;
             _graphics.GraphicsProfile = GraphicsProfile.HiDef;
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
         }
 
         protected override void Initialize() {
-            // TODO: Add your initialization logic here
+            int scale;
+            if (_graphics.GraphicsDevice.Adapter.CurrentDisplayMode.Width > 2600)
+                scale = 2;
+            else
+                scale = 1;
+            _graphics.PreferredBackBufferWidth = 1280 * scale;
+            _graphics.PreferredBackBufferHeight = 720 * scale;
+            _graphics.ApplyChanges();
 
             base.Initialize();
         }
