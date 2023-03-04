@@ -274,6 +274,7 @@ namespace Braver.Field {
     public enum OpResult {
         Continue,
         Restart,
+        ContinueNextFrame,
     }
 
     public delegate OpResult OpExecute(Fiber f, Entity e, FieldScreen s);
@@ -361,6 +362,10 @@ namespace Braver.Field {
                         OpcodeAttempts = 0;
                         ResumeState = null;
                         break;
+                    case OpResult.ContinueNextFrame:
+                        OpcodeAttempts = 0;
+                        ResumeState = null;
+                        return;
                     case OpResult.Restart:
                         OpcodeAttempts++;
                         _ip = opIP;
@@ -394,6 +399,8 @@ namespace Braver.Field {
             Register(typeof(FieldModels));
             Register(typeof(Maths));
             Register(typeof(SystemControl));
+
+            System.Diagnostics.Trace.WriteLine($"VM init: {_executors.Count(op => op != null)} opcodes registered");
         }
 
         public static OpResult Execute(OpCode op, Fiber f, Entity e, FieldScreen s) {
@@ -651,7 +658,7 @@ namespace Braver.Field {
             int source = s.Game.Memory.Read(banks >> 4, ssource),
                 dest = s.Game.Memory.Read(banks & 0xf, sdest);
             s.Background.LoadPalette(source, dest, count + 1);
-            return OpResult.Continue;
+            return OpResult.ContinueNextFrame;
         }
 
         public static OpResult CPPAL(Fiber f, Entity e, FieldScreen s) {
@@ -672,7 +679,7 @@ namespace Braver.Field {
                 dest = s.Game.Memory.Read(banksP & 0xf, sdest),
                 b = s.Game.Memory.Read(banksBG >> 4, sb),
                 g = s.Game.Memory.Read(banksBG & 0xf, sg),
-                r = s.Game.Memory.Read(bankR, sr);
+                r = s.Game.Memory.Read(bankR >> 4, sr);
 
             //TODO - is this right, that the colours are 4.4 fixed point?
             s.Background.MulPaletteStore(source, dest, new Vector4(r / 16f, g / 16f, b / 16f, 1f), count + 1);
@@ -2073,7 +2080,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
     }
 
-        internal static class Maths {
+    internal static class Maths {
 
         private static Random _random = new();
 
@@ -2158,6 +2165,21 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
 
+        public static OpResult MINUS(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), param = f.ReadU8();
+            int value = s.Game.Memory.Read(banks & 0xf, param);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)(current - value));
+            return OpResult.Continue;
+        }
+
+        public static OpResult PLUS(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), param = f.ReadU8();
+            int value = s.Game.Memory.Read(banks & 0xf, param);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)(current + value));
+            return OpResult.Continue;
+        }
     }
 
     public static class SystemControl {

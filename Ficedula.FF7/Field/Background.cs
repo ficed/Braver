@@ -207,7 +207,7 @@ namespace Ficedula.FF7.Field {
                 bool exists = source.ReadI16() != 0;
                 if (exists) {
                     short size = source.ReadI16(), depth = source.ReadI16();
-                    System.Diagnostics.Debug.Assert(depth == 1);
+                    System.Diagnostics.Trace.Assert(depth == 1);
                     source.Read(pageData, 0, pageData.Length);
 
                     TexturePage page = new TexturePage {

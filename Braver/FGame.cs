@@ -193,7 +193,7 @@ namespace Braver {
         }
 
         public void PopScreen(Screen current) {
-            Debug.Assert(_screens.Pop() == current);
+            Trace.Assert(_screens.Pop() == current);
             Net.Unlisten(current);
             current.Dispose();
             Net.Send(new Net.PopScreenMessage());
@@ -202,7 +202,7 @@ namespace Braver {
 
         public void ChangeScreen(Screen from, Screen to) {
             _screens.TryPeek(out var current);
-            Debug.Assert(from == current);
+            Trace.Assert(from == current);
             if (current != null) {
                 _screens.Pop();
                 Net.Unlisten(current);

@@ -36,7 +36,7 @@ namespace Ficedula.FF7.Field {
 
         public DialogEvent(Stream source) {
             source.Position = 0;
-            Debug.Assert(source.ReadI16() == 0x0502);
+            Trace.Assert(source.ReadI16() == 0x0502);
 
             string ReadName() {
                 byte[] buffer = new byte[8];
@@ -55,6 +55,8 @@ namespace Ficedula.FF7.Field {
             string[] entNames = Enumerable.Range(0, nEntities)
                 .Select(_ => ReadName())
                 .ToArray();
+
+            Trace.WriteLine($"Field.DialogEvent: Creator {Creator}, Name {Name}, entities {string.Join(" / ", entNames)}");
 
             int[] akaoOffsets = Enumerable.Range(0, nAkaoOffsets)
                 .Select(_ => source.ReadI32())

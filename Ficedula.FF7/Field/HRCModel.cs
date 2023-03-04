@@ -108,11 +108,11 @@ namespace Ficedula.FF7.Field {
         }
 
         public FieldAnim(Stream s) {
-            Debug.Assert(s.ReadI32() == 1);
+            Trace.Assert(s.ReadI32() == 1);
             int frameCount = s.ReadI32();
             BoneCount = s.ReadI32();
             int rotationOrder = s.ReadI32();
-            Debug.Assert(rotationOrder == 0x020001);
+            Trace.Assert(rotationOrder == 0x020001);
             s.Seek(20, SeekOrigin.Current);
             Frames = Enumerable.Range(0, frameCount)
                 .Select(_ => new Frame(s, BoneCount))

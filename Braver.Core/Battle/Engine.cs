@@ -44,8 +44,8 @@ namespace Braver.Battle {
             Priority = priority;
             Name = name;
 
-            Debug.Assert(Targets.Any());
-            Debug.Assert(Source != null);
+            Trace.Assert(Targets.Any());
+            Trace.Assert(Source != null);
         }   
     }
 

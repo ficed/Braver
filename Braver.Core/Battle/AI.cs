@@ -769,7 +769,7 @@ namespace Braver.Battle {
                     break;
                 case 0x95:
                     var vmAddr = _stack.Pop();
-                    System.Diagnostics.Debug.Assert(vmAddr.Kind == ValueKind.Address);
+                    System.Diagnostics.Trace.Assert(vmAddr.Kind == ValueKind.Address);
                     var direction = _stack.Pop();
                     if (direction.IsZero) { //read from VMM
                         ushort vvalue = _callbacks.ReadVMMBank1(vmAddr.Data[0]);

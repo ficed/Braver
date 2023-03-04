@@ -50,7 +50,7 @@ namespace Braver.Field {
         private Dictionary<int, List<TexLayer>> _layersByPalette = new();
         private List<Ficedula.FF7.Field.BackgroundPalette> _palettes;
 
-        private uint[] _paletteStore = new uint[16 * 16 * 2]; //TODO - how many 256-colour palettes do we need to store? At least two...
+        private uint[] _paletteStore = new uint[16 * 16 * 4]; //TODO - how many 256-colour palettes do we need to store? More than two apparently!
 
         private void RedrawLayer(TexLayer layer, bool clear) {
 

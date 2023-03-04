@@ -40,7 +40,7 @@ namespace Braver {
 
         public Pack(Stream source) {
             _source = source;
-            Debug.Assert(source.ReadI32() == SIGNATURE);
+            Trace.Assert(source.ReadI32() == SIGNATURE);
 
             int count = source.ReadI32();
             foreach(int _ in Enumerable.Range(0, count)) {
