@@ -10,6 +10,22 @@ using Ficedula.FF7.Battle;
 
 Console.WriteLine("Braver Battle Sim");
 
+
+if (args[0].Equals("Pack", StringComparison.OrdinalIgnoreCase)) {
+    using (var fs = new FileStream(args[1], FileMode.Create)) {
+        List<(string name, byte[] data)> files = new();
+        foreach (string dir in Directory.GetDirectories(args[2])) {
+            foreach(string file in Directory.GetFiles(dir)) {
+                if (args[3].Contains(Path.GetExtension(file)))
+                    files.Add((Path.GetFileName(dir) + "\\" + Path.GetFileName(file), File.ReadAllBytes(file)));
+            }
+        }
+        Pack.Create(fs, files.ToArray());
+    }
+    return;
+}
+
+
 var game = new SimGame(args[0]);
 game.Start(args[2]);
 

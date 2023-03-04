@@ -94,18 +94,31 @@ namespace Braver {
                 return s;
             }
 
+            Dictionary<string, Pack> packs = new(StringComparer.InvariantCultureIgnoreCase);
+
             foreach(string spec in data.Where(s => !string.IsNullOrWhiteSpace(s) && !s.StartsWith("#"))) {
                 string[] parts = spec.Split((char[])null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (parts[0] == "DATA") {
                     if (!_data.TryGetValue(parts[2], out var list))
                         list = _data[parts[2]] = new List<DataSource>();
 
+                    string kind = parts[1].TrimEnd('?');
                     string path = Expand(parts[3]);
-                    if (parts[1] == "LGP")
+                    if (!File.Exists(path) && !Directory.Exists(path)) {
+                        if (parts[1].EndsWith('?'))
+                            continue;
+                        else
+                            throw new NotSupportedException($"Could not find data source '{path}'");
+                    }
+                    if (kind == "LGP")
                         list.Add(new LGPDataSource(new Ficedula.FF7.LGPFile(path)));
-                    else if (parts[1] == "FILE")
+                    else if (kind == "FILE")
                         list.Add(new FileDataSource(path));
-                    else
+                    else if (kind == "PACK") {
+                        if (!packs.TryGetValue(path, out var pack))
+                            packs[path] = pack = new Pack(new FileStream(path, FileMode.Open, FileAccess.Read));
+                        list.Add(new PackDataSource(pack, parts[2]));
+                    } else
                         throw new NotSupportedException($"Unrecognised data source {spec}");
 
                 } else if (parts[0] == "PATH") {

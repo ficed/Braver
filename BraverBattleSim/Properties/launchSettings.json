@@ -2,7 +2,7 @@
   "profiles": {
     "BraverBattleSim": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\games\\FF7\\data 324 C:\\Users\\ficed\\Projects\\F7\\data\\save\\newgame.xml"
+      "commandLineArgs": "Pack C:\\temp\\Data.bpack C:\\Users\\ficed\\Projects\\F7\\data .xml,.ctex,.png,.txt C:\\games\\FF7\\data 324 C:\\Users\\ficed\\Projects\\F7\\data\\save\\newgame.xml"
     }
   }
 }

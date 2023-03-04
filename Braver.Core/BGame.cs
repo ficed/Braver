@@ -20,6 +20,36 @@ namespace Braver {
 
     public abstract class BGame {
 
+        protected class PackDataSource : DataSource {
+            private Pack _pack;
+            private string _path;
+
+            private HashSet<string> _files;
+
+            public PackDataSource(Pack pack, string path) {
+                _pack = pack;
+                _path = path;
+
+                _files = new HashSet<string>(
+                    pack.Filenames
+                    .Where(s => s.StartsWith(path + "\\", StringComparison.InvariantCultureIgnoreCase)),
+                    StringComparer.InvariantCultureIgnoreCase
+                );
+            }
+
+            public override IEnumerable<string> Scan() {
+                return _files.Select(s => Path.GetFileName(s));
+            }
+
+            public override Stream TryOpen(string file) {
+                string fn = _path + "\\" + file;
+                if (_files.Contains(fn)) {
+                    return _pack.Read(fn);
+                } else
+                    return null;
+            }
+        }
+
         protected class LGPDataSource : DataSource {
             private Ficedula.FF7.LGPFile _lgp;
 

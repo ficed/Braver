@@ -7,6 +7,10 @@
 using Ficedula.FF7.Exporters;
 
 Console.WriteLine("F7Cmd");
+
+
+
+
 /*
 foreach(string file in Directory.GetFiles(@"C:\temp\wm_us", "*.a")) {
     using (var fs = File.OpenRead(file)) {
@@ -23,6 +27,7 @@ foreach (string file in Directory.GetFiles(@"C:\temp\wm_us", "*.hrc")) {
 }
 */
 
+/*
 using(var l = new Ficedula.FF7.LGPFile(@"C:\games\FF7\data\menu\menu_us.lgp")) {
 
     var tt = new Ficedula.FF7.TexFile(l.Open($"usfont_b_h.tex"));
@@ -46,6 +51,7 @@ using(var l = new Ficedula.FF7.LGPFile(@"C:\games\FF7\data\menu\menu_us.lgp")) {
 }
 
 var tex = new Ficedula.FF7.TexFile(File.OpenRead(@"C:\temp\wm\wm_kumo.tex"));
+*/
 
 if (args.Length < 2) return;
 

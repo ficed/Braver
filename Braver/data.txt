@@ -17,12 +17,19 @@ DATA    FILE    kernel  %ff7%\data\kernel
 
 DATA    FILE    root    %ff7%
 
-DATA	FILE	field	%braver%\field
-DATA	FILE	layout	%braver%\layout
-DATA	FILE	movies	%braver%\movies
-DATA	FILE	save	%braver%\save
-DATA	FILE	ui		%braver%\ui
-DATA	FILE	wm		%braver%\wm
+DATA	FILE?	field	%braver%\field
+DATA	FILE?	layout	%braver%\layout
+DATA	FILE?	movies	%braver%\movies
+DATA	FILE?	save	%braver%\save
+DATA	FILE?	ui		%braver%\ui
+DATA	FILE?	wm		%braver%\wm
+
+DATA	PACK?	field	%bdata%
+DATA	PACK?	layout	%bdata%
+DATA	PACK?	movies	%bdata%
+DATA	PACK?	save	%bdata%
+DATA	PACK?	ui		%bdata%
+DATA	PACK?	wm		%bdata%
 
 PATH	MUSIC	%ff7%\data\music_ogg
 PATH	SFX		%ff7%\data\sound
