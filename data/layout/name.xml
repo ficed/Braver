@@ -10,72 +10,72 @@
 		<Component xsi:type="Label" X="30" Y="250" ID="lReset" Click="ResetClick">Reset</Component>
 		<Component xsi:type="Label" X="30" Y="300" ID="lOK" Click="OKClick">OK</Component>
 
-		<Component xsi:type="Label" X="100" Y="250" Click="CharClick">A</Component>
-		<Component xsi:type="Label" X="120" Y="250" Click="CharClick">B</Component>
-		<Component xsi:type="Label" X="140" Y="250" Click="CharClick">C</Component>
-		<Component xsi:type="Label" X="160" Y="250" Click="CharClick">D</Component>
-		<Component xsi:type="Label" X="180" Y="250" Click="CharClick">E</Component>
-		<Component xsi:type="Label" X="200" Y="250" Click="CharClick">F</Component>
-		<Component xsi:type="Label" X="220" Y="250" Click="CharClick">G</Component>
-		<Component xsi:type="Label" X="240" Y="250" Click="CharClick">H</Component>
-		<Component xsi:type="Label" X="260" Y="250" Click="CharClick">I</Component>
-		<Component xsi:type="Label" X="280" Y="250" Click="CharClick">J</Component>
-		<Component xsi:type="Label" X="300" Y="250" Click="CharClick">K</Component>
-		<Component xsi:type="Label" X="320" Y="250" Click="CharClick">L</Component>
-		<Component xsi:type="Label" X="340" Y="250" Click="CharClick">M</Component>
-		<Component xsi:type="Label" X="100" Y="300" Click="CharClick">N</Component>
-		<Component xsi:type="Label" X="120" Y="300" Click="CharClick">O</Component>
-		<Component xsi:type="Label" X="140" Y="300" Click="CharClick">P</Component>
-		<Component xsi:type="Label" X="160" Y="300" Click="CharClick">Q</Component>
-		<Component xsi:type="Label" X="180" Y="300" Click="CharClick">R</Component>
-		<Component xsi:type="Label" X="200" Y="300" Click="CharClick">S</Component>
-		<Component xsi:type="Label" X="220" Y="300" Click="CharClick">T</Component>
-		<Component xsi:type="Label" X="240" Y="300" Click="CharClick">U</Component>
-		<Component xsi:type="Label" X="260" Y="300" Click="CharClick">V</Component>
-		<Component xsi:type="Label" X="280" Y="300" Click="CharClick">W</Component>
-		<Component xsi:type="Label" X="300" Y="300" Click="CharClick">X</Component>
-		<Component xsi:type="Label" X="320" Y="300" Click="CharClick">Y</Component>
-		<Component xsi:type="Label" X="340" Y="300" Click="CharClick">Z</Component>
+		<Component xsi:type="Label" X="100" Y="250" ID="l_A" Click="CharClick">A</Component>
+		<Component xsi:type="Label" X="120" Y="250" ID="l_B" Click="CharClick">B</Component>
+		<Component xsi:type="Label" X="140" Y="250" ID="l_C" Click="CharClick">C</Component>
+		<Component xsi:type="Label" X="160" Y="250" ID="l_D" Click="CharClick">D</Component>
+		<Component xsi:type="Label" X="180" Y="250" ID="l_E" Click="CharClick">E</Component>
+		<Component xsi:type="Label" X="200" Y="250" ID="l_F" Click="CharClick">F</Component>
+		<Component xsi:type="Label" X="220" Y="250" ID="l_G" Click="CharClick">G</Component>
+		<Component xsi:type="Label" X="240" Y="250" ID="l_H" Click="CharClick">H</Component>
+		<Component xsi:type="Label" X="260" Y="250" ID="l_I" Click="CharClick">I</Component>
+		<Component xsi:type="Label" X="280" Y="250" ID="l_J" Click="CharClick">J</Component>
+		<Component xsi:type="Label" X="300" Y="250" ID="l_K" Click="CharClick">K</Component>
+		<Component xsi:type="Label" X="320" Y="250" ID="l_L" Click="CharClick">L</Component>
+		<Component xsi:type="Label" X="340" Y="250" ID="l_M" Click="CharClick">M</Component>
+		<Component xsi:type="Label" X="100" Y="300" ID="l_N" Click="CharClick">N</Component>
+		<Component xsi:type="Label" X="120" Y="300" ID="l_O" Click="CharClick">O</Component>
+		<Component xsi:type="Label" X="140" Y="300" ID="l_P" Click="CharClick">P</Component>
+		<Component xsi:type="Label" X="160" Y="300" ID="l_Q" Click="CharClick">Q</Component>
+		<Component xsi:type="Label" X="180" Y="300" ID="l_R" Click="CharClick">R</Component>
+		<Component xsi:type="Label" X="200" Y="300" ID="l_S" Click="CharClick">S</Component>
+		<Component xsi:type="Label" X="220" Y="300" ID="l_T" Click="CharClick">T</Component>
+		<Component xsi:type="Label" X="240" Y="300" ID="l_U" Click="CharClick">U</Component>
+		<Component xsi:type="Label" X="260" Y="300" ID="l_V" Click="CharClick">V</Component>
+		<Component xsi:type="Label" X="280" Y="300" ID="l_W" Click="CharClick">W</Component>
+		<Component xsi:type="Label" X="300" Y="300" ID="l_X" Click="CharClick">X</Component>
+		<Component xsi:type="Label" X="320" Y="300" ID="l_Y" Click="CharClick">Y</Component>
+		<Component xsi:type="Label" X="340" Y="300" ID="l_Z" Click="CharClick">Z</Component>
 
-		<Component xsi:type="Label" X="100" Y="350" Click="CharClick">a</Component>
-		<Component xsi:type="Label" X="120" Y="350" Click="CharClick">b</Component>
-		<Component xsi:type="Label" X="140" Y="350" Click="CharClick">c</Component>
-		<Component xsi:type="Label" X="160" Y="350" Click="CharClick">d</Component>
-		<Component xsi:type="Label" X="180" Y="350" Click="CharClick">e</Component>
-		<Component xsi:type="Label" X="200" Y="350" Click="CharClick">f</Component>
-		<Component xsi:type="Label" X="220" Y="350" Click="CharClick">g</Component>
-		<Component xsi:type="Label" X="240" Y="350" Click="CharClick">h</Component>
-		<Component xsi:type="Label" X="260" Y="350" Click="CharClick">i</Component>
-		<Component xsi:type="Label" X="280" Y="350" Click="CharClick">j</Component>
-		<Component xsi:type="Label" X="300" Y="350" Click="CharClick">k</Component>
-		<Component xsi:type="Label" X="320" Y="350" Click="CharClick">l</Component>
-		<Component xsi:type="Label" X="340" Y="350" Click="CharClick">m</Component>
-		<Component xsi:type="Label" X="100" Y="400" Click="CharClick">n</Component>
-		<Component xsi:type="Label" X="120" Y="400" Click="CharClick">o</Component>
-		<Component xsi:type="Label" X="140" Y="400" Click="CharClick">p</Component>
-		<Component xsi:type="Label" X="160" Y="400" Click="CharClick">q</Component>
-		<Component xsi:type="Label" X="180" Y="400" Click="CharClick">r</Component>
-		<Component xsi:type="Label" X="200" Y="400" Click="CharClick">s</Component>
-		<Component xsi:type="Label" X="220" Y="400" Click="CharClick">t</Component>
-		<Component xsi:type="Label" X="240" Y="400" Click="CharClick">u</Component>
-		<Component xsi:type="Label" X="260" Y="400" Click="CharClick">v</Component>
-		<Component xsi:type="Label" X="280" Y="400" Click="CharClick">w</Component>
-		<Component xsi:type="Label" X="300" Y="400" Click="CharClick">x</Component>
-		<Component xsi:type="Label" X="320" Y="400" Click="CharClick">y</Component>
-		<Component xsi:type="Label" X="340" Y="400" Click="CharClick">z</Component>
+		<Component xsi:type="Label" X="100" Y="350" ID="l__a" Click="CharClick">a</Component>
+		<Component xsi:type="Label" X="120" Y="350" ID="l__b" Click="CharClick">b</Component>
+		<Component xsi:type="Label" X="140" Y="350" ID="l__c" Click="CharClick">c</Component>
+		<Component xsi:type="Label" X="160" Y="350" ID="l__d" Click="CharClick">d</Component>
+		<Component xsi:type="Label" X="180" Y="350" ID="l__e" Click="CharClick">e</Component>
+		<Component xsi:type="Label" X="200" Y="350" ID="l__f" Click="CharClick">f</Component>
+		<Component xsi:type="Label" X="220" Y="350" ID="l__g" Click="CharClick">g</Component>
+		<Component xsi:type="Label" X="240" Y="350" ID="l__h" Click="CharClick">h</Component>
+		<Component xsi:type="Label" X="260" Y="350" ID="l__i" Click="CharClick">i</Component>
+		<Component xsi:type="Label" X="280" Y="350" ID="l__j" Click="CharClick">j</Component>
+		<Component xsi:type="Label" X="300" Y="350" ID="l__k" Click="CharClick">k</Component>
+		<Component xsi:type="Label" X="320" Y="350" ID="l__l" Click="CharClick">l</Component>
+		<Component xsi:type="Label" X="340" Y="350" ID="l__m" Click="CharClick">m</Component>
+		<Component xsi:type="Label" X="100" Y="400" ID="l__n" Click="CharClick">n</Component>
+		<Component xsi:type="Label" X="120" Y="400" ID="l__o" Click="CharClick">o</Component>
+		<Component xsi:type="Label" X="140" Y="400" ID="l__p" Click="CharClick">p</Component>
+		<Component xsi:type="Label" X="160" Y="400" ID="l__q" Click="CharClick">q</Component>
+		<Component xsi:type="Label" X="180" Y="400" ID="l__r" Click="CharClick">r</Component>
+		<Component xsi:type="Label" X="200" Y="400" ID="l__s" Click="CharClick">s</Component>
+		<Component xsi:type="Label" X="220" Y="400" ID="l__t" Click="CharClick">t</Component>
+		<Component xsi:type="Label" X="240" Y="400" ID="l__u" Click="CharClick">u</Component>
+		<Component xsi:type="Label" X="260" Y="400" ID="l__v" Click="CharClick">v</Component>
+		<Component xsi:type="Label" X="280" Y="400" ID="l__w" Click="CharClick">w</Component>
+		<Component xsi:type="Label" X="300" Y="400" ID="l__x" Click="CharClick">x</Component>
+		<Component xsi:type="Label" X="320" Y="400" ID="l__y" Click="CharClick">y</Component>
+		<Component xsi:type="Label" X="340" Y="400" ID="l__z" Click="CharClick">z</Component>
 	
-		<Component xsi:type="Label" X="100" Y="450" Click="CharClick">_</Component>
-		<Component xsi:type="Label" X="120" Y="450" Click="CharClick">.</Component>
-		<Component xsi:type="Label" X="140" Y="450" Click="CharClick">,</Component>
-		<Component xsi:type="Label" X="160" Y="450" Click="CharClick">"</Component>
-		<Component xsi:type="Label" X="180" Y="450" Click="CharClick">(</Component>
-		<Component xsi:type="Label" X="200" Y="450" Click="CharClick">)</Component>
-		<Component xsi:type="Label" X="220" Y="450" Click="CharClick">!</Component>
-		<Component xsi:type="Label" X="240" Y="450" Click="CharClick">?</Component>
-		<Component xsi:type="Label" X="260" Y="450" Click="CharClick">'</Component>
-		<Component xsi:type="Label" X="280" Y="450" Click="CharClick">~</Component>
-		<Component xsi:type="Label" X="300" Y="450" Click="CharClick">-</Component>
-		<Component xsi:type="Label" X="320" Y="450" Click="CharClick">:</Component>
-		<Component xsi:type="Label" X="340" Y="450" Click="CharClick">;</Component>
+		<Component xsi:type="Label" X="100" Y="450" ID="l__" Click="CharClick">_</Component>
+		<Component xsi:type="Label" X="120" Y="450" ID="l_." Click="CharClick">.</Component>
+		<Component xsi:type="Label" X="140" Y="450" ID="l_," Click="CharClick">,</Component>
+		<Component xsi:type="Label" X="160" Y="450" ID="l_Sp" Click="CharClick">"</Component>
+		<Component xsi:type="Label" X="180" Y="450" ID="l_(" Click="CharClick">(</Component>
+		<Component xsi:type="Label" X="200" Y="450" ID="l_)" Click="CharClick">)</Component>
+		<Component xsi:type="Label" X="220" Y="450" ID="l_!" Click="CharClick">!</Component>
+		<Component xsi:type="Label" X="240" Y="450" ID="l_?" Click="CharClick">?</Component>
+		<Component xsi:type="Label" X="260" Y="450" ID="l_'" Click="CharClick">'</Component>
+		<Component xsi:type="Label" X="280" Y="450" ID="l_~" Click="CharClick">~</Component>
+		<Component xsi:type="Label" X="300" Y="450" ID="l_-" Click="CharClick">-</Component>
+		<Component xsi:type="Label" X="320" Y="450" ID="l_:" Click="CharClick">:</Component>
+		<Component xsi:type="Label" X="340" Y="450" ID="l_;" Click="CharClick">;</Component>
 	</Root>
 </Layout>

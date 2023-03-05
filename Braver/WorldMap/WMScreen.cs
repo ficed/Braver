@@ -307,6 +307,7 @@ namespace Braver.WorldMap {
             );
             _avatarModel.ZUp = false;
             _avatarModel.Scale = _avatar.Scale;
+            _avatarModel.Rotation = new Vector3(180, 0, 0);
             AnimateAvatar("stand");
             _wasMoving = false;
 
@@ -429,8 +430,8 @@ namespace Braver.WorldMap {
 
                     move.Normalize();
                     TryMoveAvatarTo(_avatarModel.Translation + move * 15);
-                    var angle = Math.Atan2(move.X, -move.Z) * 180 / Math.PI;
-                    _avatarModel.Rotation = new Vector3(0, (float)angle, 0);
+                    var angle = Math.Atan2(move.X, move.Z) * 180 / Math.PI;
+                    _avatarModel.Rotation = new Vector3(180, (float)angle, 0);
                 }
 
                 if (input.IsJustDown(InputKey.Select)) {
@@ -568,7 +569,9 @@ namespace Braver.WorldMap {
             _skybox.Render(Graphics, finalView);
 
             //TODO: Need to adjust avatar render coordinates in case camera is on edge of map
-            _avatarModel.Render(finalView);
+            using (var state = new GraphicsState(Graphics, rasterizerState: RasterizerState.CullClockwise)) {
+                _avatarModel.Render(finalView);
+            }
 
             _ui.Render();
         }

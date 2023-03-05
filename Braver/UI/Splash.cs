@@ -95,8 +95,8 @@ namespace Braver.UI {
                         case 2:
                             Game.NewGame();
                             //Game.ChangeScreen(this, new TestScreen());
-                            //Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
-                            Battle.BattleScreen.Launch(Game, 324, Battle.BattleFlags.None);
+                            Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
+                            //Battle.BattleScreen.Launch(Game, 324, Battle.BattleFlags.None);
                             break;
 
                         case 3:

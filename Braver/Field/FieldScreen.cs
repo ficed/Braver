@@ -685,7 +685,7 @@ namespace Braver.Field {
 
                         if (move != Vector2.Zero) {
                             move.Normalize();
-                            move *= 2;
+                            move *= 3;
                             if (input.IsDown(InputKey.Cancel)) {
                                 animSpeed = 2f;
                                 move *= 4f;
@@ -955,42 +955,37 @@ namespace Braver.Field {
                 }
             }
 
-            bool TestTri(short? t, Vector2 pos) {
-                if (t == null)
-                    return false;
-                else {
-                    var tt = _walkmesh[t.Value];
-                    return HeightInTriangle(tt, pos.X, pos.Y, false) != null;
-                }
-            }
-
+            
             newTri = null;
 
             var vector = endPos - startPos;
 
             Dictionary<int, int> considered = new(); // TriIndex -> Crossing count
             HashSet<int> toConsider = new HashSet<int> { currentTri };
+           
             while (toConsider.Any()) {
                 var check = toConsider.ToArray();
                 toConsider.Clear();
                 foreach(int t in check) {
                     var checkTri = _walkmesh[t];
                     int intersections = 0;
-                    if (LineIntersect(startPos, endPos, checkTri.V0.ToX().XY(), checkTri.V1.ToX().XY(), out _)) {
-                        intersections++;
-                        if ((checkTri.V01Tri != null) && !considered.ContainsKey(checkTri.V01Tri.Value))
-                            toConsider.Add(checkTri.V01Tri.Value);
+
+                    void Check(FieldVertex vA, FieldVertex vB, short? nextTri) {
+
+                        if (LineIntersect(startPos, endPos, vA.ToX().XY(), vB.ToX().XY(), out _)) {
+                            intersections++;
+
+                            if (nextTri == null) return;
+                            if (DisabledWalkmeshTriangles.Contains(nextTri.Value)) return;
+                            if (considered.ContainsKey(nextTri.Value)) return;
+
+                            toConsider.Add(nextTri.Value);
+                        }
                     }
-                    if (LineIntersect(startPos, endPos, checkTri.V0.ToX().XY(), checkTri.V2.ToX().XY(), out _)) {
-                        intersections++;
-                        if ((checkTri.V20Tri != null) && !considered.ContainsKey(checkTri.V20Tri.Value))
-                            toConsider.Add(checkTri.V20Tri.Value);
-                    }
-                    if (LineIntersect(startPos, endPos, checkTri.V2.ToX().XY(), checkTri.V1.ToX().XY(), out _)) {
-                        intersections++;
-                        if ((checkTri.V12Tri != null) && !considered.ContainsKey(checkTri.V12Tri.Value))
-                            toConsider.Add(checkTri.V12Tri.Value);
-                    }
+
+                    Check(checkTri.V0, checkTri.V1, checkTri.V01Tri);
+                    Check(checkTri.V0, checkTri.V2, checkTri.V20Tri);
+                    Check(checkTri.V1, checkTri.V2, checkTri.V12Tri);
                     considered[t] = intersections;
                 }
             }
@@ -1056,9 +1051,7 @@ namespace Braver.Field {
             return LeaveTriResult.Failure;
         }
 
-
         public bool TryWalk(Entity eMove, Vector3 newPosition, bool doCollide) {
-            //TODO: Collision detection against other models!
 
             if (doCollide) {
                 eMove.CollidingWith.Clear();

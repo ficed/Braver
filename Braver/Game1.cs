@@ -86,8 +86,6 @@ namespace Braver {
         private InputState _input = new();
 
         protected override void Update(GameTime gameTime) {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
 
             HashSet<InputKey> isDown = new();
             void SetInput(InputKey k, bool down) {
