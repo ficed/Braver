@@ -8,25 +8,20 @@ using Ficedula.FF7;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace Braver {
 
-    public enum InventoryItemKind {
-        Item,
-        Weapon,
-        Armour,
-        Accessory,
-        Blank,
-    }
-
     public class InventoryItem {
-        public InventoryItemKind Kind { get; set; }
         public int ItemID { get; set; }
         public int Quantity { get; set; }
+
+        public const int ITEM_ID_CUTOFF = 128;
+        public const int WEAPON_ID_CUTOFF = 256;
+        public const int ARMOUR_ID_CUTOFF = 288;
+        public const int ACCESSORY_ID_CUTOFF = 320;
     }
-
-
 
     [Flags]
     public enum MenuMask {
@@ -101,18 +96,30 @@ namespace Braver {
         public int CharIndex { get; set; }
         public string ID { get; set; }
         public int Level { get; set; }
-        public int Strength { get; set; }
-        public int Vitality { get; set; }
-        public int Magic { get; set; }
-        public int Spirit { get; set; }
-        public int Dexterity { get; set; }
-        public int Luck { get; set; }
+
+        //Base values
+        public int BaseStrength { get; set; }
+        public int BaseVitality { get; set; }
+        public int BaseMagic { get; set; }
+        public int BaseSpirit { get; set; }
+        public int BaseDexterity { get; set; }
+        public int BaseLuck { get; set; }
+
+        //Bonuses from sources
         public int StrBonus { get; set; }
         public int VitBonus { get; set; }
         public int MagBonus { get; set; }
         public int SprBonus { get; set; }
         public int DexBonus { get; set; }
         public int LckBonus { get; set; }
+
+        //Final values
+        public int Strength { get; set; }
+        public int Vitality { get; set; }
+        public int Magic { get; set; }
+        public int Spirit { get; set; }
+        public int Dexterity { get; set; }
+        public int Luck { get; set; }
 
         public int LimitLevel { get; set; }
         public int LimitBar { get; set; }
@@ -141,10 +148,8 @@ namespace Braver {
 
         public Statuses Statuses { get; set; }
 
-        public List<OwnedMateria> WeaponMateria { get; set; }
-        public List<OwnedMateria> ArmourMateria { get; set; }
-
-        public string BattleModel { get; set; }
+        public List<OwnedMateria> WeaponMateria { get; set; } = new();
+        public List<OwnedMateria> ArmourMateria { get; set; } = new();
 
         [XmlIgnore]
         public float LevelProgress => 0.7f; //TODO!!!
@@ -200,6 +205,77 @@ namespace Braver {
         public Accessory GetAccessory(BGame game) {
             return EquipAccessory < 0 ? null : game.Singleton<Accessories>()[EquipAccessory];
         }
+
+        public void Recalculate(BGame game) {
+
+            Strength = BaseStrength + StrBonus;
+            Vitality = BaseVitality + VitBonus;
+            Magic = BaseMagic + MagBonus;
+            Spirit = BaseSpirit + SprBonus;
+            Dexterity = BaseDexterity + DexBonus;
+            Luck = BaseLuck + LckBonus;
+
+            void Apply(EquipItem equip) {
+                if (equip == null) return;
+                Strength += equip.StrBonus;
+                Vitality += equip.VitBonus;
+                Magic += equip.MagBonus;
+                Spirit += equip.SprBonus;
+                Dexterity += equip.DexBonus;
+                Luck += equip.LckBonus;
+            }
+
+            Apply(GetWeapon(game));
+            Apply(GetArmour(game));
+            Apply(GetAccessory(game));
+
+            MaxHP = BaseHP;
+            MaxMP = BaseMP;
+
+            foreach(var materia in EquippedMateria(game)) {
+                Strength += materia.Materia.EquipEffect.Strength;
+                Vitality += materia.Materia.EquipEffect.Vitality;
+                Magic += materia.Materia.EquipEffect.Magic;
+                Spirit += materia.Materia.EquipEffect.Spirit;
+                Dexterity += materia.Materia.EquipEffect.Dexterity;
+                Luck += materia.Materia.EquipEffect.Luck;
+
+                MaxHP = MaxHP * (100 + materia.Materia.EquipEffect.MaxHP) / 100;
+                MaxMP = MaxMP * (100 + materia.Materia.EquipEffect.MaxMP) / 100;
+
+                if (materia.Materia is IndependentMateria0 im0) {
+                    switch (im0.Kind) {
+                        case IndependentMateriaKind.StrengthPlus:
+                            Strength += im0.Amounts[materia.Level];
+                            break;
+                        case IndependentMateriaKind.VitalityPlus:
+                            Vitality += im0.Amounts[materia.Level];
+                            break;
+                        case IndependentMateriaKind.MagicPlus:
+                            Magic += im0.Amounts[materia.Level];
+                            break;
+                        case IndependentMateriaKind.SpiritPlus:
+                            Spirit += im0.Amounts[materia.Level];
+                            break;
+                        case IndependentMateriaKind.SpeedPlus:
+                            Dexterity += im0.Amounts[materia.Level];
+                            break;
+                        case IndependentMateriaKind.LuckPlus:
+                            Luck += im0.Amounts[materia.Level];
+                            break;
+                        case IndependentMateriaKind.MaxHPPlus:
+                            MaxHP = MaxHP * (100 + im0.Amounts[materia.Level]) / 100;
+                            break;
+                        case IndependentMateriaKind.MaxMPPlus:
+                            MaxMP = MaxMP * (100 + im0.Amounts[materia.Level]) / 100;
+                            break;
+                    }
+                }
+            }
+
+            CurrentHP = Math.Min(CurrentHP, MaxHP);
+            CurrentMP = Math.Min(CurrentMP, MaxMP);
+        }
     }
 
     public class SaveData {
@@ -213,11 +289,11 @@ namespace Braver {
             if (p3 != null) yield return p3;
         }
 
-        public List<Character> Characters { get; set; }
+        public List<Character> Characters { get; set; } = new();
 
-        public List<InventoryItem> Inventory { get; set; }
-        public List<int> KeyItems { get; set; }
-        public List<OwnedMateria> MateriaStock { get; set; }
+        public List<InventoryItem> Inventory { get; set; } = new();
+        public List<int> KeyItems { get; set; } = new();
+        public List<OwnedMateria> MateriaStock { get; set; } = new();
 
         public int FieldAvatarCharID { get; set; }
         public string WorldMapAvatar { get; set; }
@@ -274,8 +350,8 @@ namespace Braver {
             else
                 MateriaStock.Add(materia);
         }
-        public bool GiveInventoryItem(InventoryItemKind kind, int id, int quantity = 1) {
-            var entry = Inventory.Find(inv => (inv.Kind == kind) && (inv.ItemID == id));
+        public bool GiveInventoryItem(int id, int quantity = 1) {
+            var entry = Inventory.Find(inv => inv.ItemID == id);
             if (entry != null) {
                 if ((entry.Quantity + quantity) > 99) {
                     entry.Quantity = 99;
@@ -283,8 +359,8 @@ namespace Braver {
                 }
                 entry.Quantity += quantity;
             } else {
-                entry = new InventoryItem { Kind = kind, ItemID = id, Quantity = quantity };
-                int index = Inventory.FindIndex(inv => inv.Kind == InventoryItemKind.Blank);
+                entry = new InventoryItem { ItemID = id, Quantity = quantity };
+                int index = Inventory.FindIndex(inv => inv.ItemID == -1);
                 if (index >= 0)
                     Inventory[index] = entry;
                 else
@@ -293,8 +369,8 @@ namespace Braver {
             return true;
         }
 
-        public bool TakeInventoryItem(InventoryItemKind kind, int id, int quantity = 1, bool takePartial = false) {
-            var entry = Inventory.Find(inv => (inv.Kind == kind) && (inv.ItemID == id));
+        public bool TakeInventoryItem(int id, int quantity = 1, bool takePartial = false) {
+            var entry = Inventory.Find(inv => inv.ItemID == id);
             if (entry == null) return false;
             if (entry.Quantity < quantity) {
                 if (!takePartial) return false;
@@ -303,8 +379,8 @@ namespace Braver {
                 entry.Quantity -= quantity;
 
             if (entry.Quantity <= 0) {
-                entry.Kind = InventoryItemKind.Blank;
-                while (Inventory.Last().Kind == InventoryItemKind.Blank)
+                entry.ItemID = -1;
+                while (Inventory.Last().ItemID == -1)
                     Inventory.RemoveAt(Inventory.Count - 1);
             }
             return true;

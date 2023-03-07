@@ -5,11 +5,11 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Ficedula.FF7.Field;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.Field {
     public class FieldUI {

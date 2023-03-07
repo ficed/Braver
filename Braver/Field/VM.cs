@@ -4,10 +4,10 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
-using MonoGame.Framework.Utilities.Deflate;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -1465,7 +1465,7 @@ namespace Braver.Field {
             byte banks = f.ReadU8();
             ushort item = f.ReadU16();
             byte qty = f.ReadU8();
-            s.Game.SaveData.GiveInventoryItem(InventoryItemKind.Item, s.Game.Memory.Read(banks & 0xf, item), s.Game.Memory.Read(banks >> 4, qty));
+            s.Game.SaveData.GiveInventoryItem(s.Game.Memory.Read(banks & 0xf, item), s.Game.Memory.Read(banks >> 4, qty));
             return OpResult.Continue;
         }
 

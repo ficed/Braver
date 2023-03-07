@@ -68,34 +68,32 @@ namespace Braver.UI.Layout {
 
 		}
 
-		public static (string Item, string Description) GetInventory(FGame game, int index) {
+		public static (string Item, string Description) GetInventoryByIndex(FGame game, int index) {
 			return GetInventory(game, game.SaveData.Inventory[index]);
 		}
 		public static (string Item, string Description) GetInventory(FGame game, InventoryItem inv) {
-			return GetInventory(game, inv.Kind, inv.ItemID);
+			return GetInventory(game, inv.ItemID);
 		}
-        public static (string Item, string Description) GetInventory(FGame game, InventoryItemKind kind, int itemID) {
-                switch (kind) {
-				case InventoryItemKind.Item:
-					var item = game.Singleton<Items>()[itemID];
-					return (item.Name, item.Description);
-				case InventoryItemKind.Weapon:
-					var weapon = game.Singleton<Weapons>()[itemID];
-					return (weapon.Name, weapon.Description);
-				case InventoryItemKind.Armour:
-					var armour = game.Singleton<Armours>()[itemID];
-					return (armour.Name, armour.Description);
-				case InventoryItemKind.Accessory:
-					var accessory = game.Singleton<Accessories>()[itemID];
-                    return (accessory.Name, accessory.Description);
-				default:
-					throw new NotImplementedException();
-            }
-        }
+		public static (string Item, string Description) GetInventory(FGame game, int itemID) {
+			if (itemID < InventoryItem.ITEM_ID_CUTOFF) {
+				var item = game.Singleton<Items>()[itemID];
+				return (item.Name, item.Description);
+			} else if (itemID < InventoryItem.WEAPON_ID_CUTOFF) {
+				var weapon = game.Singleton<Weapons>()[itemID - 128];
+				return (weapon.Name, weapon.Description);
+			} else if (itemID < InventoryItem.ARMOUR_ID_CUTOFF) {
+				var armour = game.Singleton<Armours>()[itemID - 256];
+				return (armour.Name, armour.Description);
+			} else if (itemID < InventoryItem.ACCESSORY_ID_CUTOFF) {
+				var accessory = game.Singleton<Accessories>()[itemID - 288];
+				return (accessory.Name, accessory.Description);
+			} else
+				throw new NotImplementedException();
+		}
 
 
         public void ItemFocussed() {
-			lDescription.Text = GetInventory(_game, lbItems.GetSelectedIndex(this)).Description;
+			lDescription.Text = GetInventoryByIndex(_game, lbItems.GetSelectedIndex(this)).Description;
 		}
 
         public void KeyItemFocussed() {

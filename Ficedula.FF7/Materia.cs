@@ -6,8 +6,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -65,17 +67,165 @@ namespace Ficedula.FF7 {
 
         protected abstract void DoInit(byte subType, IEnumerable<byte> attrs);
 
-        public void Init(string name, string description, int id, MateriaEquipEffect equipEffect, 
+        public void Init(string name, string description, int id, MateriaEquipEffect equipEffect,
             IEnumerable<int> apLevels,
             byte subType, IEnumerable<byte> attrs) {
             Name = name;
             ID = id;
-            Description = description; 
+            Description = description;
             EquipEffect = equipEffect;
             _apLevels = apLevels.ToList();
             DoInit(subType, attrs);
         }
     }
+
+    public enum SupportMateriaKind {
+        All = 0x51,
+        CommandCounter = 0x54,
+        MagicCounter = 0x55,
+        SneakAttack = 0x56,
+        FinalAttack = 0x57,
+        MPTurbo = 0x58,
+        MPAbsorb = 0x59,
+        HPAbsorb = 0x5A,
+        AddedCut = 0x5C,
+        StealAsWell = 0x5D,
+        Elemental = 0x5E,
+        AddedEffect = 0x5F,
+        QuadraMagic = 0x63,
+    }
+
+    public class SupportMateria : Materia {
+        public SupportMateriaKind Kind { get; private set; }
+
+        protected override void DoInit(byte subType, IEnumerable<byte> attrs) {
+            Kind = (SupportMateriaKind)attrs.First();
+        }
+
+        public override string ToString() {
+            return $"Apply effect {Kind} to linked materia";
+        }
+    }
+
+    public enum IndependentMateriaKind {
+        Underwater,
+        HP_MP_Swap,
+        LongRange,
+        XPPlus,
+
+        CounterAttack,
+        Cover,
+
+        StrengthPlus,
+        VitalityPlus,
+        MagicPlus,
+        SpiritPlus,
+        SpeedPlus,
+        LuckPlus,
+        AttackPlus,
+        DefensePlus,
+        MaxHPPlus,
+        MaxMPPlus,
+
+        GilPlus,
+        EnemyAway,
+        EnemyLure,
+        ChocoboLure,
+        PreEmptive,
+
+        MegaAll,
+    }
+
+    public abstract class IndependentMateria : Materia {
+        public IndependentMateriaKind Kind { get; protected set; }
+
+        public override string ToString() {
+            return $"Independent effect {Kind}";
+        }
+    }
+
+    public class IndependentMateria1 : IndependentMateria {
+        protected override void DoInit(byte subType, IEnumerable<byte> attrs) {
+            switch (attrs.First()) {
+                case 0:
+                    Kind = IndependentMateriaKind.GilPlus;
+                    break;
+                case 1:
+                    Kind = IndependentMateriaKind.EnemyLure;//TODO or away!
+                    break;
+                case 2:
+                    Kind = IndependentMateriaKind.ChocoboLure;
+                    break;
+                case 3:
+                    Kind = IndependentMateriaKind.PreEmptive;
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+    }
+    public class IndependentMateria4 : IndependentMateria {
+        protected override void DoInit(byte subType, IEnumerable<byte> attrs) {
+            Kind = IndependentMateriaKind.MegaAll;
+        }
+    }
+    public class IndependentMateria0 : IndependentMateria {
+
+        public List<int> Amounts { get; private set; }
+
+        protected override void DoInit(byte subType, IEnumerable<byte> attrs) {
+            switch (subType) {
+                case 0x0:
+                    switch (attrs.First()) {
+                        case 0xC:
+                            Kind = IndependentMateriaKind.Underwater;
+                            break;
+                        case 0x62:
+                            Kind = IndependentMateriaKind.HP_MP_Swap;
+                            break;
+                        default:
+                            throw new NotSupportedException();
+                    }
+                    break;
+                case 0x2:
+                    switch (attrs.First()) {
+                        case 0:
+                        case 1:
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7:
+                        case 8:
+                        case 9:
+                            Kind = IndependentMateriaKind.StrengthPlus + attrs.First();
+                            break;
+
+                        case 11:
+                            Kind = IndependentMateriaKind.Cover;
+                            break;
+
+                        case 0x53:
+                            Kind = IndependentMateriaKind.CounterAttack;
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                    Amounts = attrs.Skip(1).Select(b => (int)b).ToList();
+                    break;
+                case 0x3:
+                    Kind = IndependentMateriaKind.LongRange;
+                    break;
+                case 0x4:
+                    Kind = IndependentMateriaKind.XPPlus;
+                    break;
+            }
+        }
+    }
+
+
+
 
     public abstract class CommandMateria : Materia {
         public int? RemoveCommand { get; protected set; }
@@ -233,8 +383,12 @@ namespace Ficedula.FF7 {
         }
 
         static MateriaCollection() {
+            Register<IndependentMateria0>(0x0);
+            Register<IndependentMateria1>(0x1);
             Register<AttackCommandMateria>(0x2);
             Register<WCommandMateria>(0x3);
+            Register<IndependentMateria4>(0x4);
+            Register<SupportMateria>(0x5);
             Register<StandardCommandMateria>(0x6);
             Register<ESkillCommandMateria>(0x7);
             Register<MasterCommandMateria>(0x8);

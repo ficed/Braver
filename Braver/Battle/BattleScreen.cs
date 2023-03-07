@@ -9,10 +9,11 @@ using Braver.UI.Layout;
 using Ficedula.FF7;
 using Ficedula.FF7.Battle;
 using Ficedula.FF7.Field;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ConstrainedExecution;
 
 namespace Braver.Battle {
 
@@ -166,18 +167,9 @@ namespace Braver.Battle {
 
                 void AddItem(int itemID, byte chance) {
                     if (_engine.Random(64) <= chance) {
-                        InventoryItemKind kind;
-                        if (itemID < 128)
-                            kind = InventoryItemKind.Item;
-                        else if (itemID < 256) {
-                            kind = InventoryItemKind.Weapon;
-                            itemID -= 128;
-                        } else
-                            throw new NotSupportedException();
-
-                        var existing = results.Items.Find(inv => (inv.ItemID == itemID) && (inv.Kind == kind));
+                        var existing = results.Items.Find(inv => inv.ItemID == itemID);
                         if (existing == null)
-                            results.Items.Add(new InventoryItem { ItemID = itemID, Quantity = 1, Kind = kind });
+                            results.Items.Add(new InventoryItem { ItemID = itemID, Quantity = 1 });
                         else
                             existing.Quantity++;
                     }
@@ -283,6 +275,11 @@ namespace Braver.Battle {
             _formationID = formationID;
             _flags = flags;
         }
+
+        private static string[] _charBattleModels = new[] {
+            "rt", "sb", null, "rv"
+        };
+
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
             _scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[_formationID];
@@ -311,7 +308,7 @@ namespace Braver.Battle {
 
             foreach(var player in Game.SaveData.Party.Zip(_playerPositions)) {
                 var comb = _engine.Combatants.OfType<CharacterCombatant>().First(cc => cc.Character == player.First);
-                AddModel(player.First.BattleModel, player.Second, comb);
+                AddModel(_charBattleModels[player.First.CharIndex], player.Second, comb);
             }
 
             _uiHandler = new UIHandler(_engine.Combatants.OfType<CharacterCombatant>());

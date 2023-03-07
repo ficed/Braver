@@ -5,11 +5,10 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Battle;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.UI.Layout {
     public class Debug : LayoutModel {

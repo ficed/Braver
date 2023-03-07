@@ -185,8 +185,9 @@ namespace Braver {
 
 
         public void NewGame() {
-            using (var s = Open("save", "newgame.xml"))
-                SaveData = Serialisation.Deserialise<SaveData>(s);
+            SaveData = new SaveData();
+            //using (var s = Open("save", "newgame.xml"))
+            //    SaveData = Serialisation.Deserialise<SaveData>(s);
             Memory.ResetAll();
             Braver.NewGame.Init(this);
             SaveData.CleanUp();

@@ -50,7 +50,7 @@ namespace Braver.UI.Layout {
                 foreach (var item in ShopData.Items) {
                     switch (item.Kind) {
                         case Ficedula.FF7.ShopItemKind.Item:
-                            var inv = ItemMenu.GetInventory(Game, InventoryItemKind.Item, item.ItemID);
+                            var inv = ItemMenu.GetInventory(Game, item.ItemID);
                             Items.Add(new BuyItem {
                                 Item = item,
                                 Name = inv.Item,
@@ -119,7 +119,7 @@ namespace Braver.UI.Layout {
                     if (TotalCost <= Game.SaveData.Gil) {
                         switch (Items[_buyIndex].Item.Kind) {
                             case Ficedula.FF7.ShopItemKind.Item:
-                                Game.SaveData.GiveInventoryItem(InventoryItemKind.Item, Items[_buyIndex].Item.ItemID, BuyQuantity);
+                                Game.SaveData.GiveInventoryItem(Items[_buyIndex].Item.ItemID, BuyQuantity);
                                 break;
                             case Ficedula.FF7.ShopItemKind.Materia:
                                 foreach (int _ in Enumerable.Range(0, BuyQuantity))

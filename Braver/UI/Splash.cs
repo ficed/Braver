@@ -66,8 +66,7 @@ namespace Braver.UI {
                             Game.ChangeScreen(this, new Field.FieldScreen(
                                 ///*
                                 new Ficedula.FF7.Field.FieldDestination {
-                                    X = 3600, Y = 27320, Triangle = 28,
-                                    Orientation = 132,
+                                    Triangle = ushort.MaxValue, //don't position player for a new game!
                                     DestinationFieldID = 116,
                                 }
                                 //*/

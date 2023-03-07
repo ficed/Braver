@@ -5,6 +5,8 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Ficedula.FF7.Field;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1193,7 +1195,7 @@ namespace Braver.Field {
         }
 
         public void CheckPendingPlayerSetup() {
-            if ((_destination != null) && (Player.Model != null)) {
+            if ((_destination != null) && (Player.Model != null) && (_destination.Triangle != ushort.MaxValue)) {
                 DropToWalkmesh(Player, new Vector2(_destination.X, _destination.Y), _destination.Triangle, false);
                 Player.Model.Rotation = new Vector3(0, 0, 360f * _destination.Orientation / 255f);
                 _destination = null;

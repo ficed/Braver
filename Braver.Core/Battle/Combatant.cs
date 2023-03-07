@@ -167,7 +167,7 @@ namespace Braver.Battle {
                 Name = "Item",
                 SubMenu = g.SaveData
                     .Inventory
-                    .Where(inv => inv.Kind == InventoryItemKind.Item)
+                    .Where(inv => inv.ItemID < InventoryItem.ITEM_ID_CUTOFF)
                     .Select(inv => new { Item = g.Singleton<Items>()[inv.ItemID], Inv = inv })
                     .Where(a => a.Item.Restrictions.HasFlag(EquipRestrictions.CanUseInBattle))
                     .Select(a => {

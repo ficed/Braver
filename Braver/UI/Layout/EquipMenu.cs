@@ -46,7 +46,7 @@ namespace Braver.UI.Layout {
             AvailableWeapons.Clear();
             AvailableWeapons.AddRange(
                 g.SaveData.Inventory
-                .Where(inv => inv.Kind == InventoryItemKind.Weapon)
+                .Where(inv => (inv.ItemID >= InventoryItem.ITEM_ID_CUTOFF) && (inv.ItemID < InventoryItem.WEAPON_ID_CUTOFF))
                 .Select(inv => inv.ItemID)
                 .Concat(new[] { Character.EquipWeapon })
                 .Where(id => id >= 0)
@@ -58,7 +58,7 @@ namespace Braver.UI.Layout {
             AvailableArmour.Clear();
             AvailableArmour.AddRange(
                 g.SaveData.Inventory
-                .Where(inv => inv.Kind == InventoryItemKind.Armour)
+                .Where(inv => (inv.ItemID >= InventoryItem.WEAPON_ID_CUTOFF) && (inv.ItemID < InventoryItem.ARMOUR_ID_CUTOFF))
                 .Select(inv => inv.ItemID)
                 .Concat(new[] { Character.EquipArmour })
                 .Where(id => id >= 0)
@@ -70,7 +70,7 @@ namespace Braver.UI.Layout {
             AvailableAccessories.Clear();
             AvailableAccessories.AddRange(
                 g.SaveData.Inventory
-                .Where(inv => inv.Kind == InventoryItemKind.Accessory)
+                .Where(inv => (inv.ItemID >= InventoryItem.ARMOUR_ID_CUTOFF) && (inv.ItemID < InventoryItem.ACCESSORY_ID_CUTOFF))
                 .Select(inv => inv.ItemID)
                 .Concat(new[] { Character.EquipAccessory })
                 .Where(id => id >= 0)
@@ -173,8 +173,8 @@ namespace Braver.UI.Layout {
             PopFocus();
             int id = int.Parse(L.ID.Substring(6));
             if (id != Character.EquipWeapon) {
-                _game.SaveData.GiveInventoryItem(InventoryItemKind.Weapon, Character.EquipWeapon);
-                _game.SaveData.TakeInventoryItem(InventoryItemKind.Weapon, id);
+                _game.SaveData.GiveInventoryItem(Character.EquipWeapon + InventoryItem.ITEM_ID_CUTOFF);
+                _game.SaveData.TakeInventoryItem(id + InventoryItem.ITEM_ID_CUTOFF);
                 Character.EquipWeapon = id;
                 _screen.Reload();
             }
@@ -184,8 +184,8 @@ namespace Braver.UI.Layout {
             PopFocus();
             int id = int.Parse(L.ID.Substring(6));
             if (id != Character.EquipArmour) {
-                _game.SaveData.GiveInventoryItem(InventoryItemKind.Armour, Character.EquipArmour);
-                _game.SaveData.TakeInventoryItem(InventoryItemKind.Armour, id);
+                _game.SaveData.GiveInventoryItem(Character.EquipArmour + InventoryItem.WEAPON_ID_CUTOFF);
+                _game.SaveData.TakeInventoryItem(id + InventoryItem.WEAPON_ID_CUTOFF);
                 Character.EquipArmour = id;
                 _screen.Reload();
             }
@@ -195,8 +195,8 @@ namespace Braver.UI.Layout {
             PopFocus();
             int id = int.Parse(L.ID.Substring(9));
             if (id != Character.EquipAccessory) {
-                _game.SaveData.GiveInventoryItem(InventoryItemKind.Accessory, Character.EquipAccessory);
-                _game.SaveData.TakeInventoryItem(InventoryItemKind.Accessory, id);
+                _game.SaveData.GiveInventoryItem(Character.EquipAccessory + InventoryItem.ARMOUR_ID_CUTOFF);
+                _game.SaveData.TakeInventoryItem(id + InventoryItem.ARMOUR_ID_CUTOFF);
                 Character.EquipAccessory = id;
                 _screen.Reload();
             }
