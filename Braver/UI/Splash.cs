@@ -45,6 +45,11 @@ namespace Braver.UI {
 
         public override Color ClearColor => Color.Black;
 
+        public override void Reactivated() {
+            base.Reactivated();
+            InputEnabled = true;
+        }
+
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
 
@@ -88,13 +93,18 @@ namespace Braver.UI {
                             break;
 
                         case 1:
-                            Game.Load(System.IO.Path.Combine(Game.GetPath("save"), "auto"));
+                            string autoPath = System.IO.Path.Combine(Game.GetPath("save"), "auto");
+                            if (System.IO.File.Exists(autoPath + ".sav"))
+                                Game.Load(autoPath);
+                            else
+                                Game.Audio.PlaySfx(Sfx.Invalid, 1f, 0f);
                             break;
 
                         case 2:
-                            Game.NewGame();
+                            Game.PushScreen(new UI.Layout.LayoutScreen("SaveMenu", parm: false));
+                            //Game.NewGame();
                             //Game.ChangeScreen(this, new TestScreen());
-                            Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
+                            //Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
                             //Battle.BattleScreen.Launch(Game, 324, Battle.BattleFlags.None);
                             break;
 

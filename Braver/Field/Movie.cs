@@ -21,7 +21,7 @@ namespace Braver.Field {
         private SpriteBatch _spriteBatch;
         private GraphicsDevice _graphics;
 
-        public int Frame => _frame;
+        public int Frame => (int)(_frame * _gameFramesPerVideoFrame / 4); //adjust reported frame to reflect 15FPS as the original game expects
         public bool Active => (_process != null) && (_frame >= 0);
         public Ficedula.FF7.Field.CameraMatrix Camera => _cam.Camera.ElementAtOrDefault(Frame);
 
@@ -41,6 +41,16 @@ namespace Braver.Field {
 
         private Ficedula.FF7.Field.MovieCam _cam;
 
+        private static string[] _extensions = new[] { ".mp4", ".avi" };
+
+        private string ResolvePath(string name) {
+            foreach (string ext in _extensions) {
+                string fn = Path.Combine(_game.GetPath("Movies"), name + ext);
+                if (File.Exists(fn)) return fn;
+            }
+            return Path.Combine(_game.GetPath("Movies"), name + _extensions[0]); //...although it'll fail at runtime, but lets us continue running for now
+        }
+
         public Movie(FGame g, GraphicsDevice graphics) {
             _game = g;
             _graphics = graphics;
@@ -49,7 +59,7 @@ namespace Braver.Field {
             _files = g.OpenString("movies", "movielist.txt")
                 .Split('\n')
                 .Select(s => s.Trim('\r'))
-                .Select(s => Path.Combine(g.GetPath("Movies"), s + ".mp4")) //TODO!!!
+                .Select(s => ResolvePath(s)) //TODO!!!
                 .ToArray();
         }
 

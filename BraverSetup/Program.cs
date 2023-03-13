@@ -17,6 +17,7 @@ Console.WriteLine("Enter the FF7 movies folder in MP4 format (contains e.g. open
 while (true) {
     movies = Console.ReadLine().TrimEnd(Path.DirectorySeparatorChar);
     if (File.Exists(Path.Combine(movies, "opening.mp4"))) break;
+    if (File.Exists(Path.Combine(movies, "opening.avi"))) break;
     Console.WriteLine("That folder doesn't seem to contain FF7 movies in mp4 format - please enter another folder");
 }
 
