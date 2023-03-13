@@ -8,12 +8,15 @@ using Microsoft.Xna.Framework.Audio;
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Braver {
-    public class Audio {
+
+
+    public class Audio : IAudio {
 
         private string _musicFolder;
         private Channel<MusicCommand> _channel;
@@ -336,16 +339,22 @@ namespace Braver {
         public void Quit() {
             _channel.Writer.TryWrite(null);
         }
+
+
+        private NAudio.Wave.WaveOut _streamOut;
+
+        public void PlaySfxStream(Stream s, float volume, float pan) {
+            //TODO very basic implementation
+            //TODO pan
+            //TODO non-ogg!
+            _streamOut?.Stop();
+            _streamOut?.Dispose();
+            _streamOut = new NAudio.Wave.WaveOut();
+            var vorbis = new NAudio.Vorbis.VorbisWaveReader(s, true);
+            _streamOut.Init(vorbis);
+            _streamOut.Volume = volume;            
+            _streamOut.Play();
+        }
     }
 
-    public enum Sfx {
-        Cursor = 0,
-        SaveReady = 1,
-        Invalid = 2,
-        Cancel = 3,
-        EnemyDeath = 21,
-        BattleSwirl = 42,
-        BuyItem = 261,
-        DeEquip = 446,
-    }
 }

@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -43,11 +44,10 @@ namespace Braver {
 
         public Net.Net Net { get; set; }
 
-        public Audio Audio { get; }
         public Screen Screen => _screens.Peek();
         public DebugOptions DebugOptions { get; }
+        public PluginManager PluginManager { get; }
 
-        private Dictionary<string, string> _paths = new(StringComparer.InvariantCultureIgnoreCase);
 
         public FGame(GraphicsDevice graphics) {
             _graphics = graphics;
@@ -139,6 +139,16 @@ namespace Braver {
             Audio.Precache(Sfx.Cancel, true);
             Audio.Precache(Sfx.Invalid, true);
 
+            PluginManager = new PluginManager();
+            if (_paths.ContainsKey("PLUGINS")) {
+                var plugins = Directory.GetFiles(_paths["PLUGINS"], "*.dll")
+                    .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
+                    .SelectMany(asm => asm.GetTypes())
+                    .Where(t => t.IsAssignableTo(typeof(Plugin)))
+                    .Select(t => Activator.CreateInstance(t))
+                    .OfType<Plugin>();                
+                PluginManager.Init(this, plugins);
+            }
         }
 
         private class TraceFile : TraceListener {
@@ -170,8 +180,6 @@ namespace Braver {
                 }
             }
         }
-
-        public string GetPath(string name) => _paths[name];
 
         public void AutoSave() {
             string path = GetPath("save");

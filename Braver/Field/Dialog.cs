@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -59,12 +60,14 @@ namespace Braver.Field {
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
         private FGame _game;
+        private PluginInstances _plugins;
         private UI.UIBatch _ui;
 
         public bool IsActive => _windows.Any(w => (w.State != WindowState.Hidden) && !w.Options.HasFlag(DialogOptions.IsPermanent));
 
-        public Dialog(FGame g, GraphicsDevice graphics) {
+        public Dialog(FGame g, PluginInstances plugins, GraphicsDevice graphics) {
             _game = g;
+            _plugins = plugins;
             _ui = new UI.UIBatch(graphics, g);
         }
 
@@ -127,18 +130,20 @@ namespace Braver.Field {
             }
         }
 
-        public void Show(int window, string text, Action onClosed) {
+        public void Show(int window, int tag, string text, Action onClosed) {
             PrepareWindow(window, text);
             _windows[window].OnClosed = onClosed;
             _windows[window].OnChoice = null;
             _windows[window].ChoiceLines = null;
+            _plugins.Call<Plugins.Field.IDialog>(dlg => dlg.Showing(window, tag, _windows[window].Text));
         }
-        public void Ask(int window, string text, IEnumerable<int> choices, Action<int?> onChoice) {
+        public void Ask(int window, int tag, string text, IEnumerable<int> choices, Action<int?> onChoice) {
             PrepareWindow(window, text);
             _windows[window].ChoiceLines = choices.ToArray();
             _windows[window].OnClosed = null;
             _windows[window].OnChoice = onChoice;
             _windows[window].Choice = 0;
+            _plugins.Call<Plugins.Field.IDialog>(dlg => dlg.Asking(window, tag, _windows[window].Text, _windows[window].ChoiceLines));
         }
 
         public void ProcessInput(InputState input) { 

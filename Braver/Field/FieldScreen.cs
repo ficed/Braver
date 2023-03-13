@@ -181,6 +181,7 @@ namespace Braver.Field {
                     field = new FieldFile(s);
             }
 
+            _plugins = g.PluginManager.GetInstances(_file, typeof(Plugins.Field.IDialog));
             Background = new Background(g, graphics, field.GetBackground());
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();
@@ -344,7 +345,7 @@ namespace Braver.Field {
                 _bgZTo = Background.AutoDetectZTo;
             }
 
-            Dialog = new Dialog(g, graphics);
+            Dialog = new Dialog(g, _plugins, graphics);
             FieldUI = new FieldUI(g, graphics);
 
             g.Memory.ResetScratch();

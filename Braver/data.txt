@@ -38,4 +38,6 @@ PATH	MOVIES	%movies%
 PATH	DEBUG	%braver%
 PATH	SAVE	%save%
 
+PATH	PLUGINS	%plugins%
+
 LOG		%braver%\log.txt

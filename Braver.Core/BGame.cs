@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula.FF7;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,74 +19,80 @@ namespace Braver {
         public abstract IEnumerable<string> Scan();
     }
 
+
+    public class PackDataSource : DataSource {
+        private Pack _pack;
+        private string _path;
+
+        private HashSet<string> _files;
+
+        public PackDataSource(Pack pack, string path) {
+            _pack = pack;
+            _path = path;
+
+            _files = new HashSet<string>(
+                pack.Filenames
+                .Where(s => s.StartsWith(path + "\\", StringComparison.InvariantCultureIgnoreCase)),
+                StringComparer.InvariantCultureIgnoreCase
+            );
+        }
+
+        public override IEnumerable<string> Scan() {
+            return _files.Select(s => Path.GetFileName(s));
+        }
+
+        public override Stream TryOpen(string file) {
+            string fn = _path + "\\" + file;
+            if (_files.Contains(fn)) {
+                return _pack.Read(fn);
+            } else
+                return null;
+        }
+    }
+
+    public class LGPDataSource : DataSource {
+        private Ficedula.FF7.LGPFile _lgp;
+
+        public LGPDataSource(Ficedula.FF7.LGPFile lgp) {
+            _lgp = lgp;
+        }
+
+        public override IEnumerable<string> Scan() => _lgp.Filenames;
+        public override Stream TryOpen(string file) => _lgp.TryOpen(file);
+    }
+
+    public class FileDataSource : DataSource {
+        private string _root;
+
+        public FileDataSource(string root) {
+            _root = root;
+        }
+
+        public override IEnumerable<string> Scan() {
+            //TODO subdirectories
+            return Directory.GetFiles(_root).Select(s => Path.GetFileName(s));
+        }
+
+        public override Stream TryOpen(string file) {
+            string fn = Path.Combine(_root, file);
+            if (File.Exists(fn))
+                return new FileStream(fn, FileMode.Open, FileAccess.Read);
+            return null;
+        }
+    }
+
+
     public abstract class BGame {
 
-        protected class PackDataSource : DataSource {
-            private Pack _pack;
-            private string _path;
-
-            private HashSet<string> _files;
-
-            public PackDataSource(Pack pack, string path) {
-                _pack = pack;
-                _path = path;
-
-                _files = new HashSet<string>(
-                    pack.Filenames
-                    .Where(s => s.StartsWith(path + "\\", StringComparison.InvariantCultureIgnoreCase)),
-                    StringComparer.InvariantCultureIgnoreCase
-                );
-            }
-
-            public override IEnumerable<string> Scan() {
-                return _files.Select(s => Path.GetFileName(s));
-            }
-
-            public override Stream TryOpen(string file) {
-                string fn = _path + "\\" + file;
-                if (_files.Contains(fn)) {
-                    return _pack.Read(fn);
-                } else
-                    return null;
-            }
-        }
-
-        protected class LGPDataSource : DataSource {
-            private Ficedula.FF7.LGPFile _lgp;
-
-            public LGPDataSource(Ficedula.FF7.LGPFile lgp) {
-                _lgp = lgp;
-            }
-
-            public override IEnumerable<string> Scan() => _lgp.Filenames;
-            public override Stream TryOpen(string file) => _lgp.TryOpen(file);
-        }
-
-        protected class FileDataSource : DataSource {
-            private string _root;
-
-            public FileDataSource(string root) {
-                _root = root;
-            }
-
-            public override IEnumerable<string> Scan() {
-                //TODO subdirectories
-                return Directory.GetFiles(_root).Select(s => Path.GetFileName(s));
-            }
-
-            public override Stream TryOpen(string file) {
-                string fn = Path.Combine(_root, file);
-                if (File.Exists(fn))
-                    return new FileStream(fn, FileMode.Open, FileAccess.Read);
-                return null;
-            }
-        }
         public VMM Memory { get; } = new();
         public SaveMap SaveMap { get; }
 
+        public IAudio Audio { get; protected set; }
         public SaveData SaveData { get; protected set; }
+
         protected Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
         private Dictionary<Type, object> _singletons = new();
+        protected Dictionary<string, string> _paths = new(StringComparer.InvariantCultureIgnoreCase);
 
         public BGame() {
             SaveMap = new SaveMap(Memory);
@@ -113,6 +120,13 @@ namespace Braver {
                 SaveMap.CounterHours = (byte)(v % 60);
             }
         }
+
+        public void AddDataSource(string folder, DataSource source) {
+            if (!_data.TryGetValue(folder, out var list))
+                list = _data[folder] = new List<DataSource>();
+            list.Add(source);
+        }
+        public string GetPath(string name) => _paths[name];
 
         protected void FrameIncrement() {
             if (++SaveMap.GameTimeFrames >= 30) {
@@ -195,13 +209,13 @@ namespace Braver {
 
         public IEnumerable<string> ScanData(string category) {
             if (_data.TryGetValue(category, out var sources))
-                return sources.SelectMany(s => s.Scan());
+                return sources.SelectMany(s => s.Scan()).Distinct();
             else
                 return Enumerable.Empty<string>();
         }
 
         public Stream TryOpen(string category, string file) {
-            foreach (var source in _data[category]) {
+            foreach (var source in _data[category].Reverse<DataSource>()) {
                 var s = source.TryOpen(file);
                 if (s != null)
                     return s;

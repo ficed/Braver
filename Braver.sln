@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Braver.Plugins", "Braver.Plugins\Braver.Plugins.csproj", "{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -62,6 +64,10 @@ Global
 		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC7A0739-2DEE-4396-BF05-9242D4833A5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

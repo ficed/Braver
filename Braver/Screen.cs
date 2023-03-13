@@ -77,6 +77,7 @@ namespace Braver {
         private Action _transitionAction;
 
         protected bool _readyToRender;
+        protected Plugins.PluginInstances _plugins;
 
         public virtual void Init(FGame g, GraphicsDevice graphics) {
             Game = g;

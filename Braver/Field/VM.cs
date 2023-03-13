@@ -1574,7 +1574,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 addr = f.ReadU8();
 
             f.Pause($"Waiting for ASK on window {win}");
-            s.Dialog.Ask(win, s.FieldDialog.Dialogs[msg], Enumerable.Range(firstChoice, lastChoice - firstChoice + 1), ch => {
+            s.Dialog.Ask(win, msg, s.FieldDialog.Dialogs[msg], Enumerable.Range(firstChoice, lastChoice - firstChoice + 1), ch => {
                 if (ch != null)
                     s.Game.Memory.Write(bank, addr, (ushort)ch);
                 f.Resume();
@@ -1586,7 +1586,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         public static OpResult MESSAGE(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8(), dlg = f.ReadU8();
             f.Pause($"Waiting for MESSAGE in window {id}");
-            s.Dialog.Show(id, s.FieldDialog.Dialogs[dlg], () => f.Resume());
+            s.Dialog.Show(id, dlg, s.FieldDialog.Dialogs[dlg], () => f.Resume());
 
             return OpResult.Continue;
         }
