@@ -35,5 +35,6 @@ File.WriteAllLines(config, new[] {
     $"FF7={ff7}",
     $"Movies={movies}",
     $"Save={save}",
-    $"Braver=."
+    $"Braver=.",
+    $"BData={Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "Data.bpack")}"
 });
