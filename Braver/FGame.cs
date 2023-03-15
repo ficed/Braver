@@ -140,14 +140,25 @@ namespace Braver {
             Audio.Precache(Sfx.Invalid, true);
 
             PluginManager = new PluginManager();
-            if (_paths.ContainsKey("PLUGINS")) {
+            if (_paths.ContainsKey("PLUGINS") && !string.IsNullOrWhiteSpace(_paths["PLUGINS"])) {
                 var plugins = Directory.GetFiles(_paths["PLUGINS"], "*.dll")
                     .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
                     .SelectMany(asm => asm.GetTypes())
                     .Where(t => t.IsAssignableTo(typeof(Plugin)))
                     .Select(t => Activator.CreateInstance(t))
-                    .OfType<Plugin>();                
-                PluginManager.Init(this, plugins);
+                    .OfType<Plugin>();
+
+
+                PluginConfigs config;
+
+                string pluginConfig = Path.Combine(_paths["PLUGINS"], "config.xml");
+                if (File.Exists(pluginConfig)) {
+                    using (var fs = new FileStream(pluginConfig, FileMode.Open, FileAccess.Read))
+                        config = Serialisation.Deserialise<PluginConfigs>(fs);
+                } else
+                    config = new PluginConfigs();
+
+                PluginManager.Init(this, plugins, config);
             }
         }
 

@@ -39,6 +39,8 @@ namespace Ficedula.FF7.Field {
 
         public long SortKey => ((long)TypeTrans << 48) | ((long)Param << 40) | ((long)State << 32) | ID;
 
+        public int SortKeyHigh => (TypeTrans << 16) | (Param << 8) | State;
+
         public Sprite(Stream source, int layer) {
             DestX = source.ReadI16();
             DestY = source.ReadI16();

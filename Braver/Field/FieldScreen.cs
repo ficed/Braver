@@ -181,8 +181,8 @@ namespace Braver.Field {
                     field = new FieldFile(s);
             }
 
-            _plugins = g.PluginManager.GetInstances(_file, typeof(Plugins.Field.IDialog));
-            Background = new Background(g, graphics, field.GetBackground());
+            _plugins = g.PluginManager.GetInstances(_file, typeof(Plugins.Field.IDialog), typeof(Plugins.Field.IBackground));
+            Background = new Background(g, _plugins, graphics, field.GetBackground());
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();
             _encounters = field.GetEncounterTables().ToArray();

@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -25,16 +26,17 @@ namespace Braver.Field {
         public int MaxX => _bg.Width + MinX - 16; //TODO - why are our calculations giving us MaxX/Y one tile too big?
         public int MaxY => _bg.Height + MinY - 16;
 
-        private class TexLayer {
-            public Texture2D Tex;
-            public VertexPositionTexture[] Verts;
-            public IEnumerable<Ficedula.FF7.Field.Sprite> Sprites;
-            public List<uint[]> Data;
-            public Ficedula.FF7.Field.BlendType Blend;
-            public int Parameter;
-            public int Mask;
-            public int OffsetX, OffsetY;
-            public bool FixedZ;
+        private class TexLayer : Plugins.ITexLayer {
+            public Texture2D Tex { get; set; }
+            public VertexPositionTexture[] Verts { get; set; }
+            public IEnumerable<Ficedula.FF7.Field.Sprite> Sprites { get; set; }
+            public List<uint[]> Data { get; set; }
+            public Ficedula.FF7.Field.BlendType Blend { get; set; }
+            public int Parameter { get; set; }
+            public int Mask { get; set; }
+            public int OffsetX { get; set; }
+            public int OffsetY { get; set; }
+            public bool FixedZ { get; set; }
         }
 
         private List<TexLayer> _layers = new();
@@ -51,6 +53,7 @@ namespace Braver.Field {
 
         private Dictionary<int, List<TexLayer>> _layersByPalette = new();
         private List<Ficedula.FF7.Field.BackgroundPalette> _palettes;
+        private PluginInstances _plugins;
 
         private uint[] _paletteStore = new uint[16 * 16 * 4]; //TODO - how many 256-colour palettes do we need to store? More than two apparently!
 
@@ -74,9 +77,10 @@ namespace Braver.Field {
                 layer.Tex.SetData(0, new Rectangle(0, y, layer.Tex.Width, 1), layer.Data[y], 0, layer.Tex.Width);
         }
 
-        public Background(FGame game, GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
+        public Background(FGame game, PluginInstances plugins, GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
             _game = game;
             _bg = bg;
+            _plugins = plugins;
             _graphics = graphics;
             _effect = new AlphaTestEffect(graphics) {
                 VertexColorEnabled = false,
@@ -108,9 +112,18 @@ namespace Braver.Field {
 
             foreach (var layer in bg.Layers.Where(L => L.Any())) {
 
+                int DepthGroup(int id) {
+                    if (id >= DEPTH_CUTOFF)
+                        return 1;
+                    else if (id <= 2)
+                        return -1;
+                    else
+                        return 0;
+                }
+
                 var groups = layer
-                    .GroupBy(s => s.SortKey)
-                    .OrderByDescending(group => group.Key);
+                    .GroupBy(s => new { SortKey = s.SortKeyHigh, Depth = DepthGroup(s.ID) })
+                    .OrderByDescending(group => group.Key.SortKey);
 
                 foreach (var group in groups) {
 
@@ -147,8 +160,42 @@ namespace Braver.Field {
                             .Select(_ => new uint[texWidth])
                             .ToList(),
                         Parameter = group.First().Param,
-                        Mask = group.First().State,
-                        Verts = new[] {
+                        Mask = group.First().State,                     
+                    };
+
+                    List<VertexPositionTexture> verts = new();
+
+                    foreach(var sprite in group) {
+                        float destX = sprite.DestX + tl.OffsetX, destY = sprite.DestY + tl.OffsetY;
+                        verts.Add(new VertexPositionTexture {
+                            Position = new Vector3(sprite.DestX, -sprite.DestY, zcoord),
+                            TextureCoordinate = new Vector2(destX / texWidth, destY / texHeight),
+                        });
+                        verts.Add(new VertexPositionTexture {
+                            Position = new Vector3(sprite.DestX + 16, -sprite.DestY, zcoord),
+                            TextureCoordinate = new Vector2((destX + 16) / texWidth, destY / texHeight),
+                        });
+                        verts.Add(new VertexPositionTexture {
+                            Position = new Vector3(sprite.DestX + 16, -(sprite.DestY + 16), zcoord),
+                            TextureCoordinate = new Vector2((destX + 16) / texWidth, (destY + 16) / texHeight),
+                        });
+
+                        verts.Add(new VertexPositionTexture {
+                            Position = new Vector3(sprite.DestX, -sprite.DestY, zcoord),
+                            TextureCoordinate = new Vector2(destX / texWidth, destY / texHeight),
+                        });
+                        verts.Add(new VertexPositionTexture {
+                            Position = new Vector3(sprite.DestX + 16, -(sprite.DestY + 16), zcoord),
+                            TextureCoordinate = new Vector2((destX + 16) / texWidth, (destY + 16) / texHeight),
+                        });
+                        verts.Add(new VertexPositionTexture {
+                            Position = new Vector3(sprite.DestX, -(sprite.DestY + 16), zcoord),
+                            TextureCoordinate = new Vector2(destX / texWidth, (destY + 16) / texHeight),
+                        });
+                    }
+
+                    /*
+   Verts = new[] {
                             new VertexPositionTexture {
                                 Position = new Vector3(minX, -minY, zcoord),
                                 TextureCoordinate = new Vector2(0, 0)
@@ -174,8 +221,9 @@ namespace Braver.Field {
                                 Position = new Vector3(minX, -maxY, zcoord),
                                 TextureCoordinate = new Vector2(0, maxT)
                             },
-                        }
-                    };
+                        }                     */
+
+                    tl.Verts = verts.ToArray();
 
                     _layers.Add(tl);
                     RedrawLayer(tl, false);
@@ -193,6 +241,8 @@ namespace Braver.Field {
                     */
                 }
             }
+
+            _plugins.Call<Plugins.Field.IBackground>(bg => bg.Init(graphics, _layers));
 
             _blankingVerts = new[] {
                 new VertexPositionColor {
