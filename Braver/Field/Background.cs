@@ -31,7 +31,7 @@ namespace Braver.Field {
             public VertexPositionTexture[] Verts { get; set; }
             public IEnumerable<Ficedula.FF7.Field.Sprite> Sprites { get; set; }
             public List<uint[]> Data { get; set; }
-            public Ficedula.FF7.Field.BlendType Blend { get; set; }
+            public Ficedula.FF7.BlendType Blend { get; set; }
             public int Parameter { get; set; }
             public int Mask { get; set; }
             public int OffsetX { get; set; }
@@ -137,11 +137,12 @@ namespace Braver.Field {
                     float maxS = 1f * (maxX - minX) / texWidth,
                         maxT = 1f * (maxY - minY) / texHeight;
 
-                    var blend = (Ficedula.FF7.Field.BlendType)group.First().TypeTrans;
+                    var blend = (Ficedula.FF7.BlendType)group.First().TypeTrans;
 
                     float zcoord;
                     bool isFixedZ;
-                    if ((group.First().ID >= DEPTH_CUTOFF) || (blend != Ficedula.FF7.Field.BlendType.None)) {
+                    bool hasBlend = (blend != Ficedula.FF7.BlendType.None0) && (blend != Ficedula.FF7.BlendType.None1);
+                    if ((group.First().ID >= DEPTH_CUTOFF) || hasBlend) {
                         zcoord = 1f; isFixedZ = true;
                     } else if (group.First().ID <= 2) {
                         zcoord = 0f; isFixedZ = true;
@@ -332,16 +333,17 @@ namespace Braver.Field {
                         continue;
 
                     switch (layer.Blend) {
-                        case Ficedula.FF7.Field.BlendType.None:
-                        case Ficedula.FF7.Field.BlendType.Blend:
+                        case Ficedula.FF7.BlendType.None0:
+                        case Ficedula.FF7.BlendType.None1:
+                        case Ficedula.FF7.BlendType.Blend:
                             if (blendLayers) continue;
                             _graphics.BlendState = BlendState.AlphaBlend;
                             break;
-                        case Ficedula.FF7.Field.BlendType.Additive:
+                        case Ficedula.FF7.BlendType.Additive:
                             if (!blendLayers) continue;
                             _graphics.BlendState = BlendState.Additive;
                             break;
-                        case Ficedula.FF7.Field.BlendType.QuarterAdd:
+                        case Ficedula.FF7.BlendType.QuarterAdd:
                             if (!blendLayers) continue;
                             _graphics.BlendState = GraphicsUtil.BlendQuarterAdd;
                             break;

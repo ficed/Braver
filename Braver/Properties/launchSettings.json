@@ -2,7 +2,7 @@
   "profiles": {
     "Braver": {
       "commandName": "Project",
-      "commandLineArgs": "_host=localhost port=12508 key=ficedula ff7=C:\\games\\ff7 braver=C:\\Users\\ficed\\Projects\\F7\\data xbraver=C:\\Users\\ficed\\Projects\\F7\\temp xbdata=C:\\temp\\data.bpack Debug=true Debug.AutoSaveOnFieldEntry=true Debug.SeparateSaveFiles=true save=C:\\Users\\ficed\\AppData\\Roaming\\Braver\\save movies=C:\\Users\\ficed\\Projects\\F7\\movies"
+      "commandLineArgs": "_host=localhost port=12508 key=ficedula ff7=C:\\games\\ff7 braver=C:\\Users\\ficed\\Projects\\F7\\data xbraver=C:\\Users\\ficed\\Projects\\F7\\temp xbdata=C:\\temp\\data.bpack Debug=true Debug.AutoSaveOnFieldEntry=true Debug.SeparateSaveFiles=true save=C:\\Users\\ficed\\AppData\\Roaming\\Braver\\save movies=C:\\Users\\ficed\\Projects\\F7\\movies plugins="
     }
   }
 }

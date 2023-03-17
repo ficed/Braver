@@ -409,9 +409,10 @@ namespace Braver.Field {
 
             if (_renderModels) {
                 using (var state = new GraphicsState(Graphics, rasterizerState: RasterizerState.CullClockwise)) {
-                    foreach (var entity in Entities)
-                        if ((entity.Model != null) && entity.Model.Visible)
-                            entity.Model.Render(viewer3D);
+                    foreach (int pass in Enumerable.Range(1, 2))
+                        foreach (var entity in Entities)
+                            if ((entity.Model != null) && entity.Model.Visible)
+                                entity.Model.Render(viewer3D, pass == 2);
                 }
             }
 
@@ -498,6 +499,10 @@ namespace Braver.Field {
             }
         }
 
+        public (int x, int y) ClampBGScrollToViewport(int x, int y) {
+            var result = ClampBGScrollToViewport(new Vector2(x, y));
+            return ((int)result.X, (int)result.Y);
+        }
         public Vector2 ClampBGScrollToViewport(Vector2 bgScroll) {
             int minX, maxX, minY, maxY;
 
@@ -539,6 +544,8 @@ namespace Braver.Field {
                     newScroll.y = (int)highPosOnBG.Y - 85;
                 else if (posOnBG.Y < (scroll.y - 85))
                     newScroll.y = (int)posOnBG.Y + 85;
+
+                newScroll = ClampBGScrollToViewport(newScroll.x, newScroll.y);
 
                 if (newScroll != scroll) {
                     System.Diagnostics.Trace.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
@@ -708,12 +715,12 @@ namespace Braver.Field {
 
                             foreach (var entered in Player.LinesCollidingWith.Except(oldLines)) {
                                 System.Diagnostics.Trace.WriteLine($"Player has entered line {entered}");
-                                entered.Call(3, 5, null); //TODO PRIORITY!?!
+                                entered.Call(4, 5, null); //TODO PRIORITY!?!
                             }
 
                             foreach (var left in oldLines.Except(Player.LinesCollidingWith)) {
                                 System.Diagnostics.Trace.WriteLine($"Player has left line {left}");
-                                left.Call(3, 6, null); //TODO PRIORITY!?!
+                                left.Call(4, 6, null); //TODO PRIORITY!?!
                             }
 
                             /*
@@ -807,7 +814,7 @@ namespace Braver.Field {
                     if ((Player.Model.AnimationState.Animation != desiredAnim) || (Player.Model.AnimationState.AnimationSpeed != animSpeed))
                         Player.Model.PlayAnimation(desiredAnim, true, animSpeed);
 
-                    //Lines we're just within
+                    //Lines we're currently within - run regardless of whether player is actually holding any directional buttons
                     foreach (var isIn in Player.LinesCollidingWith) {
                         isIn.Call(2, 4, null); //TODO PRIORITY!?!
                     }

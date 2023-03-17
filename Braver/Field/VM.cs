@@ -898,7 +898,8 @@ namespace Braver.Field {
 
             var entities = s.Entities
                 .Where(e => e.Character != null)
-                .Where(e => e.Character != s.Player.Character);
+                .Where(e => e.Character != s.Player.Character)
+                .Where(e => e.Character.PartyIndex >= 0);
 
             Entity entA = entities.ElementAtOrDefault(0),
                 entB = entities.ElementAtOrDefault(1);
@@ -919,6 +920,7 @@ namespace Braver.Field {
                 } else if (frame == speed) {
                     s.DropToWalkmesh(ent, new Vector2(x, y), ent.WalkmeshTri); //TODO - if it's blocked, this won't be right. But that probably shouldn't happen?
                     float rotation = 360f * d / 255f;
+                    //TODO - actually take a few frames (??) to complete this rotation, don't just snap to new direction
                     ent.Model.Rotation = new Vector3(0, 0, rotation);
                     ent.Model.PlayAnimation(0, true, 1f);
                     ent.Flags |= EntityFlags.CanCollide;
@@ -1229,7 +1231,8 @@ namespace Braver.Field {
         }
 
         private static OpResult DoTurn(Entity e, float rotation, float rotationSteps, byte rotateDir, byte rotateType) {
-            float rotationAmount = rotationSteps == 0 ? 360f : 360f * rotationSteps / 255f;
+            //In elevtr1, Cloud's turn takes ~1/3sec to turn ~120 degrees when steps=2
+            float rotationAmount = rotationSteps == 0 ? 360f : 6f * rotationSteps;
 
             if (rotateDir > 2)
                 rotateDir = 2; //TODO - it's 10 in elevtr1, so we can expect to see values other than 0/1/2, but how to treat them?
@@ -1867,7 +1870,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             var start = s.GetBGScroll();
 
             s.StartProcess(frame => {
-                var pos = s.ModelToBGPosition(target());
+                var pos = s.ClampBGScrollToViewport(s.ModelToBGPosition(target()));
                 if (frame >= speed) {
                     f.Resume();
                     s.Options &= ~FieldOptions.CameraIsAsyncScrolling;
@@ -1909,11 +1912,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
         public static OpResult SCRCC(Fiber f, Entity e, FieldScreen s) {
             if (s.Player == null) {
                 s.WhenPlayerSet += () => {
-                    var pos = s.ModelToBGPosition(s.Player.Model.Translation);
+                    var pos = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
                     s.BGScroll(pos.X, pos.Y);
                 };
             } else {
-                var pos = s.ModelToBGPosition(s.Player.Model.Translation);
+                var pos = s.ClampBGScrollToViewport(s.ModelToBGPosition(s.Player.Model.Translation));
                 s.BGScroll(pos.X, pos.Y);
             }
             return OpResult.Continue;

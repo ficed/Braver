@@ -11,14 +11,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Ficedula.FF7.Field {
-    public enum BlendType {
-        Blend,
-        Additive,
-        Subtractive,
-        QuarterAdd,
-        None = 0xff,
-    }
-
     public class TileGroup {
         public BlendType Blend { get; set; }
         public int Parameter { get; set; }

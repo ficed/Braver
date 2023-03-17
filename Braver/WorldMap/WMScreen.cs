@@ -570,7 +570,8 @@ namespace Braver.WorldMap {
 
             //TODO: Need to adjust avatar render coordinates in case camera is on edge of map
             using (var state = new GraphicsState(Graphics, rasterizerState: RasterizerState.CullClockwise)) {
-                _avatarModel.Render(finalView);
+                foreach (int pass in Enumerable.Range(1, 2))
+                    _avatarModel.Render(finalView, pass == 2);
             }
 
             _ui.Render();

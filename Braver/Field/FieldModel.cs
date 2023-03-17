@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula.FF7;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -94,9 +95,11 @@ namespace Braver.Field {
         private class RenderNode {
             public int VertOffset, IndexOffset, TriCount;
             public Texture2D Texture;
+            public BlendType BlendType;
+            public bool LightingEnabled;
         }
 
-        private Dictionary<Ficedula.FF7.PFileChunk, RenderNode> _nodes = new();
+        private Dictionary<PFileChunk, RenderNode> _nodes = new();
         private BasicEffect _texEffect, _colEffect;
         private VertexBuffer _vertexBuffer;
         private IndexBuffer _indexBuffer;
@@ -106,6 +109,7 @@ namespace Braver.Field {
         private List<Ficedula.FF7.Field.FieldAnim> _animations = new();
 
         private Vector3 _light1Pos, _light2Pos, _light3Pos;
+        private bool _lightingEnabled;
 
         //TODO dedupe textures
         public FieldModel(GraphicsDevice graphics, FGame g, int modelID, string hrc, IEnumerable<string> animations, 
@@ -134,6 +138,8 @@ namespace Braver.Field {
                             Texture = chunk.Texture == null ? null : textures[chunk.Texture.Value],
                             TriCount = chunk.Indices.Count / 3,
                             VertOffset = verts.Count,
+                            BlendType = chunk.RenderState.BlendMode,
+                            LightingEnabled = chunk.RenderState.Features.HasFlag(RenderEffect.ShadeMode) && chunk.RenderState.ShadeMode == 2,
                         };
                         indices.AddRange(chunk.Indices);
                         verts.AddRange(
@@ -165,9 +171,9 @@ namespace Braver.Field {
 
             foreach(var effect in new[] { _texEffect, _colEffect }) {
                 if (globalLightColour == null)
-                    effect.LightingEnabled = false;
+                    _lightingEnabled = effect.LightingEnabled = false;
                 else {
-                    effect.LightingEnabled = true;
+                    _lightingEnabled = effect.LightingEnabled = true;
                     effect.PreferPerPixelLighting = true;
                     effect.AmbientLightColor = new Color(globalLightColour.Value).ToVector3();
 
@@ -256,69 +262,110 @@ namespace Braver.Field {
             foreach (var cb in bone.Children)
                 Descend(cb, child, onChunk);
         }
-
-        public void Render(Viewer viewer) {
+        
+        public void Render(Viewer viewer, bool transparentGroups) {
             if (_vertexBuffer == null) return;
 
-            if (_texEffect.LightingEnabled) {
+            var depth = transparentGroups ? DepthStencilState.DepthRead : DepthStencilState.Default;
 
-                Matrix lightRotate;
-                int r = (_shineRotation * 6) % 720;
-                if (ShineEffect && (r < 360))
-                    lightRotate = Matrix.CreateRotationZ(r * (float)Math.PI / 180);
-                else
-                    lightRotate = Matrix.Identity;
-                    
+            using (var state = new GraphicsState(_graphics, depthStencilState: depth, forceSaveAll: true)) {
 
-                Vector3 direction = Translation - _light1Pos;
-                direction.Normalize();
-                direction = Vector3.Transform(direction, lightRotate);
-                _texEffect.DirectionalLight0.Direction = _colEffect.DirectionalLight0.Direction = direction;
+                if (_lightingEnabled) {
 
-                direction = Translation - _light2Pos;
-                direction.Normalize();
-                direction = Vector3.Transform(direction, lightRotate);
-                _texEffect.DirectionalLight1.Direction = _colEffect.DirectionalLight1.Direction = direction;
+                    Matrix lightRotate;
+                    int r = (_shineRotation * 6) % 720;
+                    if (ShineEffect && (r < 360))
+                        lightRotate = Matrix.CreateRotationZ(r * (float)Math.PI / 180);
+                    else
+                        lightRotate = Matrix.Identity;
 
-                direction = Translation - _light3Pos;
-                direction.Normalize();
-                direction = Vector3.Transform(direction, lightRotate);
-                _texEffect.DirectionalLight2.Direction = _colEffect.DirectionalLight2.Direction = direction;
-            }
 
-            _texEffect.View = viewer.View;
-            _texEffect.Projection = viewer.Projection;
-            _colEffect.View = viewer.View;
-            _colEffect.Projection = viewer.Projection;
+                    Vector3 direction = Translation - _light1Pos;
+                    direction.Normalize();
+                    direction = Vector3.Transform(direction, lightRotate);
+                    _texEffect.DirectionalLight0.Direction = _colEffect.DirectionalLight0.Direction = direction;
 
-            _graphics.Indices = _indexBuffer;
-            _graphics.SetVertexBuffer(_vertexBuffer);
+                    direction = Translation - _light2Pos;
+                    direction.Normalize();
+                    direction = Vector3.Transform(direction, lightRotate);
+                    _texEffect.DirectionalLight1.Direction = _colEffect.DirectionalLight1.Direction = direction;
 
-            _graphics.SamplerStates[0] = SamplerState.AnisotropicWrap;
+                    direction = Translation - _light3Pos;
+                    direction.Normalize();
+                    direction = Vector3.Transform(direction, lightRotate);
+                    _texEffect.DirectionalLight2.Direction = _colEffect.DirectionalLight2.Direction = direction;
+                }
 
-            Descend(
-                _hrcModel.Root,
-                  Matrix.CreateRotationX((ZUp ? -90 : 0) * (float)Math.PI / 180)
-                * Matrix.CreateRotationZ((Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
-                * Matrix.CreateRotationX((Rotation.X + Rotation2.X) * (float)Math.PI / 180)
-                * Matrix.CreateRotationY((Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
-                * Matrix.CreateScale(Scale, Scale, Scale)
-                * Matrix.CreateTranslation(Translation + Translation2)
-                ,
-                  (chunk, m) => {
-                      _texEffect.World = _colEffect.World = m;
-                      var rn = _nodes[chunk];
-                      _texEffect.Texture = rn.Texture;
+                _texEffect.View = viewer.View;
+                _texEffect.Projection = viewer.Projection;
+                _colEffect.View = viewer.View;
+                _colEffect.Projection = viewer.Projection;
 
-                      var effect = rn.Texture == null ? _colEffect : _texEffect;
-                      foreach (var pass in effect.CurrentTechnique.Passes) {
-                          pass.Apply();
-                          _graphics.DrawIndexedPrimitives(
-                              PrimitiveType.TriangleList, rn.VertOffset, rn.IndexOffset, rn.TriCount
-                          );
+                _graphics.Indices = _indexBuffer;
+                _graphics.SetVertexBuffer(_vertexBuffer);
+
+                _graphics.SamplerStates[0] = SamplerState.AnisotropicWrap;
+
+
+
+                Descend(
+                    _hrcModel.Root,
+                      Matrix.CreateRotationX((ZUp ? -90 : 0) * (float)Math.PI / 180)
+                    * Matrix.CreateRotationZ((Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
+                    * Matrix.CreateRotationX((Rotation.X + Rotation2.X) * (float)Math.PI / 180)
+                    * Matrix.CreateRotationY((Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
+                    * Matrix.CreateScale(Scale, Scale, Scale)
+                    * Matrix.CreateTranslation(Translation + Translation2)
+                    ,
+                      (chunk, m) => {
+                          _texEffect.World = _colEffect.World = m;
+                          var rn = _nodes[chunk];
+
+                          bool isBlending;
+                          switch (rn.BlendType) {
+                              case BlendType.Subtractive:
+                              case BlendType.QuarterAdd:
+                              case BlendType.Additive:
+                                  isBlending = true; break;
+                              default:
+                                  isBlending = false; break;
+                          }
+
+                          if (isBlending != transparentGroups)
+                              return;
+
+                          _texEffect.Texture = rn.Texture;
+                          _texEffect.LightingEnabled = _colEffect.LightingEnabled = _lightingEnabled && rn.LightingEnabled;
+
+                          switch (rn.BlendType) {
+                              case BlendType.None0:
+                              case BlendType.None1:
+                              case BlendType.Blend:
+                                  _graphics.BlendState = BlendState.AlphaBlend;
+                                  break;
+                              case BlendType.Subtractive:
+                                  _graphics.BlendState = GraphicsUtil.BlendSubtractive;
+                                  break;
+                              case BlendType.Additive:
+                                  _graphics.BlendState = BlendState.Additive;
+                                  break;
+                              case BlendType.QuarterAdd:
+                                  _graphics.BlendState = GraphicsUtil.BlendQuarterAdd;
+                                  break;
+                              default:
+                                  throw new NotImplementedException();
+                          }
+
+                          var effect = rn.Texture == null ? _colEffect : _texEffect;
+                          foreach (var pass in effect.CurrentTechnique.Passes) {
+                              pass.Apply();
+                              _graphics.DrawIndexedPrimitives(
+                                  PrimitiveType.TriangleList, rn.VertOffset, rn.IndexOffset, rn.TriCount
+                              );
+                          }
                       }
-                  }
-            );
+                );
+            }
         }
 
         private float _animCountdown;

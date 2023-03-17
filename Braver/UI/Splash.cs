@@ -56,10 +56,10 @@ namespace Braver.UI {
             if (Game.Net is Net.Client) return;
 
             if (input.IsJustDown(InputKey.Down)) {
-                _menu = (_menu + 1) % 4;
+                _menu = (_menu + 1) % 5;
                 Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
             } else if (input.IsJustDown(InputKey.Up)) {
-                _menu = (_menu + 3) % 4;
+                _menu = (_menu + 4) % 5;
                 Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
             } else if (input.IsJustDown(InputKey.OK)) {                
                 Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
@@ -109,6 +109,10 @@ namespace Braver.UI {
                             break;
 
                         case 3:
+                            Game.PushScreen(new TestScreen());
+                            break;
+
+                        case 4:
                             Environment.Exit(0);
                             break;
                     }
@@ -137,7 +141,9 @@ namespace Braver.UI {
                 _ui.DrawText("main", "New Game", 600, 300, 0.2f, Color.White);
                 _ui.DrawText("main", "Continue", 600, 335, 0.2f, Color.White);
                 _ui.DrawText("main", "Load Game", 600, 370, 0.2f, Color.White);
-                _ui.DrawText("main", "Quit", 600, 405, 0.2f, Color.White);
+                _ui.DrawText("main", "Test", 600, 405, 0.2f, Color.White);
+
+                _ui.DrawText("main", "Quit", 600, 440, 0.2f, Color.White);
 
                 _ui.DrawImage("pointer", 595, 300 + 35 * _menu, 0.3f, Alignment.Right);
             }

@@ -17,7 +17,7 @@ namespace Braver.Plugins {
         VertexPositionTexture[] Verts { get; set; }
         IEnumerable<Ficedula.FF7.Field.Sprite> Sprites { get; set; }
         List<uint[]> Data { get; set; }
-        Ficedula.FF7.Field.BlendType Blend { get; set; }
+        Ficedula.FF7.BlendType Blend { get; set; }
         int Parameter { get; set; }
         int Mask { get; set; }
         int OffsetX { get; set; }
