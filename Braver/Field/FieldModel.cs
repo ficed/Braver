@@ -10,7 +10,6 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Braver.Field {
@@ -27,9 +26,11 @@ namespace Braver.Field {
 
     public class FieldModel {
 
+        private const int EYE_BLINK_PERIOD = 93;
+
         private Vector3 _rotation, _rotation2, _translation, _translation2;
         private float _scale;
-        private bool _visible = true, _shineEffect;
+        private bool _visible = true, _shineEffect, _eyeAnimation = true;
         private AnimationState _animationState;
         private int _modelID;
 
@@ -68,7 +69,10 @@ namespace Braver.Field {
         }
         public AnimationState AnimationState {
             get => _animationState;
-            set => DoSetNet(ref _animationState, value, msg => msg.AnimationState = value);
+            set {
+                if (value == null) System.Diagnostics.Debugger.Break();
+                DoSetNet(ref _animationState, value, msg => msg.AnimationState = value);
+            }
         }
 
         public Vector3 AmbientLightColour {
@@ -87,6 +91,14 @@ namespace Braver.Field {
             }
         } //TODO net message
 
+        public bool EyeAnimation {
+            get => _eyeAnimation;
+            set {
+                _eyeAnimation = value;
+                //TODO net message
+            }
+        }
+
         public float GlobalAnimationSpeed { get; set; } = 1f;
         public Vector3 MinBounds { get; }
         public Vector3 MaxBounds { get; }
@@ -97,6 +109,7 @@ namespace Braver.Field {
             public Texture2D Texture;
             public BlendType BlendType;
             public bool LightingEnabled;
+            public bool IsEye;
         }
 
         private Dictionary<PFileChunk, RenderNode> _nodes = new();
@@ -123,6 +136,8 @@ namespace Braver.Field {
             _modelID = modelID;
             _hrcModel = new Ficedula.FF7.Field.HRCModel(s => g.Open(category, s), hrc);
 
+            _eyeFrame = new Random(hrc.GetHashCode()).Next(EYE_BLINK_PERIOD);
+
             List<VertexPositionNormalColorTexture> verts = new();
             List<int> indices = new();
 
@@ -140,6 +155,8 @@ namespace Braver.Field {
                             VertOffset = verts.Count,
                             BlendType = chunk.RenderState.BlendMode,
                             LightingEnabled = chunk.RenderState.Features.HasFlag(RenderEffect.ShadeMode) && chunk.RenderState.ShadeMode == 2,
+                            IsEye = (textures.Length == 3) && (chunk.Texture != null) && (chunk.Texture.Value <= 1),
+                            //TODO - there must be a flag somewhere to indicate eyes in a model
                         };
                         indices.AddRange(chunk.Indices);
                         verts.AddRange(
@@ -334,6 +351,9 @@ namespace Braver.Field {
                           if (isBlending != transparentGroups)
                               return;
 
+                          if (EyeAnimation && rn.IsEye && ((_eyeFrame % EYE_BLINK_PERIOD) == 0))
+                              return;
+
                           _texEffect.Texture = rn.Texture;
                           _texEffect.LightingEnabled = _colEffect.LightingEnabled = _lightingEnabled && rn.LightingEnabled;
 
@@ -370,8 +390,10 @@ namespace Braver.Field {
 
         private float _animCountdown;
         private int _shineRotation;
+        private int _eyeFrame;
 
         public void FrameStep() {
+            _eyeFrame++;
             _animCountdown -= AnimationState.AnimationSpeed * GlobalAnimationSpeed;
             _shineRotation++;
             if (_animCountdown <= 0) {

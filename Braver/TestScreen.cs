@@ -21,17 +21,17 @@ namespace Braver {
         private Field.FieldModel _model;
         private PerspView3D _viewer;
         private int _anim;
-        private string[] _anims = new[] { "BYHD.a" };
+        private string[] _anims = new[] { "ACFE.a" };
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
 
             graphics.BlendState = BlendState.AlphaBlend;
 
-            _model = new Field.FieldModel(graphics, g, 0, "AVFE.hrc", _anims, "field");
+            _model = new Field.FieldModel(graphics, g, 0, "AXDC.hrc", _anims, "field");
             _model.PlayAnimation(_anim, true, 1f);
             _model.Scale = 1f;
-            //_model.Rotation2 = new Vector3(0, 0, 180);
+            _model.Rotation2 = new Vector3(0, 0, 180);
 
             _viewer = new PerspView3D {
                 CameraPosition = new Vector3(0, 50f, 10f),

@@ -1138,20 +1138,21 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
-        private static OpResult DoAnim(Fiber f, FieldModel model, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
+        private static OpResult DoAnim(Fiber f, Entity e, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
             int start = startFrame ?? 0,
-                end = endFrame ?? -1;    
+                end = endFrame ?? -1;
+            var model = e.Model;
             
             if ((model.AnimationState == null) || (model.AnimationState.Animation != anim) ||
                 (model.AnimationState.AnimationLoop != loop) || (model.AnimationState.StartFrame != start) ||
                 ((model.AnimationState.EndFrame != end) && (end != -1)) || 
                 (model.AnimationState.AnimationSpeed != speed)) {
-                f.OtherState["AnimPlaying"] = true;
+                e.OtherState["AnimPlaying"] = true;
                 f.OtherState["AnimResume"] = model.AnimationState;
                 model.PlayAnimation(anim, loop, speed, start, end);
             } else {
                 if (model.AnimationState.CompletionCount > 0) {
-                    f.OtherState["AnimPlaying"] = false;
+                    e.OtherState["AnimPlaying"] = false;
                     if (restoreState)
                         model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
                     f.OtherState["AnimResume"] = null;
@@ -1161,54 +1162,58 @@ namespace Braver.Field {
             return OpResult.Restart;
         }
 
-        private static void DoAnimContinue(Fiber f, FieldModel model, FieldScreen s, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
-            DoAnim(f, model, anim, false, speed, null, null, restoreState);
-            var state = model.AnimationState;
+        private static string ANIM_PROCESS = "ModelAnimationProcess";
+
+        private static void DoAnimContinue(Entity e, Fiber f, FieldScreen s, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
+            DoAnim(f, e, anim, false, speed, null, null, restoreState);
+            var state = e.Model.AnimationState;
             s.StartProcess(_ => {
                 if (state.CompletionCount > 0) {
-                    f.OtherState["AnimPlaying"] = false;
+                    e.OtherState["AnimPlaying"] = false;
                     if (restoreState)
-                        model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                        e.Model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
                     f.OtherState["AnimResume"] = null;
                     return true;
                 } else
                     return false;
-            });
+            }, ANIM_PROCESS + e.Name);
         }
 
         public static OpResult CANIM2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), first = f.ReadU8(), last = f.ReadU8(), speed = f.ReadU8();
 
-            return DoAnim(f, e.Model, anim, false, 1f / speed, first, last, true);
+            return DoAnim(f, e, anim, false, 1f / speed, first, last, true);
             //TODO is this speed even vaguely correct?
         }
         public static OpResult ANIM_1(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null, false);
+            return DoAnim(f, e, anim, false, 1f / speed, null, null, false);
             //TODO is this speed even vaguely correct?
         }
         public static OpResult ANIME1(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null, true);
+            System.Diagnostics.Debug.WriteLine($"ANIME1 for {e.Name}");
+            return DoAnim(f, e, anim, false, 1f / speed, null, null, true);
             //TODO is this speed even vaguely correct?
         }
         public static OpResult ANIME2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            DoAnimContinue(f, e.Model, s, anim, false, 1f / speed, null, null, true);
+            DoAnimContinue(e, f, s, anim, false, 1f / speed, null, null, true);
             return OpResult.Continue;
         }
         public static OpResult ANIM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, null, null, false);
+            return DoAnim(f, e, anim, false, 1f / speed, null, null, false);
         }
         public static OpResult CANM_1(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
-            DoAnimContinue(f, e.Model, s, anim, false, 1f / speed, fstart, fend, false);
+            DoAnimContinue(e, f, s, anim, false, 1f / speed, fstart, fend, false);
             return OpResult.Continue;
         }
         public static OpResult CANM_2(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), fstart = f.ReadU8(), fend = f.ReadU8(), speed = f.ReadU8();
-            return DoAnim(f, e.Model, anim, false, 1f / speed, fstart, fend, false);
+            System.Diagnostics.Debug.WriteLine($"CANM2 for {e.Name}");
+            return DoAnim(f, e, anim, false, 1f / speed, fstart, fend, false);
         }
         public static OpResult DFANM(Fiber f, Entity e, FieldScreen s) {
             byte anim = f.ReadU8(), speed = f.ReadU8();
@@ -1300,7 +1305,7 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
         public static OpResult ANIMW(Fiber f, Entity e, FieldScreen s) {
-            if ((bool)f.OtherState["AnimPlaying"])
+            if ((bool)e.OtherState["AnimPlaying"])
                 return OpResult.Restart;
             else
                 return OpResult.Continue;
@@ -1397,7 +1402,11 @@ namespace Braver.Field {
                 case 0xD: //SHINE
                     e.Model.ShineEffect = (data.Length == 1) && (data[0] == 1); //VERY TODO!
                     break;
-                
+
+                case 0x0: //Eye texture
+                    e.Model.EyeAnimation = data[0] != 0; //VERY TODO
+                    break;
+
                 default:
                     throw new NotImplementedException();
             }
@@ -1679,6 +1688,8 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
 
+        private const string CHANNEL_VOLUME_RAMP = "ChannelVolumeRamp";
+
         private static OpResult DoAKAO(Fiber f, Entity e, FieldScreen s, byte op, int parm1, int parm2, int parm3, int parm4, int parm5) {
 
             void DoChannel(int channel, float? pan) {
@@ -1710,6 +1721,22 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 case 0xa2:
                 case 0xa3:
                     s.Game.Audio.ChannelProperty(op - 0xa0, null, parm1 / 127f);
+                    break;
+
+                case 0xa4:
+                case 0xa5:
+                case 0xa6:
+                case 0xa7:
+                    if (parm1 > 0) {
+                        s.Game.Audio.GetChannelProperty(op - 0xa4, out _, out float? vol);
+                        float current = vol ?? 127f, target = parm1 / 127f;
+                        s.StartProcess(frame => {
+                            float v = current + (target - current) * 1f * frame / parm2;
+                            s.Game.Audio.ChannelProperty(op - 0xa4, null, v);
+                            return frame >= parm2;
+                        }, CHANNEL_VOLUME_RAMP + (op - 0xa4));
+                    } else
+                        s.Game.Audio.ChannelProperty(op - 0xa4, null, parm1 / 127f);
                     break;
 
                 case 0xc0:
@@ -2056,6 +2083,24 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     s.Overlay.Fade(frames, GraphicsUtil.BlendSubtractive, Color.Black, cInverse4, null);
                     return OpResult.Continue; //Probably?
 
+                case 5:
+                    s.Overlay.Fade(frames, BlendState.Additive, cStandard, Color.Black, null);
+                    return OpResult.Continue; //Probably?
+
+                case 6:
+                    s.Overlay.Fade(frames, BlendState.Additive, Color.Black, cStandard, null);
+                    return OpResult.Continue; //Probably?
+
+                case 9:
+                    s.Overlay.Fade(frames, BlendState.Additive, cStandard, cStandard, 
+                        () => s.Overlay.Fade(0, BlendState.Additive, Color.Black, Color.Black, null)
+                    );
+                    return OpResult.Continue;
+
+                case 10:
+                    s.Overlay.Fade(frames, BlendState.Additive, cStandard, cStandard, null);
+                    return OpResult.Continue;
+
                 default: //TODO - other types!
                     throw new NotImplementedException();
             }
@@ -2136,6 +2181,14 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             int value = s.Game.Memory.Read(banks & 0xf, src);
             int current = s.Game.Memory.Read(banks >> 4, dest);
             s.Game.Memory.Write(banks >> 4, dest, (ushort)(current | value));
+            return OpResult.Continue;
+        }
+
+        public static OpResult MINUS_(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), param = f.ReadU8();
+            int value = s.Game.Memory.Read(banks & 0xf, param);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)Math.Max(0, (current - value)));
             return OpResult.Continue;
         }
 

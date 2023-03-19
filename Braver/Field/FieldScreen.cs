@@ -430,12 +430,25 @@ namespace Braver.Field {
         private class FrameProcess {
             public int Frames;
             public Func<int, bool> Process;
+            public string Name;
         }
 
         private List<FrameProcess> _processes = new();
 
-        public void StartProcess(Func<int, bool> process) {
-            _processes.Add(new FrameProcess { Process = process });
+        /// <summary>
+        /// Registers a process which will be called back every frame until complete. The callback should
+        /// return true when it is complete, and will then not be called again. It's passed the number of
+        /// frames that have elapsed.
+        /// </summary>
+        /// <param name="process">Callback to run each frame</param>
+        /// <param name="name">
+        /// Unique name for process. If non-null, this process will replace any
+        /// existing callback with the same name.
+        /// </param>
+        public void StartProcess(Func<int, bool> process, string name = null) {
+            if (name != null)
+                _processes.RemoveAll(proc => proc.Name == name);
+            _processes.Add(new FrameProcess { Process = process, Name = name });
         }
 
         private int _frame = 0;
@@ -1015,7 +1028,11 @@ namespace Braver.Field {
                     newDestination = endPos;
                     return LeaveTriResult.Success;
                 default:
-                    throw new NotSupportedException(); //Something has broken
+                    //We're exactly on the boundary between multiple triangles. Gonna have to pick one...
+                    System.Diagnostics.Trace.WriteLine($"DoesLeaveTri: multiple inTris, picking one");
+                    newTri = (short)inTris[0];
+                    newDestination = endPos;
+                    return LeaveTriResult.Success;
             }
 
             if (!CalculateTriLeave(startPos, endPos, tri, out _, out _, out var tv0, out var tv1))
@@ -1083,8 +1100,18 @@ namespace Braver.Field {
                         }
                     }
                 }
-                if (eMove.CollidingWith.Any())
-                    return false;
+
+                //Now check if, for any of the models we're colliding with, we're not moving 
+                //clearly further away. If so, don't allow the move.
+                foreach(var other in eMove.CollidingWith) {
+                    double currentAngle = Math.Atan2(eMove.Model.Translation.Y - other.Model.Translation.Y, eMove.Model.Translation.X - other.Model.Translation.X),
+                        moveAngle = Math.Atan2(newPosition.Y - other.Model.Translation.Y, newPosition.X - other.Model.Translation.X);
+
+                    double diff = ((currentAngle - moveAngle) + (Math.PI * 2)) % (2 * Math.PI);
+                    if (diff >= Math.PI)
+                        return false;
+                }
+
             }
 
             var currentTri = _walkmesh[eMove.WalkmeshTri];

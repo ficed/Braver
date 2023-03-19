@@ -30,9 +30,10 @@ namespace Braver {
             _channel = Channel.CreateBounded<MusicCommand>(8);
             Task.Run(RunMusic);
             _sfxSource = new Ficedula.FF7.Audio(
-                System.IO.Path.Combine(soundFolder, "audio.dat"),
-                System.IO.Path.Combine(soundFolder, "audio.fmt")
+                Path.Combine(soundFolder, "audio.dat"),
+                Path.Combine(soundFolder, "audio.fmt")
             );
+            //WaveOutUtils.SetWaveOutVolume(1f, IntPtr.Zero, this);
         }
 
         private enum CommandType {
@@ -281,6 +282,14 @@ namespace Braver {
                     DoStop = true,
                     Channel = channel,
                 });
+            }
+        }
+
+        public void GetChannelProperty(int channel, out float? pan, out float? volume) {
+            if (_channels.TryGetValue(channel, out var instance)) {
+                pan = instance.Pan; volume = instance.Volume;
+            } else {
+                pan = volume = null;
             }
         }
 

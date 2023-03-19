@@ -11,9 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms.Design;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Braver.Field {
 
@@ -56,6 +53,7 @@ namespace Braver.Field {
             public DialogOptions Options;
             public DialogVariable Variable;
             public int VariableX, VariableY;
+            public int LineScroll;
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
@@ -109,7 +107,7 @@ namespace Braver.Field {
             win.Text = text.Split('\xC')
                 .Select(line => Ficedula.FF7.Text.Expand(line, chars, party))
                 .ToArray();
-            win.FrameProgress = win.ScreenProgress = 0;
+            win.FrameProgress = win.ScreenProgress = win.LineScroll = 0;
 
             if (win.Options.HasFlag(DialogOptions.NoBorder))
                 win.State = WindowState.Displaying;
@@ -217,7 +215,7 @@ namespace Braver.Field {
             }
 
             void DrawText(Window w, ref int count) {
-                int y = w.Y + 10;
+                int y = w.Y + 10 - w.LineScroll;
                 float tz = NextZ();
                 int lineCount = 0;
 
@@ -240,7 +238,15 @@ namespace Braver.Field {
 
                 foreach (string line in w.Text[w.ScreenProgress].Split('\r')) {
                     string s = count < line.Length ? line.Substring(0, count) : line;
-                    _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);
+
+                    //TODO - smooth scrolling, maybe scissor clip out the text within the box...
+                    if (y > (w.Y + w.Height - 25)) {
+                        w.LineScroll += 25;
+                        count = 0;
+                        break;
+                    }
+                    if (y > w.Y)
+                        _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);
 
                     if (w.ChoiceLines != null) {
                         if (w.ChoiceLines[0] == lineCount)

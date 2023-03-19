@@ -34,6 +34,7 @@ namespace Braver.Field {
         public float CollideDistance { get; set; }
         public float MoveSpeed { get; set; }
         public int WalkmeshTri { get; set; }
+        public Dictionary<string, object> OtherState { get; } = new();
 
         public HashSet<Entity> CollidingWith { get; } = new();
         public HashSet<Entity> LinesCollidingWith { get; } = new();

@@ -30,6 +30,7 @@ namespace Braver {
         void StopMusic(bool popContext = false);
         void Precache(Sfx which, bool pin);
         void ChannelProperty(int channel, float? pan, float? volume);
+        void GetChannelProperty(int channel, out float? pan, out float? volume);
         void StopChannel(int channel);
         void StopLoopingSfx(bool includeChannels);
         void PlaySfx(int which, float volume, float pan, int? channel = null);
