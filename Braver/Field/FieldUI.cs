@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static System.Windows.Forms.Design.AxImporter;
 
 namespace Braver.Field {
     public class FieldUI {
@@ -36,7 +37,7 @@ namespace Braver.Field {
 
             float playerHeight = 0;
 
-            if (field.Player != null) {
+            if ((field.Player != null) && field.Options.HasFlag(FieldOptions.ShowPlayerHand)) {
                 playerHeight = (field.Player.Model.MaxBounds.Y - field.Player.Model.MinBounds.Y) * field.Player.Model.Scale;
                 var bg = field.ModelToBGPosition(field.Player.Model.Translation + new Vector3(0, 0, playerHeight) * 1.25f);
                 _ui.DrawImage(
@@ -46,13 +47,15 @@ namespace Braver.Field {
                 );
             }
 
-            foreach (var arrow in gateways) {
-                var bg = field.ModelToBGPosition((arrow.V0.ToX() + arrow.V1.ToX()) * 0.5f + new Vector3(0, 0, playerHeight));
-                _ui.DrawImage(
-                    $"anim_arrow_{(_frame / 12) % 5}",
-                    (int)(bg.X - bgOffset.x) * -3 + 640, 360 - (int)(bg.Y - bgOffset.y) * 3, 0.9f,
-                    alignment: UI.Alignment.Center, color: Color.Red
-                );
+            if (field.Options.HasFlag(FieldOptions.GatewaysEnabled)) {
+                foreach (var arrow in gateways) {
+                    var bg = field.ModelToBGPosition((arrow.V0.ToX() + arrow.V1.ToX()) * 0.5f + new Vector3(0, 0, playerHeight));
+                    _ui.DrawImage(
+                        $"anim_arrow_{(_frame / 12) % 5}",
+                        (int)(bg.X - bgOffset.x) * -3 + 640, 360 - (int)(bg.Y - bgOffset.y) * 3, 0.9f,
+                        alignment: UI.Alignment.Center, color: Color.Red
+                    );
+                }
             }
 
             foreach (var arrow in field.TriggersAndGateways.Arrows.Where(a => a.Type != ArrowType.Disabled)) {

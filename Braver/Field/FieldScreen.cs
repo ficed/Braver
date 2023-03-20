@@ -54,10 +54,12 @@ namespace Braver.Field {
         CameraIsAsyncScrolling = 0x10,
         MusicLocked = 0x20,
         UseMovieCam = 0x40,
+        GatewaysEnabled = 0x80,
+        ShowPlayerHand = 0x100,
 
-        NoScripts = 0x100,
+        NoScripts = 0x1000,
 
-        DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer | UseMovieCam,   
+        DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer | UseMovieCam | GatewaysEnabled | ShowPlayerHand,    
     }
 
     public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
@@ -459,7 +461,7 @@ namespace Braver.Field {
                     ShakeEffect.Step();
                     foreach (var entity in Entities) {
                         if (!Game.DebugOptions.NoFieldScripts && !Options.HasFlag(FieldOptions.NoScripts))
-                            entity.Run(100);
+                            entity.Run(8);
                         entity.Model?.FrameStep();
                     }
                 }
@@ -742,13 +744,15 @@ namespace Braver.Field {
                             }
                             */
 
-                            foreach (var gateway in TriggersAndGateways.Gateways) {
-                                if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
-                                    Options &= ~FieldOptions.PlayerControls;
-                                    desiredAnim = 0; //stop player walking as they won't move any more!
-                                    FadeOut(() => {
-                                        Game.ChangeScreen(this, new FieldScreen(gateway.Destination));
-                                    });
+                            if (Options.HasFlag(FieldOptions.GatewaysEnabled)) {
+                                foreach (var gateway in TriggersAndGateways.Gateways) {
+                                    if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
+                                        Options &= ~FieldOptions.PlayerControls;
+                                        desiredAnim = 0; //stop player walking as they won't move any more!
+                                        FadeOut(() => {
+                                            Game.ChangeScreen(this, new FieldScreen(gateway.Destination));
+                                        });
+                                    }
                                 }
                             }
                             foreach (var trigger in TriggersAndGateways.Triggers) {
@@ -923,6 +927,8 @@ namespace Braver.Field {
 
         private static Random _r = new();
 
+        private static float MAX_SLIDE_ANGLE = (float)(70f * Math.PI / 180f);
+
         private LeaveTriResult DoesLeaveTri(Vector2 startPos, Vector2 endPos, int currentTri, bool allowSlide, out short? newTri, out Vector2 newDestination) {
             newDestination = Vector2.Zero;
 
@@ -1044,7 +1050,7 @@ namespace Braver.Field {
                 //to slide along an edge to end up closer to our desired end point.
                 //Calculate angles from end-start-v0 and end-start-v1 to find which vert we can slide towards
                 //while minimising the change in direction from our original heading.
-                //Only slide if the edge is < 60 degrees off our original heading as it's weird otherwise!
+                //Only slide if the edge is < 70 degrees off our original heading as it's weird otherwise!
 
                 var v0dir = (tv0 - startPos);
                 var v0Distance = v0dir.Length();
@@ -1057,14 +1063,14 @@ namespace Braver.Field {
                 double v0angle = AngleBetweenVectors(v0dir, origDir),
                     v1angle = AngleBetweenVectors(v1dir, origDir);
 
-                if ((Math.Abs(v0angle) < Math.Abs(v1angle)) && (v0angle < (Math.PI / 3))) {
+                if ((Math.Abs(v0angle) < Math.Abs(v1angle)) && (Math.Abs(v0angle) < MAX_SLIDE_ANGLE)) {
                     //Try to slide towards v0
                     if (v0Distance < origDistance)
                         newDestination = tv0;
                     else
                         newDestination = startPos + v0dir * origDistance;
                     return LeaveTriResult.SlideCurrentTri;
-                } else if (Math.Abs(v1angle) < (Math.PI / 3)) {
+                } else if (Math.Abs(v1angle) < MAX_SLIDE_ANGLE) {
                     //Try to slide towards v1
                     if (v1Distance < origDistance)
                         newDestination = tv1;

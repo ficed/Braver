@@ -99,6 +99,7 @@ namespace Braver.Field {
             }
         }
 
+        public int AnimationCount => _animations.Count;
         public float GlobalAnimationSpeed { get; set; } = 1f;
         public Vector3 MinBounds { get; }
         public Vector3 MaxBounds { get; }

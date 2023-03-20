@@ -156,35 +156,49 @@ namespace Braver {
             }
         }
 
-        public int Read(int bank, int offset) {
+        public int Read(int bank, int offset, bool signed = false) {
+
+            int Read8(byte[] b) {
+                if (signed)
+                    return (sbyte)b[offset];
+                else
+                    return b[offset];
+            }
+            int Read16(byte[] b) {
+                if (signed)
+                    return (short)(ushort)(b[offset] | (b[offset + 1] << 8));
+                else
+                    return b[offset] | (b[offset + 1] << 8);
+            }
+
             switch (bank) {
                 case 0:
                     return offset;
                 case 1:
-                    return _banks[0][offset];
+                    return Read8(_banks[0]);
                 case 2:
-                    return _banks[0][offset] | (_banks[0][offset + 1] << 8);
+                    return Read16(_banks[0]);
                 case 3:
-                    return _banks[1][offset];
+                    return Read8(_banks[1]);
                 case 4:
-                    return _banks[1][offset] | (_banks[1][offset + 1] << 8);
+                    return Read16(_banks[1]);
                 case 0xB:
-                    return _banks[2][offset];
+                    return Read8(_banks[2]);
                 case 0xC:
-                    return _banks[2][offset] | (_banks[2][offset + 1] << 8);
+                    return Read16(_banks[2]);
                 case 0xD:
-                    return _banks[3][offset];
+                    return Read8(_banks[3]);
                 case 0xE:
-                    return _banks[3][offset] | (_banks[3][offset + 1] << 8);
+                    return Read16(_banks[3]);
                 case 0xF:
-                    return _banks[4][offset];
+                    return Read8(_banks[4]);
                 case 7:
-                    return _banks[4][offset] | (_banks[4][offset + 1] << 8);
+                    return Read16(_banks[4]);
 
                 case 5:
-                    return _scratch[offset];
+                    return Read8(_scratch);
                 case 6:
-                    return _scratch[offset] | (_scratch[offset + 1] << 8);
+                    return Read16(_scratch);
 
                 default:
                     throw new F7Exception($"Unknown memory bank {bank}/{offset}");

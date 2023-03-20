@@ -275,6 +275,8 @@ namespace Braver.Field {
         Continue,
         Restart,
         ContinueNextFrame,
+        ContinueLowerPriority,
+        ScriptFinished,
     }
 
     public delegate OpResult OpExecute(Fiber f, Entity e, FieldScreen s);
@@ -350,28 +352,36 @@ namespace Braver.Field {
             _ip = ip;
         }
 
-        public void Run(int maxOps, bool isInit = false) {
+        public OpResult Run(int maxOps, bool isInit = false) {
             _inInit = isInit;
             while (Active && (maxOps-- > 0)) {
                 int opIP = _ip;
                 OpCode op = (OpCode)ReadU8();
                 //if (_entity.Name == "av_j")
                 //    System.Diagnostics.Trace.WriteLine($"Entity {_entity.Name} executing {op} ({(byte)op}) at IP {opIP}");
-                switch (VM.Execute(op, this, _entity, _screen)) {
+                var result = VM.Execute(op, this, _entity, _screen);
+                switch (result) {
+                    case OpResult.ScriptFinished:
+                        OpcodeAttempts = 0;
+                        ResumeState = null;
+                        Stop();
+                        break;
                     case OpResult.Continue:
                         OpcodeAttempts = 0;
                         ResumeState = null;
                         break;
+                    case OpResult.ContinueLowerPriority:
                     case OpResult.ContinueNextFrame:
                         OpcodeAttempts = 0;
                         ResumeState = null;
-                        return;
+                        return result;
                     case OpResult.Restart:
                         OpcodeAttempts++;
                         _ip = opIP;
-                        return;
+                        return result;
                 }
             }
+            return OpResult.ScriptFinished;
         }
 
     }
@@ -419,8 +429,7 @@ namespace Braver.Field {
     internal static class Flow {
 
         public static OpResult RET(Fiber f, Entity e, FieldScreen s) {
-            f.Stop();
-            return OpResult.Continue;
+            return OpResult.ScriptFinished;
         }
 
         public static OpResult WAIT(Fiber f, Entity e, FieldScreen s) {
@@ -445,12 +454,12 @@ namespace Braver.Field {
         public static OpResult JMPB(Fiber f, Entity e, FieldScreen s) {
             int newIP = f.IP - 1 - f.ReadU8();
             f.Jump(newIP);
-            return OpResult.Continue;
+            return OpResult.ContinueLowerPriority;
         }
         public static OpResult JMPBL(Fiber f, Entity e, FieldScreen s) {
             int newIP = f.IP - 1 - f.ReadU16();
             f.Jump(newIP);
-            return OpResult.Continue;
+            return OpResult.ContinueLowerPriority;
         }
 
         private static OpResult IfImpl(Fiber f, FieldScreen s, byte banks, int iVal1, int iVal2, byte comparison, int newIP) {
@@ -599,7 +608,8 @@ namespace Braver.Field {
 
         public static OpResult REQ(Fiber f, Entity e, FieldScreen s) {
             int entity = f.ReadU8(), parm = f.ReadU8();
-            s.Entities[entity].Call(parm >> 5, parm & 0x1f, null);
+            bool success = s.Entities[entity].Call(parm >> 5, parm & 0x1f, null);
+            System.Diagnostics.Debug.WriteLine($"Entity {e.Name} calling script {parm & 0x1f} on {s.Entities[entity].Name} - success={success}");
             return OpResult.Continue;
         }
         public static OpResult REQSW(Fiber f, Entity e, FieldScreen s) {
@@ -669,6 +679,25 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
+
+        public static OpResult ADPAL(Fiber f, Entity e, FieldScreen s) {
+            byte banksP = f.ReadU8(), banksBG = f.ReadU8(), bankR = f.ReadU8(),
+                ssource = f.ReadU8(), sdest = f.ReadU8(),
+                sb = f.ReadU8(), sg = f.ReadU8(), sr = f.ReadU8(),
+                count = f.ReadU8();
+
+            int source = s.Game.Memory.Read(banksP >> 4, ssource),
+                dest = s.Game.Memory.Read(banksP & 0xf, sdest);
+            sbyte b = (sbyte)s.Game.Memory.Read(banksBG >> 4, sb),
+                g = (sbyte)s.Game.Memory.Read(banksBG & 0xf, sg),
+                r = (sbyte)s.Game.Memory.Read(bankR >> 4, sr);
+
+            //Note 0 for alpha - meaning leave unchanged, since this is an add operation
+            //TODO - the values definitely need to be treated as signed, but is 4.4 fixed point still reasonable?
+            //Seems OK-ish in mds7_pb1
+            s.Background.AddPaletteStore(source, dest, new Vector4(r / 15f, g / 15f, b / 15f, 0f), count + 1);
+            return OpResult.Continue;
+        }
         public static OpResult MPPAL2(Fiber f, Entity e, FieldScreen s) {
             byte banksP = f.ReadU8(), banksBG = f.ReadU8(), bankR = f.ReadU8(),
                 ssource = f.ReadU8(), sdest = f.ReadU8(),
@@ -729,7 +758,7 @@ namespace Braver.Field {
             public int Keys;
             public Vector3 From, To;
             public FieldScreen Screen;
-            public int FromTri, ToTri, AnimSpeed;            
+            public int FromTri, ToTri, AnimSpeed;
             public Entity Entity;
             public Fiber Fiber;
 
@@ -807,7 +836,7 @@ namespace Braver.Field {
 
             float rotation = 360f * direction / 255f;
             e.Model.Rotation = new Vector3(0, 0, rotation);
-            e.Model.PlayAnimation(anim, true, 0); 
+            e.Model.PlayAnimation(anim, true, 0);
 
             var ladder = new LadderInput {
                 Keys = keys,
@@ -822,7 +851,7 @@ namespace Braver.Field {
             };
             f.Pause("Waiting for LADER to complete");
 
-            if (s.Player == e)
+            if ((s.Player == e) && s.Options.HasFlag(FieldOptions.PlayerControls))
                 s.InputCapture = ladder;
             else
                 s.StartProcess(_ => {
@@ -1007,8 +1036,8 @@ namespace Braver.Field {
             byte entID = f.ReadU8();
             var target = s.Entities[entID]?.Model?.Translation;
             if (target != null) {
-                float r = (float)Math.Atan2(target.Value.Y - e.Model.Translation.Y, target.Value.X - e.Model.Translation.X);
-                e.Model.Rotation = new Vector3(0, 0, r * (float)Math.PI / 180f);
+                float r = (float)Math.Atan2(target.Value.X - e.Model.Translation.X, -(target.Value.Y - e.Model.Translation.Y));
+                e.Model.Rotation = new Vector3(0, 0, r * 180f / (float)Math.PI);
             }
             return OpResult.Continue;
         }
@@ -1016,10 +1045,10 @@ namespace Braver.Field {
             byte chr = f.ReadU8();
             var target = s.Entities
                 .Where(e => e.Character != null)
-                .FirstOrDefault(e => e.Character.CharIndex == chr) 
+                .FirstOrDefault(e => e.Character.CharIndex == chr)
                 ?? s.Player;
-            float r = (float)Math.Atan2(target.Model.Translation.Y - e.Model.Translation.Y, target.Model.Translation.X - e.Model.Translation.X);
-            e.Model.Rotation = new Vector3(0, 0, r * (float)Math.PI / 180f);
+            float r = (float)Math.Atan2(target.Model.Translation.X - e.Model.Translation.X, -(target.Model.Translation.Y - e.Model.Translation.Y));
+            e.Model.Rotation = new Vector3(0, 0, r * 180f / (float)Math.PI);
             return OpResult.Continue;
         }
         public static OpResult DIR(Fiber f, Entity e, FieldScreen s) {
@@ -1028,14 +1057,30 @@ namespace Braver.Field {
             e.Model.Rotation = new Vector3(0, 0, rotation);
             return OpResult.Continue;
         }
+
+        public static OpResult XYI(Fiber f, Entity e, FieldScreen s) {
+            byte banks1 = f.ReadU8(), banks2 = f.ReadU8();
+            short px = f.ReadS16(), py = f.ReadS16();
+            ushort ptri = f.ReadU16();
+
+            int x = s.Game.Memory.Read(banks1 >> 4, px, true),
+                y = s.Game.Memory.Read(banks1 & 0xf, py, true),
+                tri = s.Game.Memory.Read(banks2 >> 4, ptri);
+
+            s.DropToWalkmesh(e, new Vector2(x, y), tri);
+            System.Diagnostics.Trace.WriteLine($"VM:XYI moving {e.Name} to {e.Model.Translation} wmtri {tri}");
+
+            return OpResult.Continue;
+        }
+
         public static OpResult XYZI(Fiber f, Entity e, FieldScreen s) {
             byte banks1 = f.ReadU8(), banks2 = f.ReadU8();
             short px = f.ReadS16(), py = f.ReadS16(), pz = f.ReadS16();
             ushort ptri = f.ReadU16();
 
-            int x = s.Game.Memory.Read(banks1 >> 4, px),
-                y = s.Game.Memory.Read(banks1 & 0xf, py),
-                z = s.Game.Memory.Read(banks2 >> 4, pz),
+            int x = s.Game.Memory.Read(banks1 >> 4, px, true),
+                y = s.Game.Memory.Read(banks1 & 0xf, py, true),
+                z = s.Game.Memory.Read(banks2 >> 4, pz, true),
                 tri = s.Game.Memory.Read(banks2 & 0xf, ptri);
 
             e.WalkmeshTri = tri;
@@ -1050,9 +1095,9 @@ namespace Braver.Field {
 
             var ent = s.Entities[eindex];
             if (ent.Model != null) {
-                s.Game.Memory.Write(banks1 >> 4, sx, (ushort)(short)ent.Model.Translation.X);
-                s.Game.Memory.Write(banks1 & 0xf, sy, (ushort)(short)ent.Model.Translation.Y);
-                s.Game.Memory.Write(banks2 >> 4, sz, (ushort)(short)ent.Model.Translation.Z);
+                s.Game.Memory.Write(banks1 >> 4, sx, (ushort)(short)Math.Round(ent.Model.Translation.X));
+                s.Game.Memory.Write(banks1 & 0xf, sy, (ushort)(short)Math.Round(ent.Model.Translation.Y));
+                s.Game.Memory.Write(banks2 >> 4, sz, (ushort)(short)Math.Round(ent.Model.Translation.Z));
                 s.Game.Memory.Write(banks2 & 0xf, stri, (ushort)ent.WalkmeshTri);
             } else {
                 s.Game.Memory.Write(banks1 >> 4, sx, 0);
@@ -1064,13 +1109,8 @@ namespace Braver.Field {
             return OpResult.Continue;
         }
 
-        private static OpResult DoMove(Fiber f, Entity e, FieldScreen s, bool doAnimation) {
-            byte banks = f.ReadU8();
-            short sx = f.ReadS16(), sy = f.ReadS16();
-            int x = s.Game.Memory.Read(banks >> 4, sx),
-                y = s.Game.Memory.Read(banks & 0xf, sy);
-
-            var remaining = new Vector2(x, y) - e.Model.Translation.XY();
+        private static OpResult DoWalk(Vector2 target, Fiber f, Entity e, FieldScreen s, bool doAnimation) {
+            var remaining = target - e.Model.Translation.XY();
 
             e.Model.Rotation = e.Model.Rotation.WithZ((float)(Math.Atan2(remaining.X, -remaining.Y) * 180f / Math.PI));
 
@@ -1078,7 +1118,7 @@ namespace Braver.Field {
                 f.ResumeState = e.Model.AnimationState;
 
             if (remaining.Length() <= (e.MoveSpeed * 4)) {
-                if (s.TryWalk(e, new Vector3(x, y, e.Model.Translation.Z), e.Flags.HasFlag(EntityFlags.CanCollide))) {
+                if (s.TryWalk(e, new Vector3(target, e.Model.Translation.Z), e.Flags.HasFlag(EntityFlags.CanCollide))) {
                     if (f.ResumeState != null)
                         e.Model.AnimationState = (AnimationState)f.ResumeState;
                     return OpResult.Continue;
@@ -1089,12 +1129,30 @@ namespace Braver.Field {
                 remaining.Normalize();
                 remaining *= e.MoveSpeed * 4;
                 s.TryWalk(e, e.Model.Translation + new Vector3(remaining.X, remaining.Y, 0), e.Flags.HasFlag(EntityFlags.CanCollide));
-                if (doAnimation && (e.Model.AnimationState.Animation != 1))
+                if (doAnimation && (e.Model.AnimationState.Animation != 1) && (e.Model.AnimationCount > 1))
                     e.Model.PlayAnimation(1, true, 1f);
                 return OpResult.Restart;
             }
         }
+        private static OpResult DoMove(Fiber f, Entity e, FieldScreen s, bool doAnimation) {
+            byte banks = f.ReadU8();
+            short sx = f.ReadS16(), sy = f.ReadS16();
+            int x = s.Game.Memory.Read(banks >> 4, sx),
+                y = s.Game.Memory.Read(banks & 0xf, sy);
+            return DoWalk(new Vector2(x, y), f, e, s, doAnimation);
+        }
 
+        public static OpResult MOVA(Fiber f, Entity e, FieldScreen s) {
+            byte target = f.ReadU8();
+            var targetPos = s.Entities[target].Model.Translation.XY();
+            float dist = (e.Model.Translation.XY() - targetPos).Length();
+            if (dist <= (e.CollideDistance + s.Entities[target].CollideDistance)) {
+                if (f.ResumeState != null)
+                    e.Model.AnimationState = (AnimationState)f.ResumeState;
+                return OpResult.Continue;
+            } else
+                return DoWalk(targetPos, f, e, s, true);
+        }
         public static OpResult MOVE(Fiber f, Entity e, FieldScreen s) {
             return DoMove(f, e, s, true);
         }
@@ -1142,10 +1200,10 @@ namespace Braver.Field {
             int start = startFrame ?? 0,
                 end = endFrame ?? -1;
             var model = e.Model;
-            
+
             if ((model.AnimationState == null) || (model.AnimationState.Animation != anim) ||
                 (model.AnimationState.AnimationLoop != loop) || (model.AnimationState.StartFrame != start) ||
-                ((model.AnimationState.EndFrame != end) && (end != -1)) || 
+                ((model.AnimationState.EndFrame != end) && (end != -1)) ||
                 (model.AnimationState.AnimationSpeed != speed)) {
                 e.OtherState["AnimPlaying"] = true;
                 f.OtherState["AnimResume"] = model.AnimationState;
@@ -1177,6 +1235,12 @@ namespace Braver.Field {
                 } else
                     return false;
             }, ANIM_PROCESS + e.Name);
+        }
+
+        public static OpResult ANIMB(Fiber f, Entity e, FieldScreen s) {
+            e.Model.AnimationState.EndFrame = e.Model.AnimationState.Frame;
+            e.Model.AnimationState.AnimationLoop = false;
+            return OpResult.Continue;
         }
 
         public static OpResult CANIM2(Fiber f, Entity e, FieldScreen s) {
@@ -1297,6 +1361,10 @@ namespace Braver.Field {
             //TODO - we should calculate this *once* and not on every restart
 
             return DoTurn(e, rotation, steps, (byte)rotateDir, 2);
+        }
+        public static OpResult TURNW(Fiber f, Entity e, FieldScreen s) {
+            //As per wiki - by the time this executes, turn must have completed already, so wait is already fulfilled?
+            return OpResult.Continue;
         }
 
         public static OpResult TALKR(Fiber f, Entity e, FieldScreen s) {
@@ -1436,7 +1504,7 @@ namespace Braver.Field {
         }
 
         public static OpResult HMPMAX3(Fiber f, Entity e, FieldScreen s) {
-            foreach(var chr in s.Game.SaveData.Party) {
+            foreach (var chr in s.Game.SaveData.Party) {
                 chr.CurrentHP = chr.MaxHP;
                 chr.CurrentMP = chr.MaxMP;
                 chr.Statuses &= ~Ficedula.FF7.Statuses.Death;
@@ -1445,6 +1513,15 @@ namespace Braver.Field {
         }
         public static OpResult HMPMAX1(Fiber f, Entity e, FieldScreen s) => HMPMAX3(f, e, s);
         public static OpResult HMPMAX2(Fiber f, Entity e, FieldScreen s) => HMPMAX3(f, e, s);
+
+        public static OpResult MHMMX(Fiber f, Entity e, FieldScreen s) {
+            foreach(var chr in s.Game.SaveData.Characters.Where(c => c != null)) {
+                chr.CurrentHP = chr.MaxHP;
+                chr.CurrentMP = chr.MaxMP;
+                chr.Statuses = Ficedula.FF7.Statuses.None;
+            }
+            return OpResult.Continue;
+        }
 
         public static OpResult PRTYM(Fiber f, Entity e, FieldScreen s) {
             byte charID = f.ReadU8();
@@ -1466,10 +1543,30 @@ namespace Braver.Field {
             s.Game.SaveData.Gil = Math.Max(0, s.Game.SaveData.Gil - value);
             return OpResult.Continue;
         }
+        public static OpResult GOLDu(Fiber f, Entity e, FieldScreen s) {
+            byte bank = f.ReadU8(), offset = f.ReadU8(), b2 = f.ReadU8();
+            ushort high = f.ReadU16();
+            int value;
+            if (bank == 0)
+                value = offset | (b2 << 8) | (high << 16);
+            else
+                value = s.Game.Memory.Read(bank, offset);
+
+            s.Game.SaveData.Gil = Math.Max(0, s.Game.SaveData.Gil + value); //TODO clamp
+            return OpResult.Continue;
+        }
 
         public static OpResult MMBLK(Fiber f, Entity e, FieldScreen s) {
             byte charID = f.ReadU8();
             s.Game.SaveData.Characters[charID].Flags |= CharFlags.Locked;
+            return OpResult.Continue;
+        }
+        public static OpResult MMBud(Fiber f, Entity e, FieldScreen s) {
+            byte avail = f.ReadU8(), charID = f.ReadU8();
+            if (avail != 0)
+            s.Game.SaveData.Characters[charID].Flags |= CharFlags.Available;
+            else
+                s.Game.SaveData.Characters[charID].Flags &= ~CharFlags.Available;
             return OpResult.Continue;
         }
 
@@ -1526,7 +1623,7 @@ namespace Braver.Field {
 
         public static OpResult WINDOW(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
-            ushort x = f.ReadU16(), y = f.ReadU16(), w = f.ReadU16(), h = f.ReadU16();
+            short x = f.ReadS16(), y = f.ReadS16(), w = f.ReadS16(), h = f.ReadS16();
             s.Dialog.SetupWindow(id, x, y, w, h);
             /* TODO
 Adjustments are made for windows that are either too close an edge, or the width / height is too big for the screen. Eg:
@@ -2191,6 +2288,13 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             s.Game.Memory.Write(banks >> 4, dest, (byte)Math.Max(0, (current - value)));
             return OpResult.Continue;
         }
+        public static OpResult PLUS_(Fiber f, Entity e, FieldScreen s) {
+            byte banks = f.ReadU8(), dest = f.ReadU8(), param = f.ReadU8();
+            int value = s.Game.Memory.Read(banks & 0xf, param);
+            int current = s.Game.Memory.Read(banks >> 4, dest);
+            s.Game.Memory.Write(banks >> 4, dest, (byte)Math.Min(0xff, (current + value)));
+            return OpResult.Continue;
+        }
 
         public static OpResult MOD(Fiber f, Entity e, FieldScreen s) {
             byte banks = f.ReadU8(), dest = f.ReadU8(), den = f.ReadU8();
@@ -2256,10 +2360,37 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
 
+
+        public static OpResult SPECIAL(Fiber f, Entity e, FieldScreen s) {
+            byte subOp = f.ReadU8();
+            switch (subOp) {
+                case 0xF5:
+                    byte disableHand = f.ReadU8();
+                    if (disableHand != 0)
+                        s.Options &= ~FieldOptions.ShowPlayerHand;
+                    else
+                        s.Options |= FieldOptions.ShowPlayerHand;
+                    break;
+
+                default:
+                    throw new NotImplementedException($"SPECIAL op {subOp:x2} not implemented");
+            }
+
+            return OpResult.Continue;
+        }
+
         public static OpResult PMJMP(Fiber f, Entity e, FieldScreen s) {
             ushort id = f.ReadU16();
             var cached = s.Game.Singleton(() => new CachedField());
             cached.Load(s.Game, id);
+            return OpResult.Continue;
+        }
+        public static OpResult MPJPO(Fiber f, Entity e, FieldScreen s) {
+            byte disabled = f.ReadU8();
+            if (disabled != 0)
+                s.Options &= ~FieldOptions.GatewaysEnabled;
+            else
+                s.Options |= FieldOptions.GatewaysEnabled;
             return OpResult.Continue;
         }
         public static OpResult MAPJUMP(Fiber f, Entity e, FieldScreen s) {

@@ -54,6 +54,8 @@ namespace Braver.Field {
             public DialogVariable Variable;
             public int VariableX, VariableY;
             public int LineScroll;
+
+            public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
@@ -158,7 +160,7 @@ namespace Braver.Field {
                         if (input.IsJustDown(InputKey.OK)) {
                             if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
                                 window.ScreenProgress++;
-                                window.FrameProgress = 0;
+                                window.LineScroll = window.FrameProgress = 0;                                
                                 window.State = WindowState.Displaying;
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             } else { //we're done
@@ -169,12 +171,12 @@ namespace Braver.Field {
                                 }
                             }
                         } else if (input.IsJustDown(InputKey.Down)) {
-                            if (window.ChoiceLines != null) {
+                            if (window.ReadyForChoice) {
                                 window.Choice = (window.Choice + 1) % window.ChoiceLines.Length;
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             }
                         } else if (input.IsJustDown(InputKey.Up)) {
-                            if (window.ChoiceLines != null) {
+                            if (window.ReadyForChoice) {
                                 window.Choice = (window.Choice + window.ChoiceLines.Length + 1) % window.ChoiceLines.Length;
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             }
@@ -248,7 +250,7 @@ namespace Braver.Field {
                     if (y > w.Y)
                         _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);
 
-                    if (w.ChoiceLines != null) {
+                    if (w.ReadyForChoice) {
                         if (w.ChoiceLines[0] == lineCount)
                             count = 99999;
                         if (lineCount == w.ChoiceLines[w.Choice])

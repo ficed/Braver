@@ -61,18 +61,20 @@ namespace Braver.Field {
         }
 
         public void Run(int maxOps, bool isInit = false) {
-            int priority = 7;
+            int priority = 8;
             foreach (var fiber in _priorities.Reverse()) {
+                priority--;
                 if (fiber.InProgress) {
                     if (DEBUG_OUT)
                         System.Diagnostics.Trace.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
-                    fiber.Run(maxOps, isInit);
+                    var result = fiber.Run(maxOps, isInit);
                     if (isInit) fiber.Resume();
-                    
-                    if (fiber.InProgress)
+
+                    if (result == OpResult.ContinueLowerPriority)
+                        continue;
+                    else
                         break;
                 }
-                priority--;
             }
         }
 

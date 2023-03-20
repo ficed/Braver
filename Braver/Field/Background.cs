@@ -390,6 +390,13 @@ namespace Braver.Field {
                 _paletteStore[storeDest * 16 + c] = new Color(output).PackedValue;
             }
         }
+        public void AddPaletteStore(int storeSource, int storeDest, Vector4 factor, int count) {
+            foreach (int c in Enumerable.Range(0, count)) {
+                Color current = new Color(_paletteStore[storeSource * 16 + c]);
+                var output = current.ToVector4() + factor;               
+                _paletteStore[storeDest * 16 + c] = new Color(output).PackedValue;
+            }
+        }
 
         public void CopyPaletteStore(int storeSource, int storeDest, int count) => MulPaletteStore(storeSource, storeDest, Vector4.One, count);
 
