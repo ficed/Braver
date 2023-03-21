@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Root xsi:type="Box" X="340" Y="235" W="600" H="150" ID="Root">
+		<Component xsi:type="Label" X="20" Y="20">ONE DAY, THERE MAY BE A TUTORIAL HERE</Component>
+	</Root>
+</Layout>

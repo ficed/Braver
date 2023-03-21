@@ -70,10 +70,12 @@ namespace Braver.Field {
                     var result = fiber.Run(maxOps, isInit);
                     if (isInit) fiber.Resume();
 
-                    if (result == OpResult.ContinueLowerPriority)
-                        continue;
-                    else
-                        break;
+                    switch(result) {
+                        case OpResult.RestartLowerPriority:
+                        case OpResult.ContinueLowerPriority:
+                            continue;
+                    }
+                    break;
                 }
             }
         }

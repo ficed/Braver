@@ -274,6 +274,7 @@ namespace Braver.Field {
     public enum OpResult {
         Continue,
         Restart,
+        RestartLowerPriority,
         ContinueNextFrame,
         ContinueLowerPriority,
         ScriptFinished,
@@ -376,6 +377,7 @@ namespace Braver.Field {
                         ResumeState = null;
                         return result;
                     case OpResult.Restart:
+                    case OpResult.RestartLowerPriority:
                         OpcodeAttempts++;
                         _ip = opIP;
                         return result;
@@ -435,7 +437,7 @@ namespace Braver.Field {
         public static OpResult WAIT(Fiber f, Entity e, FieldScreen s) {
             ushort frames = f.ReadU16();
             if (frames < f.OpcodeAttempts)
-                return OpResult.Continue;
+                return OpResult.ContinueLowerPriority;
             else
                 return OpResult.Restart;
         }
@@ -1008,11 +1010,11 @@ namespace Braver.Field {
                 if (state.Frame == 0) {
                     float rotation = (float)(Math.Atan2(s.Player.Model.Translation.X - ent.Model.Translation.X, -(s.Player.Model.Translation.Y - ent.Model.Translation.Y)) * 180 / Math.PI);
                     ent.Model.Rotation = new Vector3(0, 0, rotation);
+                    ent.Flags &= ~EntityFlags.CanCollide;
                     ent.Model.PlayAnimation(1, true, 1f); //TODO - should be run, depending on speed
                 } else if (state.Frame == speed) {
                     ent.Model.Translation = s.Player.Model.Translation;
                     ent.Model.Visible = false;
-                    ent.Flags &= ~EntityFlags.CanCollide;
                 } else {
                     var target = Vector2.Lerp(start, s.Player.Model.Translation.XY(), 1f * state.Frame / speed);
                     s.TryWalk(ent, new Vector3(target.X, target.Y, 0), false);
@@ -1374,7 +1376,7 @@ namespace Braver.Field {
         }
         public static OpResult ANIMW(Fiber f, Entity e, FieldScreen s) {
             if ((bool)e.OtherState["AnimPlaying"])
-                return OpResult.Restart;
+                return OpResult.RestartLowerPriority;
             else
                 return OpResult.Continue;
         }
@@ -1485,20 +1487,48 @@ namespace Braver.Field {
     }
 
     internal static class PartyInventory {
-        public static OpResult PRTYE(Fiber f, Entity e, FieldScreen s) {
-            foreach (var chr in s.Game.SaveData.Characters)
+
+        private static void SetParty(SaveData saveData, int p1, int p2, int p3) {
+            foreach (var chr in saveData.Characters)
                 if (chr != null)
                     chr.Flags &= ~CharFlags.ANY_PARTY_SLOT;
 
-            void DoSet(byte which, CharFlags slot) {
+            void DoSet(int which, CharFlags slot) {
                 //Actually should be checking for 0xfe, but this is equivalent...
-                if (which < s.Game.SaveData.Characters.Count)
-                    s.Game.SaveData.Characters[which].Flags |= slot;
+                if (which < saveData.Characters.Count)
+                    saveData.Characters[which].Flags |= slot;
             }
 
-            DoSet(f.ReadU8(), CharFlags.Party1);
-            DoSet(f.ReadU8(), CharFlags.Party2);
-            DoSet(f.ReadU8(), CharFlags.Party3);
+            DoSet(p1, CharFlags.Party1);
+            DoSet(p2, CharFlags.Party2);
+            DoSet(p3, CharFlags.Party3);
+        }
+
+        public static OpResult SPTYE(Fiber f, Entity e, FieldScreen s) {
+            byte banks1 = f.ReadU8(), banks2 = f.ReadU8(),
+                p1 = f.ReadU8(), p2 = f.ReadU8(), p3 = f.ReadU8();
+
+            SetParty(
+                s.Game.SaveData, 
+                s.Game.Memory.Read(banks1 >> 4, p1),
+                s.Game.Memory.Read(banks1 & 0xf, p2),
+                s.Game.Memory.Read(banks2 >> 4, p3)
+            );
+
+            return OpResult.Continue;
+        }
+        public static OpResult GTPYE(Fiber f, Entity e, FieldScreen s) {
+            byte banks1 = f.ReadU8(), banks2 = f.ReadU8(),
+                p1 = f.ReadU8(), p2 = f.ReadU8(), p3 = f.ReadU8();
+
+            s.Game.Memory.Write(banks1 >> 4, p1, (byte)(s.Game.SaveData.Party.ElementAtOrDefault(0)?.CharIndex ?? 0xfe));
+            s.Game.Memory.Write(banks1 & 0xf, p2, (byte)(s.Game.SaveData.Party.ElementAtOrDefault(1)?.CharIndex ?? 0xfe));
+            s.Game.Memory.Write(banks2 >> 4, p3, (byte)(s.Game.SaveData.Party.ElementAtOrDefault(2)?.CharIndex ?? 0xfe));
+
+            return OpResult.Continue;
+        }
+        public static OpResult PRTYE(Fiber f, Entity e, FieldScreen s) {
+            SetParty(s.Game.SaveData, f.ReadU8(), f.ReadU8(), f.ReadU8());
 
             return OpResult.Continue;
         }
@@ -1709,6 +1739,16 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
 
+        public static OpResult TUTOR(Fiber f, Entity e, FieldScreen s) {
+            byte tutID = f.ReadU8();
+            s.Game.PushScreen(new UI.Layout.LayoutScreen("Tutorial", parm: tutID));
+            return OpResult.ContinueNextFrame;
+        }
+
+        private class SavedMateria {
+            public List<OwnedMateria> MateriaStock, WeaponMateria, ArmourMateria;
+        }
+
         public static OpResult MENU(Fiber f, Entity e, FieldScreen s) {
             byte bank = f.ReadU8(), menu = f.ReadU8(), parm = f.ReadU8();
             int parmValue = s.Game.Memory.Read(bank, parm);
@@ -1730,6 +1770,24 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     break;
                 case 0xE:
                     s.Game.PushScreen(new UI.Layout.LayoutScreen("SaveMenu"));
+                    break;
+
+                case 0x12: //Save materia - saving main stock & party member 0, since that seems like the intended use...
+                    var saved = s.Game.Singleton(() => new SavedMateria());
+                    saved.MateriaStock = s.Game.SaveData.MateriaStock;
+                    saved.WeaponMateria = s.Game.SaveData.Party[0].WeaponMateria;
+                    saved.ArmourMateria = s.Game.SaveData.Party[0].ArmourMateria;
+
+                    s.Game.SaveData.MateriaStock = new List<OwnedMateria>();
+                    s.Game.SaveData.Party[0].WeaponMateria = new List<OwnedMateria>();
+                    s.Game.SaveData.Party[0].ArmourMateria = new List<OwnedMateria>();
+                    break;
+
+                case 0x13: //Opposite of op 0x12
+                    saved = s.Game.Singleton(() => new SavedMateria());
+                    s.Game.SaveData.MateriaStock = saved.MateriaStock;
+                    s.Game.SaveData.Party[0].WeaponMateria = saved.WeaponMateria;
+                    s.Game.SaveData.Party[0].ArmourMateria = saved.ArmourMateria;
                     break;
 
                 default:
