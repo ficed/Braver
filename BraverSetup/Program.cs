@@ -36,5 +36,6 @@ File.WriteAllLines(config, new[] {
     $"Movies={movies}",
     $"Save={save}",
     $"Braver=.",
+    $"Plugins=",
     $"BData={Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "Data.bpack")}"
 });
