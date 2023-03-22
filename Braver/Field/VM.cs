@@ -836,6 +836,22 @@ namespace Braver.Field {
             );
             int triID = s.Game.Memory.Read(bankZT & 0xf, tri);
 
+            if (s.HeightInTriangle(triID, target.X, target.Y, false) == null) {
+                float entHeight = (e.Model.MaxBounds.Y - e.Model.MinBounds.Y) * e.Model.Scale;
+                var actualTris = Enumerable.Range(0, 196)
+                    .Where(i => {
+                        var height = s.HeightInTriangle(i, target.X, target.Y, false);
+                        return height.HasValue && (Math.Abs(height.Value - target.Z) <= entHeight);
+                    })
+                    .ToArray();
+                if (actualTris.Any()) {
+                    System.Diagnostics.Trace.WriteLine($"LADER on {e.Name} targetting tri {triID} pos {target} - shifting to corrected tri {actualTris[0]}");
+                    triID = actualTris[0];
+                } else {
+                    throw new Exception($"LADER on {e.Name} targetting tri {triID} pos {target} - invalid position");
+                }
+            }
+
             float rotation = 360f * direction / 255f;
             e.Model.Rotation = new Vector3(0, 0, rotation);
             e.Model.PlayAnimation(anim, true, 0);
@@ -1071,6 +1087,8 @@ namespace Braver.Field {
 
             s.DropToWalkmesh(e, new Vector2(x, y), tri);
             System.Diagnostics.Trace.WriteLine($"VM:XYI moving {e.Name} to {e.Model.Translation} wmtri {tri}");
+            if (e == s.Player)
+                s.PlayerRepositioned();
 
             return OpResult.Continue;
         }
@@ -1088,6 +1106,8 @@ namespace Braver.Field {
             e.WalkmeshTri = tri;
             e.Model.Translation = new Vector3(x, y, z);
             System.Diagnostics.Trace.WriteLine($"VM:XYZI moving {e.Name} to {e.Model.Translation} wmtri {tri}");
+            if (e == s.Player)
+                s.PlayerRepositioned();
 
             return OpResult.Continue;
         }
@@ -1213,8 +1233,12 @@ namespace Braver.Field {
             } else {
                 if (model.AnimationState.CompletionCount > 0) {
                     e.OtherState["AnimPlaying"] = false;
-                    if (restoreState)
-                        model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                    if (restoreState) {
+                        if (f.OtherState["AnimResume"] != null)
+                            model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                        else
+                            model.PlayAnimation(0, true, 1f); //Seems reasonable? - e.g. mds7_w1, man1 reverts to previous state without any anim actually having been played previously...
+                    }
                     f.OtherState["AnimResume"] = null;
                     return OpResult.Continue;
                 }

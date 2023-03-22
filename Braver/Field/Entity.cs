@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula.FF7.Field;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,7 @@ namespace Braver.Field {
 
         private Ficedula.FF7.Field.Entity _entity;
         private Fiber[] _priorities;
+        private FieldScreen _screen;
 
         public string Name => _entity.Name;
         public FieldModel Model { get; set; }
@@ -38,16 +40,23 @@ namespace Braver.Field {
 
         public HashSet<Entity> CollidingWith { get; } = new();
         public HashSet<Entity> LinesCollidingWith { get; } = new();
+        public HashSet<Gateway> GatewaysCollidingWidth { get; } = new();
 
         public IEnumerable<Fiber> DebugFibers => _priorities;
 
         public Entity(Ficedula.FF7.Field.Entity entity, FieldScreen screen) {
+            _screen = screen;
             _entity = entity;
             _priorities = Enumerable.Range(0, 8)
                 .Select(p => new Fiber(this, screen, screen.FieldDialog.ScriptBytecode, p))
                 .ToArray();
             Flags = EntityFlags.CanTalk | EntityFlags.CanCollide;
             MoveSpeed = 1f;
+        }
+
+        public bool ScriptExists(int script) {
+            OpCode op = (OpCode)_screen.FieldDialog.ScriptBytecode[_entity.Scripts[script]];
+            return op != OpCode.RET;
         }
 
         public bool Call(int priority, int script, Action onComplete) {

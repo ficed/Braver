@@ -32,15 +32,9 @@ namespace Braver.Field {
         public Vector3 P1 { get; set; }
         public bool Active { get; set; } = true;
 
-        public bool IntersectsWith(FieldModel m, float entityRadius) {
-            if (!Active)
-                return false;
-
-            if ((m.Translation.Z - 5) > Math.Max(P0.Z, P1.Z)) return false;
-            float entHeight = (m.MaxBounds.Y - m.MinBounds.Y) * m.Scale;
-            if ((m.Translation.Z + entHeight + 5) < Math.Min(P0.Z, P1.Z)) return false;
-
-            return GraphicsUtil.LineCircleIntersect(P0.XY(), P1.XY(), m.Translation.XY(), entityRadius);
+        public bool IntersectsWith(FieldModel m, float intersectDistance) {
+            if (!Active) return false;
+            return m.IntersectsLine(P0, P1, intersectDistance);
         }
     }
 
@@ -598,6 +592,26 @@ namespace Braver.Field {
             };
         }
 
+        [Flags]
+        private enum LineEvents {
+            None = 0,
+            OK = 0x1,
+            Move = 0x2,
+            MoveClose = 0x4,
+            Go = 0x8,
+            GoOnce = 0x10,
+            GoAway = 0x20,
+        }
+
+        private static List<(LineEvents, int)> _lineEventByPriority = new List<(LineEvents, int)> {
+            (LineEvents.GoOnce, 5),
+            (LineEvents.Go, 4),
+            (LineEvents.Move, 2),
+            (LineEvents.MoveClose, 3),
+            (LineEvents.OK, 1),
+            (LineEvents.GoAway, 6),
+        };
+
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
             if (!(Game.Net is Net.Server)) return;
@@ -679,6 +693,12 @@ namespace Braver.Field {
                 //Normal controls
                 if ((Player != null) && Options.HasFlag(FieldOptions.PlayerControls)) {
 
+                    Dictionary<Entity, LineEvents> lineEvents = new();
+                    void SetLineEvent(Entity e, LineEvents events) {
+                        lineEvents.TryGetValue(e, out LineEvents current);
+                        lineEvents[e] = current | events;
+                    }
+
                     if (input.IsJustDown(InputKey.OK) && (Player != null)) {
                         var talkTo = Player.CollidingWith
                             .Where(e => e.Flags.HasFlag(EntityFlags.CanTalk))
@@ -691,7 +711,7 @@ namespace Braver.Field {
 
                     int desiredAnim = 0;
                     float animSpeed = 1f;
-                    if (input.IsAnyDirectionDown() && Options.HasFlag(FieldOptions.PlayerControls)) {
+                    if (input.IsAnyDirectionDown()) {
                         //TODO actual use controldirection
                         var forwards = Vector3.Transform(_view3D.CameraForwards.WithZ(0), Matrix.CreateRotationZ((_controlRotation + 180) * (float)Math.PI / 180f));
                         forwards.Normalize();
@@ -722,39 +742,25 @@ namespace Braver.Field {
                             Player.Model.Rotation = Player.Model.Rotation.WithZ((float)(Math.Atan2(move.X, -move.Y) * 180f / Math.PI));
 
                             var oldLines = Player.LinesCollidingWith.ToArray();
-                            Player.LinesCollidingWith.Clear();
-                            foreach (var lineEnt in Entities.Where(e => e.Line != null)) {
-                                if (lineEnt.Line.IntersectsWith(Player.Model, Player.CollideDistance))
-                                    Player.LinesCollidingWith.Add(lineEnt);
-                            }
+                            var oldGateways = Player.GatewaysCollidingWidth.ToArray();
+                            PlayerRepositioned();
 
-                            foreach (var entered in Player.LinesCollidingWith.Except(oldLines)) {
-                                System.Diagnostics.Trace.WriteLine($"Player has entered line {entered}");
-                                entered.Call(4, 5, null); //TODO PRIORITY!?!
-                            }
+                            foreach (var entered in Player.LinesCollidingWith.Except(oldLines))
+                                SetLineEvent(entered, LineEvents.GoOnce);
 
-                            foreach (var left in oldLines.Except(Player.LinesCollidingWith)) {
-                                System.Diagnostics.Trace.WriteLine($"Player has left line {left}");
-                                left.Call(4, 6, null); //TODO PRIORITY!?!
-                            }
-
-                            /*
-                            foreach (var inside in Player.LinesCollidingWith) {
-                                inside.Call(2, 3, null); //TODO PRIORITY!?!
-                            }
-                            */
+                            foreach (var left in oldLines.Except(Player.LinesCollidingWith))
+                                SetLineEvent(left, LineEvents.GoAway);
 
                             if (Options.HasFlag(FieldOptions.GatewaysEnabled)) {
-                                foreach (var gateway in TriggersAndGateways.Gateways) {
-                                    if (GraphicsUtil.LineCircleIntersect(gateway.V0.ToX().XY(), gateway.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance)) {
-                                        Options &= ~FieldOptions.PlayerControls;
-                                        desiredAnim = 0; //stop player walking as they won't move any more!
-                                        FadeOut(() => {
-                                            Game.ChangeScreen(this, new FieldScreen(gateway.Destination));
-                                        });
-                                    }
+                                foreach (var gateway in Player.GatewaysCollidingWidth.Except(oldGateways)) {
+                                    Options &= ~FieldOptions.PlayerControls;
+                                    desiredAnim = 0; //stop player walking as they won't move any more!
+                                    FadeOut(() => {
+                                        Game.ChangeScreen(this, new FieldScreen(gateway.Destination));
+                                    });
                                 }
                             }
+
                             foreach (var trigger in TriggersAndGateways.Triggers) {
                                 bool active = GraphicsUtil.LineCircleIntersect(trigger.V0.ToX().XY(), trigger.V1.ToX().XY(), Player.Model.Translation.XY(), Player.CollideDistance);
                                 if (active != _activeTriggers.Contains(trigger)) {
@@ -816,25 +822,31 @@ namespace Braver.Field {
                             //
                         }
 
-                        //Lines we're moving through
-                        //Both events seem necessary; presumably priorities should be different though...?
-                        foreach (var isIn in Player.LinesCollidingWith) {
-                            System.Diagnostics.Trace.WriteLine($"Player colliding with {isIn.Name}, triggering script 2");
-                            isIn.Call(3, 2, null); //TODO PRIORITY!?!
+                        foreach (var inLine in Player.LinesCollidingWith) {
+                            SetLineEvent(inLine, LineEvents.Move);
+                            if (inLine.Line.IntersectsWith(Player.Model, Player.CollideDistance / 4))
+                                SetLineEvent(inLine, LineEvents.MoveClose);
+                            if (input.IsJustDown(InputKey.OK))
+                                SetLineEvent(inLine, LineEvents.OK);
                         }
-                        foreach (var isIn in Player.LinesCollidingWith) {
-                            System.Diagnostics.Trace.WriteLine($"Player colliding with {isIn.Name}, triggering script 3");
-                            isIn.Call(2, 3, null); //TODO PRIORITY!?!
+
+                    }
+
+                    foreach (var inLine in Player.LinesCollidingWith)
+                        SetLineEvent(inLine, LineEvents.Go);
+
+                    foreach(var line in lineEvents.Keys) {
+                        foreach(var evt in _lineEventByPriority) {
+                            if (lineEvents[line].HasFlag(evt.Item1) && line.ScriptExists(evt.Item2)) {
+                                line.Call(1, evt.Item2, null); //TODO - priority??
+                                break;
+                            }
                         }
                     }
 
                     if ((Player.Model.AnimationState.Animation != desiredAnim) || (Player.Model.AnimationState.AnimationSpeed != animSpeed))
                         Player.Model.PlayAnimation(desiredAnim, true, animSpeed);
 
-                    //Lines we're currently within - run regardless of whether player is actually holding any directional buttons
-                    foreach (var isIn in Player.LinesCollidingWith) {
-                        isIn.Call(2, 4, null); //TODO PRIORITY!?!
-                    }
                 }
             }
 
@@ -1235,10 +1247,26 @@ namespace Braver.Field {
             ReportDebugEntityPos(e);
         }
 
+        public void PlayerRepositioned() {
+            Player.LinesCollidingWith.Clear();
+            foreach (var lineEnt in Entities.Where(e => e.Line != null)) {
+                if (lineEnt.Line.IntersectsWith(Player.Model, Player.CollideDistance))
+                    Player.LinesCollidingWith.Add(lineEnt);
+            }
+            Player.GatewaysCollidingWidth.Clear();
+            foreach (var gateway in TriggersAndGateways.Gateways)
+                if (Player.Model.IntersectsLine(gateway.V0.ToX(), gateway.V1.ToX(), Player.CollideDistance))
+                    Player.GatewaysCollidingWidth.Add(gateway);
+        }
+
         public void CheckPendingPlayerSetup() {
             if ((_destination != null) && (Player.Model != null) && (_destination.Triangle != ushort.MaxValue)) {
                 DropToWalkmesh(Player, new Vector2(_destination.X, _destination.Y), _destination.Triangle, false);
                 Player.Model.Rotation = new Vector3(0, 0, 360f * _destination.Orientation / 255f);
+                //This is necessary because the field scripts will position the player inside lines
+                //and gateways, and expect events to not trigger (because the player isn't "entering" the
+                //line/gateway) - until they leave and then re-enter later.
+                PlayerRepositioned();
                 _destination = null;
             }
         }

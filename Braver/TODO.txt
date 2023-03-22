@@ -30,6 +30,7 @@ Field - model lighting looks a bit too bright
 	  - Tutorials don't actually display
 	  - WAIT and ANIMW yielding to lower priority scripts (e.g. Marlene in mds7_pb1) - is this actually correct?
 			Seems to be necessary in this location at least - but behaviour still isn't quite as expected.
+	  - mds7_w2 has multiple KAWAI opcodes to implement!
 
 Music looping works but still a noticeable break at the loop point
 

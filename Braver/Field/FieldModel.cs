@@ -281,6 +281,14 @@ namespace Braver.Field {
                 Descend(cb, child, onChunk);
         }
         
+        public bool IntersectsLine(Vector3 p0, Vector3 p1, float intersectDistance) {
+            if ((Translation.Z - 5) > Math.Max(p0.Z, p1.Z)) return false; //TODO - close enough for now? ;)
+            float entHeight = (MaxBounds.Y - MinBounds.Y) * Scale;
+                        if ((Translation.Z + entHeight + 5) < Math.Min(p0.Z, p1.Z)) return false;
+
+            return GraphicsUtil.LineCircleIntersect(p0.XY(), p1.XY(), Translation.XY(), intersectDistance);
+        }
+
         public void Render(Viewer viewer, bool transparentGroups) {
             if (_vertexBuffer == null) return;
 
