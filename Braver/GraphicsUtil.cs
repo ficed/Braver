@@ -143,6 +143,10 @@ namespace Braver {
             v.Z = z;
             return v;
         }
+        public static Vector3 WithY(this Vector3 v, float y) {
+            v.Y = y;
+            return v;
+        }
 
         public static Vector2 XY(this Vector3 v) {
             return new Vector2(v.X, v.Y);

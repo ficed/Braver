@@ -42,6 +42,8 @@ namespace Ficedula.FF7.Battle {
 
     public enum AnimScriptOp : byte {
         WaitForAllAnimationDamage = 0x9e,
+        EnemySkillCharge = 0xa4,
+        SummonCharge = 0xa5,
         ResetDefendingActorPosition = 0xa6,
         MoveRelativeCover = 0xab,
         JumpTargetNOP = 0xb2,
@@ -58,6 +60,7 @@ namespace Ficedula.FF7.Battle {
         LoadEffect = 0xe8,
         DisplayActionName = 0xea,
         WaitForEffectLoad = 0xec,
+        KeepAnimOffset = 0xed, //GUESS - but seems plausible?!
         RunIdleAnimScript = 0xee,
         FootDustEffect = 0xf0,
         WaitForTimer = 0xf3,

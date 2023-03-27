@@ -11,6 +11,7 @@ DATA    LGP     wm      %ff7%\data\wm\world_us.lgp
 DATA    FILE    wm      %ff7%\data\wm
 
 DATA    LGP     battle  %ff7%\data\battle\battle.lgp
+DATA    LGP     battle  %ff7%\data\battle\magic.lgp
 DATA    FILE    battle  %ff7%\data\battle
 
 DATA    FILE    kernel  %ff7%\data\kernel

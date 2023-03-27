@@ -16,6 +16,7 @@ namespace Braver {
         SaveReady = 1,
         Invalid = 2,
         Cancel = 3,
+        CastMagic = 12,
         EnemyDeath = 21,
         BattleSwirl = 42,
         BuyItem = 261,

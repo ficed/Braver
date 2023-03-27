@@ -110,6 +110,7 @@ namespace Ficedula.FF7.Battle {
             for (int i = 0; i < parts; i++) {
                 int hbones = source.ReadI32(), hframes = source.ReadI32(), hsize = source.ReadI32();
                 if (hsize < 11) {
+                    Anims.Add(null);
                     source.Seek(hsize, System.IO.SeekOrigin.Current);
                     continue;
                 }

@@ -45,13 +45,21 @@ namespace Braver.Battle {
         public bool Visible { get; set; } = true;
         public float GlobalAnimationSpeed { get; set; } = 1f;
         public AnimationState AnimationState { get; set; }
+        public AnimationScript AnimationScript { get; private set; }
 
         public Vector3 MinBounds { get; private set; }
         public Vector3 MaxBounds { get; private set; }
 
         public float? DeathFade { get; set; }
 
-        private Model(GraphicsDevice graphics, FGame game, string folder, string skeleton, string anims, IEnumerable<string> texs, Func<System.IO.Stream> NextData) {
+        public Vector3 CurrentAnimOffset {
+            get {
+                var frame = _animations.Anims[AnimationState.Animation].Frames[AnimationState.Frame];
+                return new(frame.X, frame.Y, frame.Z);
+            }
+        }
+
+        private Model(GraphicsDevice graphics, FGame game, string folder, string skeleton, string scripts, string anims, IEnumerable<string> texs, Func<System.IO.Stream> NextData) {
             _graphics = graphics;
             List<VertexPositionNormalColorTexture> verts = new();
             List<int> indices = new();
@@ -70,6 +78,9 @@ namespace Braver.Battle {
 
             using (var s = game.Open(folder, skeleton)) {
                 _root = BBone.Decode(s);
+            }
+            using (var s = game.Open(folder, scripts)) {
+                AnimationScript = new AnimationScript(s);
             }
 
             foreach (var bone in _root.ThisAndDescendants().Where(b => b.PFileIndex != null).OrderBy(b => b.PFileIndex.Value)) {
@@ -237,6 +248,7 @@ namespace Braver.Battle {
             if (_animCountdown <= 0) {
                 _animCountdown = 1;
                 if (AnimationState.Frame == AnimationState.EndFrame) {
+                    AnimationState.CompletionCount++;
                     if (AnimationState.AnimationLoop)
                         AnimationState.Frame = AnimationState.StartFrame;
                 } else {
@@ -246,10 +258,12 @@ namespace Braver.Battle {
         }
 
         public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int endFrame = -1, bool onlyIfDifferent = true) {
-            if ((AnimationState != null) && (AnimationState.Animation == animation) &&
-                (AnimationState.AnimationLoop == loop) && (AnimationState.AnimationSpeed == speed) &&
-                (AnimationState.StartFrame == startFrame) && (AnimationState.EndFrame == endFrame))
-                return;
+            if (onlyIfDifferent) {
+                if ((AnimationState != null) && (AnimationState.Animation == animation) &&
+                    (AnimationState.AnimationLoop == loop) && (AnimationState.AnimationSpeed == speed) &&
+                    (AnimationState.StartFrame == startFrame) && (AnimationState.EndFrame == endFrame))
+                    return;
+            }
 
             AnimationState = new AnimationState {
                 Animation = animation,
@@ -276,7 +290,7 @@ namespace Braver.Battle {
                 } while (stream == null && (codecounter < 260));
                 return stream;
             };
-            return new Model(graphics, game, "battle", code + "aa", code + "da", texs, NextData);
+            return new Model(graphics, game, "battle", code + "aa", code + "ab", code + "da", texs, NextData);
         }
         public static Model LoadSummonModel(GraphicsDevice graphics, FGame game, string code) {
             var texs = Enumerable.Range(0, 99).Select(i => code + ".t" + i.ToString("00"));
@@ -288,7 +302,7 @@ namespace Braver.Battle {
                 } while (s == null && part <= 99);
                 return s;
             };
-            return new Model(graphics, game, "magic", code + ".d", code + ".a00", texs, NextData);
+            return new Model(graphics, game, "magic", code + ".d", code + ".b" /*Maybe?!?!*/, code + ".a00", texs, NextData);
         }
 
     }

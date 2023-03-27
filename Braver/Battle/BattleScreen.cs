@@ -128,8 +128,12 @@ namespace Braver.Battle {
         private Action _actionComplete;
 
         private Engine _engine;
+        private BattleDebug _debug;
 
         private bool _debugCamera = false;
+
+        public IReadOnlyDictionary<ICombatant, Model> Models => _models;
+        public PerspView3D View3D => _view;
 
         private void AddModel(string code, Vector3 position, ICombatant combatant) {
             var model = Model.LoadBattleModel(Graphics, Game, code);
@@ -146,7 +150,7 @@ namespace Braver.Battle {
             });
         }
 
-        private void UpdateVisualState(ICombatant combatant) {
+        public void UpdateVisualState(ICombatant combatant) {
             var model = _models[combatant];
             switch(combatant) {
                 case CharacterCombatant chr:
@@ -322,6 +326,9 @@ namespace Braver.Battle {
             _uiHandler = new UIHandler(_engine.Combatants.OfType<CharacterCombatant>());
             _ui = new UI.Layout.LayoutScreen("battle", _uiHandler);
             _ui.Init(Game, Graphics);
+
+            if (_flags.HasFlag(BattleFlags.BraverDebug))
+                _debug = new BattleDebug(Graphics, Game, _engine, this);
 
             _menuUI = new UI.UIBatch(Graphics, Game);
 
@@ -512,8 +519,8 @@ namespace Braver.Battle {
                 model.FrameStep();
             }
 
-            if (_flags.HasFlag(BattleFlags.BraverDebug)) {
-
+            if (_debug != null) {
+                _debug.Step();
             } else {
                 EngineTick(elapsed);
             }
@@ -603,12 +610,15 @@ namespace Braver.Battle {
 
             _ui.Render();
             _menuUI.Render();
+            _debug?.Render();
         }
 
         private IEnumerable<CharacterCombatant> ReadyToAct => _uiHandler.Combatants.Where(c => c.ReadyForAction);
 
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
+
+            _debug?.ProcessInput(input);
 
             if (input.IsJustDown(InputKey.Debug1))
                 _debugCamera = !_debugCamera;

@@ -15,7 +15,7 @@ namespace Braver.Battle {
         public override Color ClearColor => Color.Black;
 
         private UI.UIBatch _ui;
-
+            
         public BattleSkipScreen(BattleFlags flags) {
             _flags = flags;
         }

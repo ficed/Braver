@@ -63,8 +63,11 @@ namespace Ficedula.FF7 {
                 foreach (int _ in Enumerable.Range(0, _source.ReadI16())) {
                     foreach (int __ in Enumerable.Range(0, _source.ReadI16())) {
                         string path = _source.ReadAscii(128);
+                        int nullIndex = path.IndexOf('\0');
+                        if (nullIndex >= 0)
+                            path = path.Substring(0, nullIndex);
                         int entry = _source.ReadI16();
-                        tempEntries[entry].Path = path;
+                        tempEntries[entry].Path = path.Trim('\0');
                     }
                 }
             }
