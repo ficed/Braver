@@ -1313,6 +1313,14 @@ namespace Braver.Field {
                 model.Scale = message.Scale.Value;
             if (message.AnimationState != null)
                 model.AnimationState = message.AnimationState;
+            if (message.AmbientLightColour != null)
+                model.AmbientLightColour = message.AmbientLightColour.Value;
+            if (message.ShineEffect != null)
+                model.ShineEffect = message.ShineEffect.Value;
+            if (message.EyeAnimation != null)
+                model.EyeAnimation = message.EyeAnimation.Value;
+            if (message.GlobalAnimationSpeed != null)
+                model.GlobalAnimationSpeed = message.GlobalAnimationSpeed.Value;
         }
 
         public void Received(Net.FieldBGMessage message) {

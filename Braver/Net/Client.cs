@@ -109,7 +109,7 @@ namespace Braver.Net {
         }
 
         public void Received(SfxMessage message) {
-            _game.Audio.PlaySfx(message.Which, message.Volume, message.Pan);
+            _game.Audio.PlaySfx(message.Which, message.Volume, message.Pan, message.Channel);
         }
 
         public void Received(MusicMessage message) {

@@ -16,17 +16,22 @@ namespace Braver.Net {
         public int Which { get; set; }
         public float Volume { get; set; }
         public float Pan { get; set; }
+        public int? Channel { get; set; }
 
         public override void Load(NetDataReader reader) {
             Which = reader.GetInt();
             Volume = reader.GetFloat();
             Pan = reader.GetFloat();
+            Channel = reader.GetInt();
+            if (!reader.GetBool()) Channel = null;
         }
 
         public override void Save(NetDataWriter writer) {
             writer.Put(Which);
             writer.Put(Volume);
             writer.Put(Pan);
+            writer.Put(Channel.GetValueOrDefault());
+            writer.Put(Channel.HasValue);
         }
     }
 

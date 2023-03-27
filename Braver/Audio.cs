@@ -356,6 +356,7 @@ namespace Braver {
             //TODO very basic implementation
             //TODO pan
             //TODO non-ogg!
+            //TODO - this won't work for network clients!
             _streamOut?.Stop();
             _streamOut?.Dispose();
             _streamOut = new NAudio.Wave.WaveOut();

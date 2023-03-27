@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula.FF7.Battle;
 using Ficedula.FF7.Exporters;
 
 Console.WriteLine("F7Cmd");
@@ -54,6 +55,20 @@ var tex = new Ficedula.FF7.TexFile(File.OpenRead(@"C:\temp\wm\wm_kumo.tex"));
 */
 
 if (args.Length < 2) return;
+
+if (args[0].Equals("BattleAnimScript", StringComparison.InvariantCultureIgnoreCase)) {
+    using(var fs = new FileStream(args[1], FileMode.Open, FileAccess.Read)) {
+        var anims = new AnimationScript(fs);
+        foreach(int i in Enumerable.Range(0, anims.Scripts.Count)) {
+            Console.WriteLine($"Script {i}");
+            var decoder = new AnimationScriptDecoder(anims.Scripts[i]);
+            DecodedAnimScriptOp? op;
+            while ((op = decoder.DecodeNext()) != null) {
+                Console.WriteLine("\t" + op.Value.ToString());
+            }
+        }
+    }
+}
 
 if (args[0].Equals("LGP", StringComparison.OrdinalIgnoreCase)) {
     using(var lgp = new Ficedula.FF7.LGPFile(args[1])) {

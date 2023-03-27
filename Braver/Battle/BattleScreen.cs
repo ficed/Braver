@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Net;
 using Braver.UI;
 using Braver.UI.Layout;
 using Ficedula.FF7;
@@ -138,6 +139,11 @@ namespace Braver.Battle {
                 model.Rotation = new Vector3(0, 180, 0);
             //Defaults to animation 0 so no PlayAnimation required
             _models.Add(combatant, model);
+            Game.Net.Send(new AddBattleModelMessage {
+                Code = code,
+                Position = position,
+                ID = _engine.Combatants.IndexOf(combatant),
+            });
         }
 
         private void UpdateVisualState(ICombatant combatant) {
@@ -277,12 +283,14 @@ namespace Braver.Battle {
         }
 
         private static string[] _charBattleModels = new[] {
-            "rt", "sb", null, "rv"
+            "rt", "sb", "ru", "rv"
         };
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
             _scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[_formationID];
+
+            g.Net.Send(new Net.BattleScreenMessage { BattleID = _formationID });
 
             LoadBackground();
 
@@ -422,10 +430,7 @@ namespace Braver.Battle {
             return screenPos.XY();
         }
 
-        protected override void DoStep(GameTime elapsed) {
-            foreach (var model in _models.Values) {
-                model.FrameStep();
-            }
+        private void EngineTick(GameTime elapsed) {
             _engine.Tick();
 
             if (_activeMenu == null) {
@@ -435,7 +440,7 @@ namespace Braver.Battle {
             } else if (!_activeMenu.Combatant.ReadyForAction)
                 _activeMenu = null;
 
-            _uiHandler.Update(elapsed.TotalGameTime.Milliseconds < 500 ? null : _activeMenu?.Combatant);
+            _uiHandler.Update(_activeMenu?.Combatant);
             _ui.Step(elapsed);
 
             _menuUI.Reset();
@@ -459,7 +464,7 @@ namespace Braver.Battle {
                 else
                     targets = _targets.Targets;
 
-                foreach(var target in targets) {
+                foreach (var target in targets) {
                     var screenPos = GetModelScreenPos(target);
                     //TODO clamp to screen, presumably
                     _menuUI.DrawImage("pointer", (int)screenPos.X, (int)screenPos.Y, 0.99f, Alignment.Right);
@@ -499,6 +504,18 @@ namespace Braver.Battle {
                     //
                 } else
                     DoExecuteNextQueuedAction();
+            }
+        }
+
+        protected override void DoStep(GameTime elapsed) {
+            foreach (var model in _models.Values) {
+                model.FrameStep();
+            }
+
+            if (_flags.HasFlag(BattleFlags.BraverDebug)) {
+
+            } else {
+                EngineTick(elapsed);
             }
         }
 
@@ -698,7 +715,7 @@ namespace Braver.Battle {
 
         public static void Launch(FGame game, int battleID, BattleFlags flags) {
             if (game.DebugOptions.SkipBattleMenu)
-                game.PushScreen(new BattleDebug(flags));
+                game.PushScreen(new BattleSkipScreen(flags));
             else {
                 game.PushScreen(new RealBattleScreen(battleID, flags));
                 game.PushScreen(new Swirl());
@@ -760,6 +777,8 @@ namespace Braver.Battle {
         BattleArena = 0x40,
         NoVictoryScreens = 0x80,
         NoGameOver = 0x100,
+
+        BraverDebug = 0x10000000,
     }
 }
 

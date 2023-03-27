@@ -33,7 +33,15 @@ namespace Braver.Field {
         private bool _visible = true, _shineEffect, _eyeAnimation = true;
         private AnimationState _animationState;
         private int _modelID;
+        private float _globalAnimationSpeed = 1f;
 
+        private void DoSetNet(Action<Net.FieldModelMessage> setNet) {
+            var msg = new Net.FieldModelMessage {
+                ModelID = _modelID
+            };
+            setNet(msg);
+            _game.Net.Send(msg);
+        }
         private void DoSetNet<T>(ref T field, T value, Action<Net.FieldModelMessage> setNet) {
             field = value;
             var msg = new Net.FieldModelMessage {
@@ -79,28 +87,33 @@ namespace Braver.Field {
             get => _colEffect.AmbientLightColor;
             set {
                 _colEffect.AmbientLightColor = _texEffect.AmbientLightColor = value;
-                //TODO net message
+                DoSetNet(msg => msg.AmbientLightColour = value);
             }
         }
 
         public bool ShineEffect {
             get => _shineEffect;
             set {
-                _shineEffect = value;
                 _texEffect.DirectionalLight0.SpecularColor = _colEffect.DirectionalLight0.SpecularColor = _shineEffect ? Vector3.One : Vector3.Zero;
+                DoSetNet(ref _shineEffect, value, msg => msg.ShineEffect = value);
             }
-        } //TODO net message
+        }
 
         public bool EyeAnimation {
             get => _eyeAnimation;
             set {
-                _eyeAnimation = value;
-                //TODO net message
+                DoSetNet(ref _eyeAnimation, value, msg => msg.EyeAnimation = value);
+            }
+        }
+
+        public float GlobalAnimationSpeed {
+            get => _globalAnimationSpeed;
+            set {
+                DoSetNet(ref _globalAnimationSpeed, value, msg => msg.GlobalAnimationSpeed = value);
             }
         }
 
         public int AnimationCount => _animations.Count;
-        public float GlobalAnimationSpeed { get; set; } = 1f;
         public Vector3 MinBounds { get; }
         public Vector3 MaxBounds { get; }
         public bool ZUp { get; set; } = true;

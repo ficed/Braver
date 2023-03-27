@@ -93,10 +93,14 @@ namespace Braver.Net {
         public Vector3? Rotation2 { get; set; }
         public float? Scale { get; set; }
         public Field.AnimationState AnimationState { get; set; }
+        public Vector3? AmbientLightColour { get; set; }
+        public bool? ShineEffect { get; set; }
+        public bool? EyeAnimation { get; set; }
+        public float? GlobalAnimationSpeed { get; set; }
 
         public override void Load(NetDataReader reader) {
             ModelID = reader.GetInt();
-            foreach(int index in SetBits(reader.GetInt())) {
+            foreach (int index in SetBits(reader.GetInt())) {
                 switch (index) {
                     case 0:
                         Visible = reader.GetBool(); break;
@@ -120,7 +124,16 @@ namespace Braver.Net {
                             StartFrame = reader.GetInt(),
                         };
                         break;
+                    case 7:
+                        AmbientLightColour = reader.GetVec3(); break;
+                    case 8:
+                        ShineEffect = reader.GetBool(); break;
+                    case 9:
+                        EyeAnimation = reader.GetBool(); break;
+                    case 10:
+                        GlobalAnimationSpeed = reader.GetFloat(); break;
                 }
+
             }
         }
 
@@ -128,7 +141,9 @@ namespace Braver.Net {
             writer.Put(ModelID);
             writer.Put(GenerateMask(
                 Visible.HasValue, Translation.HasValue, Translation2.HasValue,
-                Rotation.HasValue, Rotation2.HasValue, Scale.HasValue, AnimationState != null
+                Rotation.HasValue, Rotation2.HasValue, Scale.HasValue, AnimationState != null,
+                AmbientLightColour.HasValue, ShineEffect.HasValue,
+                EyeAnimation.HasValue, GlobalAnimationSpeed.HasValue
             ));
             if (Visible.HasValue)
                 writer.Put(Visible.Value);
@@ -150,6 +165,15 @@ namespace Braver.Net {
                 writer.Put(AnimationState.Frame);
                 writer.Put(AnimationState.StartFrame);
             }
+            if (AmbientLightColour.HasValue)
+                writer.Put(AmbientLightColour.Value);
+            if (ShineEffect.HasValue)
+                writer.Put(ShineEffect.Value);
+            if (EyeAnimation.HasValue)
+                writer.Put(EyeAnimation.Value);
+            if (GlobalAnimationSpeed.HasValue)
+                writer.Put(GlobalAnimationSpeed.Value);
+
         }
     }
 }

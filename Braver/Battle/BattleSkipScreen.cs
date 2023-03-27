@@ -11,12 +11,12 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Braver.Battle {
-    public class BattleDebug : BattleScreen {
+    public class BattleSkipScreen : BattleScreen {
         public override Color ClearColor => Color.Black;
 
         private UI.UIBatch _ui;
 
-        public BattleDebug(BattleFlags flags) {
+        public BattleSkipScreen(BattleFlags flags) {
             _flags = flags;
         }
 

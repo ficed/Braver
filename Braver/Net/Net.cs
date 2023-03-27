@@ -29,6 +29,9 @@ namespace Braver.Net {
         UIScreen = 200,
         UIState = 201,
 
+        BattleScreen = 300,
+        AddBattleModel = 301,
+
         SfxMessage = 9001,
         MusicMessage = 9002,
         MusicVolumeMessage = 9003,
@@ -62,6 +65,9 @@ namespace Braver.Net {
 
             Register<UIScreenMessage>(MessageType.UIScreen);
             Register<UIStateMessage>(MessageType.UIState);
+
+            Register<BattleScreenMessage>(MessageType.BattleScreen);
+            Register<AddBattleModelMessage>(MessageType.AddBattleModel);
 
             Register<SfxMessage>(MessageType.SfxMessage);
             Register<MusicMessage>(MessageType.MusicMessage);
