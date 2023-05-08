@@ -33,12 +33,13 @@ namespace Braver.Field {
         public Character Character { get; set; }
         public EntityFlags Flags { get; set; }
         public float TalkDistance { get; set; }
-        public float CollideDistance { get; set; }
+        public float CollideDistance { get; set; } = 20f; //TODO - is this reasonable...? Probably?!
         public float MoveSpeed { get; set; }
         public int WalkmeshTri { get; set; }
         public Dictionary<string, object> OtherState { get; } = new();
 
         public HashSet<Entity> CollidingWith { get; } = new();
+        public HashSet<Entity> CanTalkWith { get; } = new();
         public HashSet<Entity> LinesCollidingWith { get; } = new();
         public HashSet<Gateway> GatewaysCollidingWidth { get; } = new();
 
@@ -65,25 +66,19 @@ namespace Braver.Field {
 
             System.Diagnostics.Trace.WriteLine($"Entity {Name} running script {script} at priority {priority}");
             _priorities[priority].OnStop = onComplete;
-            _priorities[priority].Start(_entity.Scripts[script]);
+            _priorities[priority].Start(_entity.Scripts[script], $"Script {script}");
             return true;
         }
 
         public void Run(int maxOps, bool isInit = false) {
-            int priority = 8;
-            foreach (var fiber in _priorities.Reverse()) {
-                priority--;
+            int priority = 0;
+            foreach (var fiber in _priorities) {
+                priority++;
                 if (fiber.InProgress) {
                     if (DEBUG_OUT)
                         System.Diagnostics.Trace.WriteLine($"Entity {Name} running script from IP {fiber.IP} priority {priority}");
                     var result = fiber.Run(maxOps, isInit);
                     if (isInit) fiber.Resume();
-
-                    switch(result) {
-                        case OpResult.RestartLowerPriority:
-                        case OpResult.ContinueLowerPriority:
-                            continue;
-                    }
                     break;
                 }
             }
@@ -91,5 +86,9 @@ namespace Braver.Field {
 
         public override string ToString() => $"Entity {Name}";
 
+        public IEnumerable<string> DebugState() {
+            foreach (int i in Enumerable.Range(0, _priorities.Length))
+                yield return $"Fiber {i}: {_priorities[i]}";
+        }
     }
 }

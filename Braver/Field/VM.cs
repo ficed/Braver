@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Battle;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -274,9 +275,7 @@ namespace Braver.Field {
     public enum OpResult {
         Continue,
         Restart,
-        RestartLowerPriority,
         ContinueNextFrame,
-        ContinueLowerPriority,
         ScriptFinished,
     }
 
@@ -293,6 +292,7 @@ namespace Braver.Field {
         public Action OnStop { get; set; }
         public int IP => _ip;
         public string PauseReason { get; private set; }
+        public string ScriptName { get; private set; }
 
         public int Priority { get; private set; }
 
@@ -325,8 +325,9 @@ namespace Braver.Field {
             Priority = priority;
         }
 
-        public void Start(int ip) {
+        public void Start(int ip, string scriptName) {
             _ip = ip;
+            ScriptName = scriptName;
             Active = true;
             OpcodeAttempts = 0;
             ResumeState = null;
@@ -371,13 +372,11 @@ namespace Braver.Field {
                         OpcodeAttempts = 0;
                         ResumeState = null;
                         break;
-                    case OpResult.ContinueLowerPriority:
                     case OpResult.ContinueNextFrame:
                         OpcodeAttempts = 0;
                         ResumeState = null;
                         return result;
                     case OpResult.Restart:
-                    case OpResult.RestartLowerPriority:
                         OpcodeAttempts++;
                         _ip = opIP;
                         return result;
@@ -386,6 +385,9 @@ namespace Braver.Field {
             return OpResult.ScriptFinished;
         }
 
+        public override string ToString() {
+            return $"Fiber at IP {IP} Active={Active} {PauseReason} Script {ScriptName}";
+        }
     }
 
     public static class VM {
@@ -431,15 +433,17 @@ namespace Braver.Field {
     internal static class Flow {
 
         public static OpResult RET(Fiber f, Entity e, FieldScreen s) {
+            System.Diagnostics.Debug.WriteLine($"Entity {e.Name} finished script {f.ScriptName} priority {f.Priority}");
             return OpResult.ScriptFinished;
         }
 
         public static OpResult WAIT(Fiber f, Entity e, FieldScreen s) {
             ushort frames = f.ReadU16();
             if (frames < f.OpcodeAttempts)
-                return OpResult.ContinueLowerPriority;
+                return OpResult.Continue;
             else
                 return OpResult.Restart;
+            //TIN_1 seems to need this behaviour for sure - see Tifa scripts 16 & 17            
         }
 
         public static OpResult JMPF(Fiber f, Entity e, FieldScreen s) {
@@ -456,12 +460,12 @@ namespace Braver.Field {
         public static OpResult JMPB(Fiber f, Entity e, FieldScreen s) {
             int newIP = f.IP - 1 - f.ReadU8();
             f.Jump(newIP);
-            return OpResult.ContinueLowerPriority;
+            return OpResult.ContinueNextFrame;
         }
         public static OpResult JMPBL(Fiber f, Entity e, FieldScreen s) {
             int newIP = f.IP - 1 - f.ReadU16();
             f.Jump(newIP);
-            return OpResult.ContinueLowerPriority;
+            return OpResult.ContinueNextFrame;
         }
 
         private static OpResult IfImpl(Fiber f, FieldScreen s, byte banks, int iVal1, int iVal2, byte comparison, int newIP) {
@@ -838,7 +842,7 @@ namespace Braver.Field {
 
             if (s.HeightInTriangle(triID, target.X, target.Y, false) == null) {
                 float entHeight = (e.Model.MaxBounds.Y - e.Model.MinBounds.Y) * e.Model.Scale;
-                var actualTris = Enumerable.Range(0, 196)
+                var actualTris = Enumerable.Range(0, s.WalkmeshTriCount)
                     .Where(i => {
                         var height = s.HeightInTriangle(i, target.X, target.Y, false);
                         return height.HasValue && (Math.Abs(height.Value - target.Z) <= entHeight);
@@ -848,7 +852,10 @@ namespace Braver.Field {
                     System.Diagnostics.Trace.WriteLine($"LADER on {e.Name} targetting tri {triID} pos {target} - shifting to corrected tri {actualTris[0]}");
                     triID = actualTris[0];
                 } else {
-                    throw new Exception($"LADER on {e.Name} targetting tri {triID} pos {target} - invalid position");
+                    System.Diagnostics.Trace.WriteLine($"LADER on {e.Name} targetting tri {triID} pos {target} - tri looks wrong but no better option found");
+                    //e.g. pinball in mds7_pb1 seems to intentionally position itself floating in space with bad triIDs,
+                    //so I guess we just have to do what the LADER op says and ignore any dodgy results!
+                    //throw new Exception($"LADER on {e.Name} targetting tri {triID} pos {target} - invalid position");
                 }
             }
 
@@ -965,12 +972,13 @@ namespace Braver.Field {
                     ent.Model.PlayAnimation(1, true, 1f); //TODO - should be run, depending on speed
 
                 } else if (frame == speed) {
+                    s.TryWalk(ent, new Vector3(x, y, 0), false);
                     s.DropToWalkmesh(ent, new Vector2(x, y), ent.WalkmeshTri); //TODO - if it's blocked, this won't be right. But that probably shouldn't happen?
                     float rotation = 360f * d / 255f;
                     //TODO - actually take a few frames (??) to complete this rotation, don't just snap to new direction
                     ent.Model.Rotation = new Vector3(0, 0, rotation);
                     ent.Model.PlayAnimation(0, true, 1f);
-                    ent.Flags |= EntityFlags.CanCollide;
+                    ent.Flags |= EntityFlags.CanCollide | EntityFlags.CanTalk; //Looks like tin_3 requires Tifa to be talkable to after split?
                 } else {
                     var target = Vector2.Lerp(s.Player.Model.Translation.XY(), new Vector2(x, y), 1f * frame / speed);
                     s.TryWalk(ent, new Vector3(target.X, target.Y, 0), false);
@@ -983,7 +991,7 @@ namespace Braver.Field {
                     s.Game.Memory.Read(bankADBX >> 4, da));
             if (entB != null)
                 Process(entB,
-                    s.Game.Memory.Read(bankADBX & 0xf, ya), s.Game.Memory.Read(bankBYD >> 4, yb),
+                    s.Game.Memory.Read(bankADBX & 0xf, xb), s.Game.Memory.Read(bankBYD >> 4, yb),
                     s.Game.Memory.Read(bankBYD & 0xf, db));
 
             if (frame < speed) {
@@ -1209,6 +1217,7 @@ namespace Braver.Field {
                 e.Flags |= EntityFlags.CanCollide;
             else
                 e.Flags &= ~EntityFlags.CanCollide;
+            System.Diagnostics.Debug.WriteLine($"Entity {e}, SOLID={parm}");
             return OpResult.Continue;
         }
 
@@ -1254,8 +1263,12 @@ namespace Braver.Field {
             s.StartProcess(_ => {
                 if (state.CompletionCount > 0) {
                     e.OtherState["AnimPlaying"] = false;
-                    if (restoreState)
-                        e.Model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                    if (restoreState) {
+                        if (f.OtherState["AnimResume"] != null)
+                            e.Model.AnimationState = (AnimationState)f.OtherState["AnimResume"];
+                        else
+                            e.Model.PlayAnimation(0, true, 1f); //Seems reasonable? - e.g. mds7_w1, man1 reverts to previous state without any anim actually having been played previously...
+                    }
                     f.OtherState["AnimResume"] = null;
                     return true;
                 } else
@@ -1400,7 +1413,7 @@ namespace Braver.Field {
         }
         public static OpResult ANIMW(Fiber f, Entity e, FieldScreen s) {
             if ((bool)e.OtherState["AnimPlaying"])
-                return OpResult.RestartLowerPriority;
+                return OpResult.Restart;
             else
                 return OpResult.Continue;
         }

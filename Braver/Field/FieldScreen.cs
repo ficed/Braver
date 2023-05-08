@@ -75,7 +75,6 @@ namespace Braver.Field {
 
         private List<WalkmeshTriangle> _walkmesh;
 
-
         public override Color ClearColor => Color.Black;
 
         public Entity Player { get; private set; }
@@ -83,6 +82,7 @@ namespace Braver.Field {
         public Action WhenPlayerSet { get; set; }
 
         public HashSet<int> DisabledWalkmeshTriangles { get; } = new HashSet<int>();
+        public int WalkmeshTriCount => _walkmesh.Count;
         public Background Background { get; private set; }
         public Movie Movie { get; private set; }
         public List<Entity> Entities { get; private set; }
@@ -356,7 +356,7 @@ namespace Braver.Field {
             if (g.Net is Net.Server) {
                 if (!Game.DebugOptions.NoFieldScripts) {
                     foreach (var entity in Entities) {
-                        entity.Call(0, 0, null);
+                        entity.Call(7, 0, null);
                         entity.Run(9999, true);
                     }
                 }
@@ -700,11 +700,11 @@ namespace Braver.Field {
                     }
 
                     if (input.IsJustDown(InputKey.OK) && (Player != null)) {
-                        var talkTo = Player.CollidingWith
-                            .Where(e => e.Flags.HasFlag(EntityFlags.CanTalk))
+                        var talkTo = Player.CanTalkWith
+                            .Where(e => e.Flags.HasFlag(EntityFlags.CanTalk)) //Check just in case flag was turned off after we moved next to them
                             .FirstOrDefault();
                         if (talkTo != null) {
-                            if (!talkTo.Call(7, 1, null))
+                            if (!talkTo.Call(1, 1, null))
                                 System.Diagnostics.Trace.WriteLine($"Could not start talk script for entity {talkTo}");
                         }
                     }
@@ -838,7 +838,8 @@ namespace Braver.Field {
                     foreach(var line in lineEvents.Keys) {
                         foreach(var evt in _lineEventByPriority) {
                             if (lineEvents[line].HasFlag(evt.Item1) && line.ScriptExists(evt.Item2)) {
-                                line.Call(1, evt.Item2, null); //TODO - priority??
+                                if (!line.Call(1, evt.Item2, null)) //TODO - priority??
+                                    System.Diagnostics.Trace.WriteLine($"Line {line.Name} couldn't call script");
                                 break;
                             }
                         }
@@ -1098,27 +1099,32 @@ namespace Braver.Field {
 
         public bool TryWalk(Entity eMove, Vector3 newPosition, bool doCollide) {
 
-            if (doCollide) {
-                eMove.CollidingWith.Clear();
-                Entities.ForEach(e => e.CollidingWith.Remove(eMove));
+            void PopulateNearby(EntityFlags flag, Func<Entity, float> getDistance, Func<Entity, HashSet<Entity>> getMatching, string description) {
+                var thisMatch = getMatching(eMove);
+                thisMatch.Clear();
+                Entities.ForEach(e => getMatching(e).Remove(eMove));
 
                 var toCheck = Entities
-                    .Where(e => e.Flags.HasFlag(EntityFlags.CanCollide))
+                    .Where(e => e.Flags.HasFlag(flag))
                     .Where(e => e.Model != null)
                     .Where(e => e != eMove);
 
                 foreach (var entity in toCheck) {
                     if (entity.Model != null) {
                         var dist = (entity.Model.Translation.XY() - newPosition.XY()).Length();
-                        var collision = eMove.CollideDistance + entity.CollideDistance;
+                        var collision = getDistance(eMove) + getDistance(entity);
                         if (dist <= collision) {
-                            System.Diagnostics.Trace.WriteLine($"Entity {eMove} is now colliding with {entity}");
-                            eMove.CollidingWith.Add(entity);
-                            entity.CollidingWith.Add(eMove);
+                            System.Diagnostics.Trace.WriteLine($"Entity {eMove} is now in {description} distance with {entity}");
+                            thisMatch.Add(entity);
+                            getMatching(entity).Add(eMove);
                         }
                     }
                 }
+            }
 
+            PopulateNearby(EntityFlags.CanTalk, e => e.TalkDistance, e => e.CanTalkWith, "talk");
+            if (doCollide) {
+                PopulateNearby(EntityFlags.CanCollide, e => e.CollideDistance, e => e.CollidingWith, "collide");
                 //Now check if, for any of the models we're colliding with, we're not moving 
                 //clearly further away. If so, don't allow the move.
                 foreach(var other in eMove.CollidingWith) {
@@ -1129,7 +1135,6 @@ namespace Braver.Field {
                     if (diff >= Math.PI)
                         return false;
                 }
-
             }
 
             var currentTri = _walkmesh[eMove.WalkmeshTri];
@@ -1248,14 +1253,17 @@ namespace Braver.Field {
         }
 
         public void PlayerRepositioned() {
+            //Applying a minimum distance of 20 on the player's collision radius
+            //e.g. in mds7pb_1 Cloud has a zero collision radius, but it's expecting us to trigger a 
+            //line event.
             Player.LinesCollidingWith.Clear();
             foreach (var lineEnt in Entities.Where(e => e.Line != null)) {
-                if (lineEnt.Line.IntersectsWith(Player.Model, Player.CollideDistance))
+                if (lineEnt.Line.IntersectsWith(Player.Model, Math.Max(Player.CollideDistance, 20)))
                     Player.LinesCollidingWith.Add(lineEnt);
             }
             Player.GatewaysCollidingWidth.Clear();
             foreach (var gateway in TriggersAndGateways.Gateways)
-                if (Player.Model.IntersectsLine(gateway.V0.ToX(), gateway.V1.ToX(), Player.CollideDistance))
+                if (Player.Model.IntersectsLine(gateway.V0.ToX(), gateway.V1.ToX(), Math.Max(Player.CollideDistance, 20)))
                     Player.GatewaysCollidingWidth.Add(gateway);
         }
 
@@ -1273,9 +1281,6 @@ namespace Braver.Field {
 
         public void SetPlayer(int whichEntity) {
             Player = Entities[whichEntity]; //TODO: also center screen etc.
-            //TODO - is this reasonable...? Probably?!
-            if (Player.CollideDistance == 0)
-                Player.CollideDistance = 20;
             CheckPendingPlayerSetup();
             WhenPlayerSet?.Invoke();
         }

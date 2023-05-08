@@ -432,7 +432,11 @@ namespace Braver.Field {
             }
         }
 
-        public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int endFrame = -1) {            
+        public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int endFrame = -1) {
+            if (endFrame >= _animations[animation].Frames.Count) {
+                System.Diagnostics.Trace.WriteLine($"Clamping out of range animation frames {endFrame}->{_animations[animation].Frames.Count - 1}");
+                endFrame = _animations[animation].Frames.Count - 1;
+            }
             AnimationState = new AnimationState {
                 Animation = animation,
                 AnimationLoop = loop,

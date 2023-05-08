@@ -54,6 +54,7 @@ namespace Braver.Field {
             public DialogVariable Variable;
             public int VariableX, VariableY;
             public int LineScroll;
+            public int TextPause; //# of frames left to wait for an embedded text pause to complete
 
             public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
         }
@@ -92,6 +93,7 @@ namespace Braver.Field {
             win.Width = width * 3 / 2 + 8; //expand size to account for border...? 
             win.Height = height * 3 / 2 + 8;
             win.OnClosed = null;
+            win.TextPause = 0;
         }
         public void SetOptions(int window, DialogOptions options) {
             _windows[window].Options = options;
@@ -204,7 +206,10 @@ namespace Braver.Field {
                         break;
 
                     case WindowState.Displaying:
-                        window.FrameProgress++;
+                        if (window.TextPause > 0)
+                            window.TextPause--;
+                        else
+                            window.FrameProgress++;
                         break;
                 }
             }
@@ -255,6 +260,11 @@ namespace Braver.Field {
                             count = 99999;
                         if (lineCount == w.ChoiceLines[w.Choice])
                             _ui.DrawImage("pointer", w.X + 10, y, NextZ(), UI.Alignment.Right);
+                    }
+
+                    if ((s.Length > 0) && (s.Last() == '\xE030')) {
+                        //pause opcode
+                        w.TextPause = 10;
                     }
 
                     count -= s.Length;

@@ -419,6 +419,8 @@ namespace Braver.UI {
                         case '\xE029':
                             colour = _colours[c - 0xE020];
                             break;
+                        case '\xE030': //pause opcode - just skip
+                            break;
 
                         case ' ':
                             dx += (int)(f.GlyphsDict['i'].W * 1 * item.Size);
