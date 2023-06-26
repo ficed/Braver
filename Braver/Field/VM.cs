@@ -1712,9 +1712,15 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             return OpResult.Continue;
         }
         public static OpResult WCLSE(Fiber f, Entity e, FieldScreen s) {
+            byte id = f.ReadU8(); 
+            System.Diagnostics.Trace.WriteLine($"Entity {e.Name} closing window {id}");
+            s.Dialog.ResetWindow(id); //TODO - reset, close?
+            return OpResult.Continue;
+        }
+        public static OpResult WCLS(Fiber f, Entity e, FieldScreen s) {
             byte id = f.ReadU8();
             System.Diagnostics.Trace.WriteLine($"Entity {e.Name} closing window {id}");
-            s.Dialog.ResetWindow(id);
+            s.Dialog.CloseWindow(id);
             return OpResult.Continue;
         }
 

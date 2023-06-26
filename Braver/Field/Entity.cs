@@ -32,7 +32,7 @@ namespace Braver.Field {
         public FieldLine Line { get; set; }
         public Character Character { get; set; }
         public EntityFlags Flags { get; set; }
-        public float TalkDistance { get; set; }
+        public float TalkDistance { get; set; } = 20f; //Same as below...?
         public float CollideDistance { get; set; } = 20f; //TODO - is this reasonable...? Probably?!
         public float MoveSpeed { get; set; }
         public int WalkmeshTri { get; set; }
