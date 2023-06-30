@@ -13,6 +13,7 @@ using System.Linq;
 namespace Braver.Battle {
     public class BattleSkipScreen : BattleScreen {
         public override Color ClearColor => Color.Black;
+        public override string Description => "Battle Debug Menu";
 
         private UI.UIBatch _ui;
             

@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using RazorEngineCore;
@@ -42,6 +43,8 @@ namespace Braver.UI.Layout {
         public string ID { get; set; }
         [XmlAttribute]
         public bool Visible { get; set; } = true;
+        [XmlAttribute]
+        public string FocusDescription { get; set; }
 
 
         [XmlAttribute]
@@ -53,6 +56,8 @@ namespace Braver.UI.Layout {
         [XmlIgnore]
         public virtual Action OnFocussed  { get; set; }
 
+        [XmlIgnore]
+        public virtual string Description => FocusDescription ?? "Unknown";
 
         [XmlIgnore]
         public Container Parent { get; internal set; }
@@ -221,6 +226,9 @@ namespace Braver.UI.Layout {
         [XmlAttribute]
         public bool Enabled { get; set; } = true;
 
+        [XmlIgnore]
+        public override string Description => Text ?? base.Description;
+
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             if (!string.IsNullOrWhiteSpace(Text))
                 ui.DrawText(Font, Text, offsetX + X, offsetY + Y, getZ(), Color, Alignment);
@@ -296,6 +304,8 @@ namespace Braver.UI.Layout {
 
     public class Layout {
         public Component Root { get; set; }
+        [XmlAttribute]
+        public string Description { get; set; }
     }
 
     public abstract class LayoutModel {
@@ -319,6 +329,7 @@ namespace Braver.UI.Layout {
         public Component FlashFocus { get; set; }
         public bool InputEnabled { get; set; } = true;
         public FGame Game => _game;
+        public virtual string Description => null;
 
         public virtual bool IsRazorModel => false;
 
@@ -335,7 +346,15 @@ namespace Braver.UI.Layout {
         }
 
         void FocusUpdated() {
-            Focus?.OnFocussed?.Invoke();
+            var f = Focus;
+            if (f != null) {
+                Focus?.OnFocussed?.Invoke();
+                var group = FocusGroup.FocussableChildren().Select(child => child.Component).ToList();
+                Game.InvokeOnMainThread(
+                    () => Game.UIPlugins.Call<UISystem>(ui => ui.Menu(group.Select(c => c.Description), group.IndexOf(f))),
+                    1
+                ); //delay so initial announcement happens after loading has finished
+            }
         }
 
         public void PushFocus(Container group, Component focus) {
@@ -352,7 +371,7 @@ namespace Braver.UI.Layout {
             FocusUpdated();
         }
         public void ChangeFocus(Component focus) {
-            System.Diagnostics.Trace.Assert(focus.FocusParent == FocusGroup);
+            Trace.Assert(focus.FocusParent == FocusGroup);
             _focus.Peek().FocusID = focus?.ID;
             FocusUpdated();
         }
@@ -497,6 +516,7 @@ namespace Braver.UI.Layout {
 
         public override Color ClearColor => Color.Black;
         public object Param { get; private set; }
+        public override string Description => _model.Description ?? _layout.Description ?? "No description";
 
         public LayoutScreen(string layout, LayoutModel model = null, object parm = null) {
             _layoutFile = layout;
@@ -559,7 +579,11 @@ namespace Braver.UI.Layout {
 
             string state = _ui.SaveState();
             if (!state.Equals(_lastState)) {
-                Game.Net.Send(new Net.UIStateMessage { ClearColour = ClearColor.PackedValue, State = state });
+                Game.Net.Send(new Net.UIStateMessage {
+                    ClearColour = ClearColor.PackedValue,
+                    State = state,
+                    Description = this.Description,
+                });
                 _lastState = state;
             }
         }

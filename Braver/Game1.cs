@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Input;
 using SharpDX.Direct2D1.Effects;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace Braver {
@@ -40,6 +41,18 @@ namespace Braver {
 
         private FGame _g;
 
+        private void Relaunch(Dictionary<string, string> currentParms, string excludeParm, string[] addParm) {
+            if (!string.IsNullOrEmpty(excludeParm))
+                currentParms.Remove(excludeParm);
+            if (addParm != null)
+                currentParms[addParm[0]] = addParm[1];
+
+            var process = System.Diagnostics.Process.Start(
+                Path.ChangeExtension(Environment.GetCommandLineArgs()[0], ".exe"),
+                currentParms.Select(kv => kv.Key + "=" + kv.Value)
+            );
+        }
+
         protected override void LoadContent() {
 
             _g = new FGame(GraphicsDevice);
@@ -52,8 +65,15 @@ namespace Braver {
 
             if (parms.ContainsKey("host")) {
                 _g.ChangeScreen(null, new UI.Splash(parms["host"], int.Parse(parms["port"]), parms["key"]));
+
+                if (parms.ContainsKey("debughost"))
+                    Relaunch(parms, "host", null);
+
             } else {
                 _g.ChangeScreen(null, new UI.Splash());
+
+                if (parms.ContainsKey("debughost"))
+                    Relaunch(parms, "debughost", new[] { "host", parms["debughost"] });
             }
         }
 
@@ -144,5 +164,6 @@ namespace Braver {
             base.Draw(gameTime);
             _g.Screen.Render();
         }
+
     }
 }

@@ -16,6 +16,7 @@ namespace Braver.Battle {
 
         public override bool ShouldClear => false;
         public override Color ClearColor => throw new NotImplementedException();
+        public override string Description => "Starting Battle";
 
         private GraphicsDevice _graphics;
         private Texture2D _texture;

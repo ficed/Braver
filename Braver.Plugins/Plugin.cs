@@ -60,6 +60,8 @@ namespace Braver.Plugins {
                 if (cvar != null) {
                     if (prop.PropertyType == typeof(string))
                         prop.SetValue(obj, cvar.Value);
+                    else if (prop.PropertyType == typeof(bool))
+                        prop.SetValue(obj, bool.Parse(cvar.Value));
                     else if (prop.PropertyType == typeof(int))
                         prop.SetValue(obj, int.Parse(cvar.Value));
                     else if (prop.PropertyType == typeof(float))

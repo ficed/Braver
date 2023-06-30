@@ -24,4 +24,8 @@ namespace Braver.Plugins {
         int OffsetY { get; set; }
         bool FixedZ { get; set; }
     }
+
+    public interface IScreen {
+        string Description { get; }
+    }
 }

@@ -5,6 +5,7 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Plugins;
+using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -57,6 +58,18 @@ namespace Braver.Field {
             public int TextPause; //# of frames left to wait for an embedded text pause to complete
 
             public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
+
+            public void StateChanged(FGame g) {
+                g.UIPlugins.Call<UISystem>(ui => ui.Dialog(Text[ScreenProgress]));
+                if (ReadyForChoice)
+                    ChoiceChanged(g);
+            }
+
+            public void ChoiceChanged(FGame g) {
+                var lines = Text[ScreenProgress].Split('\r');
+                var choices = ChoiceLines.Select(i => lines[i]);
+                g.UIPlugins.Call<UISystem>(ui => ui.Choices(choices, Choice));
+            }
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
@@ -113,6 +126,8 @@ namespace Braver.Field {
                 .ToArray();
             win.FrameProgress = win.ScreenProgress = win.LineScroll = 0;
 
+            win.StateChanged(_game);
+
             if (win.Options.HasFlag(DialogOptions.NoBorder))
                 win.State = WindowState.Displaying;
             else
@@ -162,6 +177,7 @@ namespace Braver.Field {
                         if (input.IsJustDown(InputKey.OK)) {
                             if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
                                 window.ScreenProgress++;
+                                window.StateChanged(_game);
                                 window.LineScroll = window.FrameProgress = 0;                                
                                 window.State = WindowState.Displaying;
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
@@ -175,11 +191,13 @@ namespace Braver.Field {
                         } else if (input.IsJustDown(InputKey.Down)) {
                             if (window.ReadyForChoice) {
                                 window.Choice = (window.Choice + 1) % window.ChoiceLines.Length;
+                                window.ChoiceChanged(_game);
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             }
                         } else if (input.IsJustDown(InputKey.Up)) {
                             if (window.ReadyForChoice) {
                                 window.Choice = (window.Choice + window.ChoiceLines.Length + 1) % window.ChoiceLines.Length;
+                                window.ChoiceChanged(_game);
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             }
                         }

@@ -25,6 +25,8 @@ namespace Braver.WorldMap {
         private const int MAP_WIDTH = BLOCK_SIZE * BLOCKS_X;
         private const int MAP_HEIGHT = BLOCK_SIZE * BLOCKS_Y;
 
+        public override string Description => "World Map";
+
         private class SkyBox {
             private BasicEffect _effect;
             private Texture2D _texture;

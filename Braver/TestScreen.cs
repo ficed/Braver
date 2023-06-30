@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 namespace Braver {
     internal class TestScreen : Screen {
 
+        public override string Description => "Test Screen";
         public override Color ClearColor => Color.AliceBlue;
 
         private Field.FieldModel _model;

@@ -41,4 +41,4 @@ PATH	SAVE	%save%
 
 PATH	PLUGINS	%plugins%
 
-LOG		%braver%\log.txt
+LOG		%braver%\log.txt	%braver%\log2.txt

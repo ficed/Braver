@@ -1,0 +1,63 @@
+﻿<Window x:Class="BraverLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BraverLauncher"
+        mc:Ignorable="d"
+        Title="Braver" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TabControl>
+            <TabItem Header="Paths">
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Row="0" x:Name="lblFF7">FF7 Path (folder containing FF7.exe)</Label>
+                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtFF7" AutomationProperties.LabeledBy="{Binding ElementName=lblFF7}" />
+                    <Button Grid.Row="0" Grid.Column="2" x:Name="btnFF7" Padding="5" Click="btnFF7_Click">...</Button>
+
+                    <Label Grid.Row="1" x:Name="lblMovies">Movie Path (folder containing opening.mp4)</Label>
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtMovies" AutomationProperties.LabeledBy="{Binding ElementName=lblMovies}" />
+                    <Button Grid.Row="1" Grid.Column="2" x:Name="btnMovies" Padding="5" Click="btnMovies_Click">...</Button>
+
+                    <Label Grid.Row="2" x:Name="lblSave">Savegame Path (leave blank to save in Braver folder)</Label>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtSave" AutomationProperties.LabeledBy="{Binding ElementName=lblSave}" />
+                    <Button Grid.Row="2" Grid.Column="2" x:Name="btnSave" Padding="5" Click="btnSave_Click">...</Button>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Plugins">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <ListBox x:Name="lbPlugins" SelectionChanged="lbPlugins_SelectionChanged" />
+                    <Grid x:Name="gPluginConfig" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Button Grid.Row="1" x:Name="btnLaunch" Padding="5" Margin="5" Click="btnLaunch_Click">Launch Braver</Button>
+    </Grid>
+</Window>

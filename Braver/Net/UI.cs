@@ -27,16 +27,19 @@ namespace Braver.Net {
 
     public class UIStateMessage : ServerMessage {
         public string State { get; set; }
+        public string Description { get; set; }
         public uint ClearColour { get; set; }
 
         public override void Load(NetDataReader reader) {
             ClearColour = reader.GetUInt();
             State = reader.GetString();
+            Description = reader.GetString();
         }
 
         public override void Save(NetDataWriter writer) {
             writer.Put(ClearColour);
             writer.Put(State);
+            writer.Put(Description);
         }
     }
 

@@ -134,6 +134,7 @@ namespace Braver.Battle {
 
         public IReadOnlyDictionary<ICombatant, Model> Models => _models;
         public PerspView3D View3D => _view;
+        public override string Description => "Battle";
 
         private void AddModel(string code, Vector3 position, ICombatant combatant) {
             var model = Model.LoadBattleModel(Graphics, Game, code);

@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -22,12 +23,18 @@ namespace Braver.UI {
         private string _host, _key;
         private int _port;
 
+        public override string Description => "Braver";
+
         public Splash() {  //Server
         }
         public Splash(string host, int port, string key) {
             _host = host;
             _port = port;
             _key = key;
+        }
+
+        private void Announce() {
+            Game.UIPlugins.Call<UISystem>(ui => ui.Menu(_items, _menu));
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
@@ -41,7 +48,8 @@ namespace Braver.UI {
             FadeIn(null);
             Layout.LayoutScreen.BeginBackgroundLoad(g, "MainMenu");
             _readyToRender = true;
-    }
+            g.InvokeOnMainThread(Announce, 2);
+        }
 
         public override Color ClearColor => Color.Black;
 
@@ -58,9 +66,11 @@ namespace Braver.UI {
             if (input.IsJustDown(InputKey.Down)) {
                 _menu = (_menu + 1) % 5;
                 Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                Announce();
             } else if (input.IsJustDown(InputKey.Up)) {
                 _menu = (_menu + 4) % 5;
                 Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
+                Announce();
             } else if (input.IsJustDown(InputKey.OK)) {                
                 Game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                 InputEnabled = false;
@@ -130,6 +140,14 @@ namespace Braver.UI {
             .First()
             .InformationalVersion;
 
+        private string[] _items = new[] {
+            "New Game",
+            "Continue",
+            "Load Game",
+            "Test",
+            "Quit",
+        };
+
         protected override void DoStep(GameTime elapsed) {
             _ui.Reset();
 
@@ -138,12 +156,12 @@ namespace Braver.UI {
             if (Game.Net is Net.Client) {
                 _ui.DrawText("main", Game.Net.Status, 640, 300, 0.2f, Color.White, Alignment.Center);
             } else {
-                _ui.DrawText("main", "New Game", 600, 300, 0.2f, Color.White);
-                _ui.DrawText("main", "Continue", 600, 335, 0.2f, Color.White);
-                _ui.DrawText("main", "Load Game", 600, 370, 0.2f, Color.White);
-                _ui.DrawText("main", "Test", 600, 405, 0.2f, Color.White);
+                _ui.DrawText("main", _items[0], 600, 300, 0.2f, Color.White);
+                _ui.DrawText("main", _items[1], 600, 335, 0.2f, Color.White);
+                _ui.DrawText("main", _items[2], 600, 370, 0.2f, Color.White);
+                _ui.DrawText("main", _items[3], 600, 405, 0.2f, Color.White);
 
-                _ui.DrawText("main", "Quit", 600, 440, 0.2f, Color.White);
+                _ui.DrawText("main", _items[4], 600, 440, 0.2f, Color.White);
 
                 _ui.DrawImage("pointer", 595, 300 + 35 * _menu, 0.3f, Alignment.Right);
             }

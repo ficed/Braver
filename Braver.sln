@@ -24,7 +24,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Braver.Plugins", "Braver.Plugins\Braver.Plugins.csproj", "{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Braver.Plugins", "Braver.Plugins\Braver.Plugins.csproj", "{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Braver.Tolk", "PluginImplementations\Braver.Tolk\Braver.Tolk.csproj", "{F6678D6E-E77F-468C-9C47-D5E841201587}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BraverLauncher", "BraverLauncher\BraverLauncher.csproj", "{504E8DFB-B109-4A22-88E8-55E728903E2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +72,14 @@ Global
 		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C8A556C-F596-4F35-8E09-C79E5BEAFCEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6678D6E-E77F-468C-9C47-D5E841201587}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6678D6E-E77F-468C-9C47-D5E841201587}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6678D6E-E77F-468C-9C47-D5E841201587}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6678D6E-E77F-468C-9C47-D5E841201587}.Release|Any CPU.Build.0 = Release|Any CPU
+		{504E8DFB-B109-4A22-88E8-55E728903E2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{504E8DFB-B109-4A22-88E8-55E728903E2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{504E8DFB-B109-4A22-88E8-55E728903E2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{504E8DFB-B109-4A22-88E8-55E728903E2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -79,6 +79,8 @@ namespace Braver.Field {
 
         public Entity Player { get; private set; }
 
+        public override string Description => "Location " + Game.SaveData.Location;
+
         public Action WhenPlayerSet { get; set; }
 
         public HashSet<int> DisabledWalkmeshTriangles { get; } = new HashSet<int>();

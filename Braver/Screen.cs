@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -62,7 +63,7 @@ namespace Braver {
         }
     }
 
-    public abstract class Screen : Net.IListen<Net.ScreenReadyMessage> {
+    public abstract class Screen : Net.IListen<Net.ScreenReadyMessage>, IScreen {
 
         public FGame Game { get; private set; }
         public GraphicsDevice Graphics { get; private set; }
@@ -70,6 +71,8 @@ namespace Braver {
 
         public virtual bool ShouldClear => true;
         public abstract Color ClearColor { get; }
+
+        public abstract string Description { get; }
 
         protected SpriteBatch _fxBatch;
         

@@ -24,6 +24,7 @@ namespace Braver.UI.Layout {
     public class SaveMenu : LayoutModel {
 
         public override bool IsRazorModel => true;
+        public override string Description => IsSaveMenu ? "Save Game" : "Load Game";
 
         public bool IsSaveMenu => ((bool?)_screen.Param).GetValueOrDefault(true);
 
