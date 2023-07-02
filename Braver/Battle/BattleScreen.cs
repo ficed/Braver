@@ -725,7 +725,7 @@ namespace Braver.Battle {
         }
 
         public static void Launch(FGame game, int battleID, BattleFlags flags) {
-            if (game.DebugOptions.SkipBattleMenu)
+            if (game.GameOptions.SkipBattleMenu)
                 game.PushScreen(new BattleSkipScreen(flags));
             else {
                 game.PushScreen(new RealBattleScreen(battleID, flags));

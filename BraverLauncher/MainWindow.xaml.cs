@@ -47,7 +47,11 @@ namespace BraverLauncher {
                 ?? Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]);
 
             _braverConfigPath = Path.Combine(root, "braver.cfg");
-            string pluginPath = Path.Combine(root, "plugins");
+            string pluginPath = Environment.GetCommandLineArgs()
+                .Where(s => s.StartsWith("/plugins:"))
+                .Select(s => s.Substring(9))
+                .FirstOrDefault()
+                ?? Path.Combine(root, "plugins");
             _pluginConfigPath = Path.Combine(pluginPath, "config.xml");
             if (File.Exists(_pluginConfigPath))
                 _pluginConfig = Serialisation.Deserialise<PluginConfigs>(File.ReadAllText(_pluginConfigPath));
@@ -55,15 +59,17 @@ namespace BraverLauncher {
                 _pluginConfig = new PluginConfigs();
 
             if (Directory.Exists(pluginPath)) {
-                var plugins = Directory.GetFiles(pluginPath, "*.dll")
-                        .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
-                        .SelectMany(asm => asm.GetTypes())
-                        .Where(t => t.IsAssignableTo(typeof(Plugin)))
-                        .Select(t => Activator.CreateInstance(t))
-                        .OfType<Plugin>();
+                foreach (var folder in Directory.GetDirectories(pluginPath)) {
+                    var plugins = Directory.GetFiles(folder, "*.dll")
+                            .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
+                            .SelectMany(asm => asm.GetTypes())
+                            .Where(t => t.IsAssignableTo(typeof(Plugin)))
+                            .Select(t => Activator.CreateInstance(t))
+                            .OfType<Plugin>();
 
-                foreach (var plugin in plugins) {
-                    lbPlugins.Items.Add(new LoadedPlugin { Plugin = plugin });
+                    foreach (var plugin in plugins) {
+                        lbPlugins.Items.Add(new LoadedPlugin { Plugin = plugin });
+                    }
                 }
             }
 
@@ -75,7 +81,8 @@ namespace BraverLauncher {
                 txtMovies.Text = settings.GetValueOrDefault("Movies");
                 txtSave.Text = settings.GetValueOrDefault("Save");
                 if (txtSave.Text == ".") txtSave.Text = "";
-            }
+                slMusicVolume.Value = double.Parse(settings.GetValueOrDefault("Options.MusicVolume") ?? "100");
+            } 
         }
 
         private void DoBrowse(TextBox txt) {
@@ -114,7 +121,6 @@ namespace BraverLauncher {
                 if (config == null) {
                     config = new PluginConfig {
                         PluginClass = plugin.Plugin.GetType().FullName,
-                        Enabled = true,
                     };
                     _pluginConfig.Configs.Add(config);
                 }
@@ -188,7 +194,8 @@ namespace BraverLauncher {
                 $"Save={save}",
                 $"Braver=.",
                 $"Plugins={Path.GetDirectoryName(_pluginConfigPath)}",
-                $"BData={Path.Combine(Path.GetDirectoryName(_braverConfigPath), "Data.bpack")}"
+                $"BData={Path.Combine(Path.GetDirectoryName(_braverConfigPath), "Data.bpack")}",
+                $"Options.MusicVolume={slMusicVolume.Value/100}"
             });
 
             using (var fs = new FileStream(_pluginConfigPath, FileMode.Create))

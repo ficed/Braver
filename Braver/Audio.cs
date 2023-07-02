@@ -6,6 +6,7 @@
 
 using Microsoft.Xna.Framework.Audio;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +16,6 @@ using System.Threading.Tasks;
 
 namespace Braver {
 
-
     public class Audio : IAudio {
 
         private string _musicFolder;
@@ -23,10 +23,12 @@ namespace Braver {
         private Ficedula.FF7.Audio _sfxSource;
         private FGame _game;
         private byte _volume = 127;
+        private float _masterVolume;
 
         public Audio(FGame game, string musicFolder, string soundFolder) {
             _game = game;
             _musicFolder = musicFolder;
+            _masterVolume = game.GameOptions.MusicVolume;
             _channel = Channel.CreateBounded<MusicCommand>(8);
             Task.Run(RunMusic);
             _sfxSource = new Ficedula.FF7.Audio(
@@ -52,6 +54,7 @@ namespace Braver {
         private class MusicContext {
             public NAudio.Vorbis.VorbisWaveReader Vorbis { get; set; }
             public NAudio.Wave.WaveOut WaveOut { get; set; }
+            public VolumeSampleProvider Volume { get; set; }
             public string Track { get; set; }
         }
 
@@ -154,8 +157,9 @@ namespace Braver {
                 current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(file);
                 current.WaveOut = new NAudio.Wave.WaveOut();
                 //current.WaveOut.Init(current.Vorbis);
-                current.WaveOut.Init(new LoopProvider(current.Vorbis, loopStart, loopEnd).ToWaveProvider());
-                current.WaveOut.Volume = _volume / 127f;
+                current.Volume = new VolumeSampleProvider(new LoopProvider(current.Vorbis, loopStart, loopEnd));
+                current.WaveOut.Init(current.Volume);
+                current.Volume.Volume = _masterVolume * _volume / 127f;
                 current.WaveOut.Play();
                 current.Track = track;
             }
@@ -168,7 +172,7 @@ namespace Braver {
                     case CommandType.SetVolume:
                         _volume = command.Param;
                         if (contexts.Peek().WaveOut != null)
-                            contexts.Peek().WaveOut.Volume = _volume / 127f;
+                            contexts.Peek().Volume.Volume = _masterVolume * _volume / 127f;
                         break;
 
                     case CommandType.Play:
@@ -364,6 +368,59 @@ namespace Braver {
             _streamOut.Init(vorbis);
             _streamOut.Volume = volume;            
             _streamOut.Play();
+        }
+
+        private class LoadedAudioItem : IAudioItem {
+
+            private WaveOut _waveOut;
+            private NAudio.Vorbis.VorbisWaveReader _vorbis;
+            private VolumeSampleProvider _volume;
+            private PanningSampleProvider _pan;
+            private bool _shouldLoop;
+
+            public LoadedAudioItem(Stream s) {
+                _waveOut = new WaveOut();
+                _waveOut.PlaybackStopped += _waveOut_PlaybackStopped;
+                _vorbis = new NAudio.Vorbis.VorbisWaveReader(s, true);
+                _pan = new PanningSampleProvider(_volume = new VolumeSampleProvider(_vorbis));
+                _waveOut.Init(_pan);
+            }
+
+            private void _waveOut_PlaybackStopped(object sender, StoppedEventArgs e) {
+                if (_shouldLoop)
+                    _waveOut.Play();
+            }
+
+            public void Dispose() {
+                _waveOut.Stop();
+                _waveOut.Dispose();
+                _vorbis.Dispose();
+            }
+
+            public void Pause() {
+                _waveOut.Pause();
+            }
+
+            public void Resume() {
+                _waveOut.Resume();
+            }
+
+            public void Play(float volume, float pan, bool loop) {
+                _shouldLoop = loop;
+                _volume.Volume = volume;
+                _pan.Pan = pan;
+                _waveOut.Play();
+            }
+
+            public void Stop() {
+                _shouldLoop = false;
+                _waveOut.Stop();
+            }
+        }
+
+        public IAudioItem LoadStream(string path, string file) {
+            //TODO networking
+            return new LoadedAudioItem(_game.Open(path, file));
         }
     }
 

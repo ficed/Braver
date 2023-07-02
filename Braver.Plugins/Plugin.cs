@@ -31,7 +31,7 @@ namespace Braver.Plugins {
         public List<PluginConfigVar> Vars { get; set; } = new();
         public string PluginClass { get; set; }
         public int Priority { get; set; } = 1000;
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; }
     }
 
     public class PluginConfigs {

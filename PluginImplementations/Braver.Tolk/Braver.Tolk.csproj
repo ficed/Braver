@@ -12,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="footsteps.ogg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Tolk.ndll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

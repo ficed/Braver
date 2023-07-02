@@ -4,7 +4,9 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Ficedula.FF7.Field;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +21,7 @@ namespace Braver.Field {
         CanCollide = 0x2,
     }
 
-    public class Entity {
+    public class Entity : IFieldEntity {
 
         public static bool DEBUG_OUT = true;
 
@@ -44,6 +46,12 @@ namespace Braver.Field {
         public HashSet<Gateway> GatewaysCollidingWidth { get; } = new();
 
         public IEnumerable<Fiber> DebugFibers => _priorities;
+
+        Vector3 IFieldEntity.Position => Model.Translation;
+
+        string IFieldEntity.Name => Name;
+
+        bool IFieldEntity.IsPlayer => _screen.Player == this;
 
         public Entity(Ficedula.FF7.Field.Entity entity, FieldScreen screen) {
             _screen = screen;

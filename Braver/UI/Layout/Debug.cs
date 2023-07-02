@@ -24,24 +24,24 @@ namespace Braver.UI.Layout {
         }
 
         private void Update() {
-            lNoFieldScripts.Color = Game.DebugOptions.NoFieldScripts ? Color.White : Color.Gray;
-            lNoRandomBattles.Color = Game.DebugOptions.NoRandomBattles ? Color.White : Color.Gray;
-            lSkipBattleMenu.Color = Game.DebugOptions.SkipBattleMenu ? Color.White : Color.Gray;
-            lAutoSaveOnFieldEntry.Color = Game.DebugOptions.AutoSaveOnFieldEntry ? Color.White : Color.Gray;
-            lSeparateSaveFiles.Color = Game.DebugOptions.SeparateSaveFiles ? Color.White : Color.Gray;
+            lNoFieldScripts.Color = Game.GameOptions.NoFieldScripts ? Color.White : Color.Gray;
+            lNoRandomBattles.Color = Game.GameOptions.NoRandomBattles ? Color.White : Color.Gray;
+            lSkipBattleMenu.Color = Game.GameOptions.SkipBattleMenu ? Color.White : Color.Gray;
+            lAutoSaveOnFieldEntry.Color = Game.GameOptions.AutoSaveOnFieldEntry ? Color.White : Color.Gray;
+            lSeparateSaveFiles.Color = Game.GameOptions.SeparateSaveFiles ? Color.White : Color.Gray;
         }
 
         public void LabelClick(Label L) {
             if (L == lNoFieldScripts)
-                Game.DebugOptions.NoFieldScripts = !Game.DebugOptions.NoFieldScripts;
+                Game.GameOptions.NoFieldScripts = !Game.GameOptions.NoFieldScripts;
             else if (L == lNoRandomBattles)
-                Game.DebugOptions.NoRandomBattles = !Game.DebugOptions.NoRandomBattles;
+                Game.GameOptions.NoRandomBattles = !Game.GameOptions.NoRandomBattles;
             else if (L == lSkipBattleMenu)
-                Game.DebugOptions.SkipBattleMenu = !Game.DebugOptions.SkipBattleMenu;
+                Game.GameOptions.SkipBattleMenu = !Game.GameOptions.SkipBattleMenu;
             else if (L == lAutoSaveOnFieldEntry)
-                Game.DebugOptions.AutoSaveOnFieldEntry = !Game.DebugOptions.AutoSaveOnFieldEntry;
+                Game.GameOptions.AutoSaveOnFieldEntry = !Game.GameOptions.AutoSaveOnFieldEntry;
             else if (L == lSeparateSaveFiles)
-                Game.DebugOptions.SeparateSaveFiles = !Game.DebugOptions.SeparateSaveFiles;
+                Game.GameOptions.SeparateSaveFiles = !Game.GameOptions.SeparateSaveFiles;
 
             Update();
         }

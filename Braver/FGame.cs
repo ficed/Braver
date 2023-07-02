@@ -16,28 +16,6 @@ using System.Linq;
 
 namespace Braver {
 
-    public class DebugOptions {
-        public bool NoFieldScripts { get; set; }
-        public bool NoRandomBattles { get; set; }
-        public bool SkipBattleMenu { get; set; }
-        public bool AutoSaveOnFieldEntry { get; set; }
-        public bool SeparateSaveFiles { get; set; }
-
-        public DebugOptions(Dictionary<string, string> settings) {
-            if (settings.TryGetValue("Debug", out string d) && bool.Parse(d)) {
-                foreach(var prop in typeof(DebugOptions).GetProperties()) {
-                    if (settings.TryGetValue($"Debug.{prop.Name}", out string value)) {
-                        if (prop.PropertyType == typeof(bool))
-                            prop.SetValue(this, bool.Parse(value));
-                        else
-                            throw new NotImplementedException();
-                    }
-                }
-            }
-        }
-    }
-
-
     public class FGame : BGame {
 
         private Stack<Screen> _screens = new();
@@ -46,8 +24,8 @@ namespace Braver {
         public Net.Net Net { get; set; }
 
         public Screen Screen => _screens.Peek();
-        public DebugOptions DebugOptions { get; }
         public PluginManager PluginManager { get; }
+        public PluginInstances UIPlugins { get; }
 
 
         public FGame(GraphicsDevice graphics) {
@@ -71,7 +49,7 @@ namespace Braver {
                     settings[setting[0]] = setting[1];
             }
 
-            DebugOptions = new DebugOptions(settings);
+            GameOptions = new GameOptions(settings);
 
             string dataFile = Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "data.txt");
             if (settings.ContainsKey("Data"))
@@ -128,8 +106,16 @@ namespace Braver {
                     string path = Expand(parts[2]);
                     _paths[parts[1]] = path;
                 } else if (parts[0] == "LOG") {
-                    string path = Expand(parts[1]);
-                    Trace.Listeners.Add(new TraceFile(path));
+                    foreach(string candidate in parts.Skip(1)) {
+                        string path = Expand(candidate);
+                        try {
+                            Trace.Listeners.Add(new TraceFile(path));
+                        } catch {
+                            Debug.WriteLine($"Failed to trace to {path}, moving on");
+                            continue;
+                        }
+                        break;
+                    }
                 } else
                     throw new NotSupportedException($"Unrecognised data spec {spec}");
             }
@@ -142,25 +128,38 @@ namespace Braver {
 
             PluginManager = new PluginManager();
             if (_paths.ContainsKey("PLUGINS") && !string.IsNullOrWhiteSpace(_paths["PLUGINS"])) {
-                var plugins = Directory.GetFiles(_paths["PLUGINS"], "*.dll")
-                    .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
-                    .SelectMany(asm => asm.GetTypes())
-                    .Where(t => t.IsAssignableTo(typeof(Plugin)))
-                    .Select(t => Activator.CreateInstance(t))
-                    .OfType<Plugin>();
 
+                List<Plugin> plugins = new();
+                foreach(var folder in Directory.GetDirectories(_paths["PLUGINS"])) {
+                    var foundInstances = Directory.GetFiles(folder, "*.dll")
+                        .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
+                        .SelectMany(asm => asm.GetTypes())
+                        .Where(t => t.IsAssignableTo(typeof(Plugin)))
+                        .Select(t => Activator.CreateInstance(t))
+                        .OfType<Plugin>();
+                    foreach(var instance in foundInstances) {
+                        plugins.Add(instance);
+                        _data[instance.GetType().FullName] = new List<DataSource> {
+                            new FileDataSource(folder)
+                        };
+                    }
+                }
 
-                PluginConfigs config;
+                if (plugins.Any()) {
+                    PluginConfigs config;
 
-                string pluginConfig = Path.Combine(_paths["PLUGINS"], "config.xml");
-                if (File.Exists(pluginConfig)) {
-                    using (var fs = new FileStream(pluginConfig, FileMode.Open, FileAccess.Read))
-                        config = Serialisation.Deserialise<PluginConfigs>(fs);
-                } else
-                    config = new PluginConfigs();
+                    string pluginConfig = Path.Combine(_paths["PLUGINS"], "config.xml");
+                    if (File.Exists(pluginConfig)) {
+                        using (var fs = new FileStream(pluginConfig, FileMode.Open, FileAccess.Read))
+                            config = Serialisation.Deserialise<PluginConfigs>(fs);
+                    } else
+                        config = new PluginConfigs();
 
-                PluginManager.Init(this, plugins, config);
+                    PluginManager.Init(this, plugins, config);
+                }
             }
+
+            UIPlugins = PluginManager.GetInstances("Braver", typeof(UISystem));
         }
 
         private class TraceFile : TraceListener {
@@ -199,7 +198,7 @@ namespace Braver {
                 File.Move(file1, Path.Combine(path, "auto2" + Path.GetExtension(file1)), true);
             foreach (string file0 in Directory.GetFiles(path, "auto.*"))
                 File.Move(file0, Path.Combine(path, "auto1" + Path.GetExtension(file0)), true);
-            Save(Path.Combine(path, "auto"), !DebugOptions.SeparateSaveFiles);
+            Save(Path.Combine(path, "auto"), !GameOptions.SeparateSaveFiles);
         }
 
         public Stream WriteDebugBData(string category, string file) {
@@ -225,6 +224,7 @@ namespace Braver {
         public void PushScreen(Screen s) {
             _screens.Push(s);
             s.Init(this, _graphics);
+            UIPlugins.Call<UISystem>(ui => ui.ActiveScreenChanged(s));
         }
 
         public void PopScreen(Screen current) {
@@ -233,6 +233,7 @@ namespace Braver {
             current.Dispose();
             Net.Send(new Net.PopScreenMessage());
             Screen.Reactivated();
+            UIPlugins.Call<UISystem>(ui => ui.ActiveScreenChanged(Screen));
         }
 
         public void ChangeScreen(Screen from, Screen to) {
@@ -247,11 +248,15 @@ namespace Braver {
             PushScreen(to);
         }
 
-        public void InvokeOnMainThread(Action a) {
-            _invoke.Add(a);
+        public void InvokeOnMainThread(Action a, int frameDelay = 0) {
+            _invoke.Add(new PendingInvoke {  Action = a, FrameDelay = frameDelay });
         }
 
-        private List<Action> _invoke = new();
+        private class PendingInvoke {
+            public Action Action;
+            public int FrameDelay;
+        }
+        private List<PendingInvoke> _invoke = new();
         private bool _frameStep;
 
         private bool _isPaused; //TODO - pause visuals
@@ -272,10 +277,16 @@ namespace Braver {
             if (_frameStep)
                 FrameIncrement();
 
-            var actions = _invoke.ToArray();
-            _invoke.Clear();
-            foreach (var action in actions)
-                action();
+
+            int index = 0;
+            while(index < _invoke.Count) {
+                if (_invoke[index].FrameDelay-- <= 0) {
+                    _invoke[index].Action();
+                    _invoke.RemoveAt(index);
+                } else {
+                    index++;
+                }
+            }
 
             Screen last = null;
             while (Screen != last) {

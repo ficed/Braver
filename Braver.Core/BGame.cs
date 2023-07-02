@@ -81,6 +81,28 @@ namespace Braver {
         }
     }
 
+    public class GameOptions {
+        public bool NoFieldScripts { get; set; }
+        public bool NoRandomBattles { get; set; }
+        public bool SkipBattleMenu { get; set; }
+        public bool AutoSaveOnFieldEntry { get; set; }
+        public bool SeparateSaveFiles { get; set; }
+        public float MusicVolume { get; set; } = 1f;
+
+        public GameOptions(Dictionary<string, string> settings) {
+            foreach (var prop in typeof(GameOptions).GetProperties()) {
+                if (settings.TryGetValue($"Options.{prop.Name}", out string value)) {
+                    if (prop.PropertyType == typeof(bool))
+                        prop.SetValue(this, bool.Parse(value));
+                    else if (prop.PropertyType == typeof(float))
+                        prop.SetValue(this, float.Parse(value));
+                    else
+                        throw new NotImplementedException();
+                }
+            }
+        }
+    }
+
 
     public abstract class BGame {
 
@@ -89,6 +111,7 @@ namespace Braver {
 
         public IAudio Audio { get; protected set; }
         public SaveData SaveData { get; protected set; }
+        public GameOptions GameOptions { get; protected set; }
 
         protected Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
         private Dictionary<Type, object> _singletons = new();

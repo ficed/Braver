@@ -82,7 +82,7 @@ namespace Braver.UI.Layout {
         public void SaveSelected(Box bSave) {
             string path = bSave.ID;
             if (IsSaveMenu) {
-                _game.Save(path, !_game.DebugOptions.SeparateSaveFiles);
+                _game.Save(path, !_game.GameOptions.SeparateSaveFiles);
                 InputEnabled = false;
                 _screen.FadeOut(() => _game.PopScreen(_screen));
             } else {

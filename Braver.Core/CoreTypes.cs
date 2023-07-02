@@ -23,6 +23,13 @@ namespace Braver {
         DeEquip = 446,
     }
 
+    public interface IAudioItem : IDisposable {
+        void Play(float volume, float pan, bool loop);
+        void Pause();
+        void Resume();
+        void Stop();
+    }
+
     public interface IAudio {
         void Update();
         void SetMusicVolume(byte volume);
@@ -37,7 +44,8 @@ namespace Braver {
         void PlaySfx(int which, float volume, float pan, int? channel = null);
         void PlaySfx(Sfx which, float volume, float pan, int? channel = null);
 
-        void PlaySfxStream(System.IO.Stream s, float volume, float pan);
+        void PlaySfxStream(Stream s, float volume, float pan);
+        IAudioItem LoadStream(string path, string file);
     }
 
 

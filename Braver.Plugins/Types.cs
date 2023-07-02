@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -27,5 +28,11 @@ namespace Braver.Plugins {
 
     public interface IScreen {
         string Description { get; }
+    }
+
+    public interface IFieldEntity {
+        Vector3 Position { get; }
+        string Name { get; }
+        bool IsPlayer { get; }
     }
 }

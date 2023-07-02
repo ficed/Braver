@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Ficedula.FF7;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;

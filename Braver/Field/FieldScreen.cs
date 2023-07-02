@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins.Field;
 using Ficedula.FF7.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -152,7 +153,7 @@ namespace Braver.Field {
             base.Init(g, graphics);
 
             UpdateSaveLocation();
-            if (g.DebugOptions.AutoSaveOnFieldEntry && !_isFirstLoad)
+            if (g.GameOptions.AutoSaveOnFieldEntry && !_isFirstLoad)
                 Game.AutoSave();
             _isFirstLoad = false;
 
@@ -179,7 +180,10 @@ namespace Braver.Field {
                     field = new FieldFile(s);
             }
 
-            _plugins = g.PluginManager.GetInstances(_file, typeof(Plugins.Field.IDialog), typeof(Plugins.Field.IBackground));
+            _plugins = g.PluginManager.GetInstances(
+                _file, 
+                typeof(Plugins.Field.IDialog), typeof(Plugins.Field.IBackground), typeof(Plugins.Field.IFieldLocation)
+            );
             Background = new Background(g, _plugins, graphics, field.GetBackground());
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();
@@ -356,7 +360,7 @@ namespace Braver.Field {
             };
 
             if (g.Net is Net.Server) {
-                if (!Game.DebugOptions.NoFieldScripts) {
+                if (!Game.GameOptions.NoFieldScripts) {
                     foreach (var entity in Entities) {
                         entity.Call(7, 0, null);
                         entity.Run(9999, true);
@@ -456,7 +460,7 @@ namespace Braver.Field {
                     Overlay.Step();
                     ShakeEffect.Step();
                     foreach (var entity in Entities) {
-                        if (!Game.DebugOptions.NoFieldScripts && !Options.HasFlag(FieldOptions.NoScripts))
+                        if (!Game.GameOptions.NoFieldScripts && !Options.HasFlag(FieldOptions.NoScripts))
                             entity.Run(8);
                         entity.Model?.FrameStep();
                     }
@@ -478,6 +482,7 @@ namespace Braver.Field {
                         entity.Model?.FrameStep();
                 }
             }
+            _plugins.Call<IFieldLocation>(loc => loc.Step());
             _frame++;
         }
 
@@ -814,7 +819,7 @@ namespace Braver.Field {
                                 if (_r.Next(256) < (Game.SaveData.FieldDangerCounter / 256)) {
                                     System.Diagnostics.Trace.WriteLine($"FieldDangerCounter: trigger encounter and reset");
                                     Game.SaveData.FieldDangerCounter = 0;
-                                    if (BattleOptions.BattlesEnabled && _encounters[BattleTable].Enabled) {
+                                    if (BattleOptions.BattlesEnabled && _encounters[BattleTable].Enabled && !Game.GameOptions.NoRandomBattles) {
                                         Battle.BattleScreen.Launch(Game, _encounters[BattleTable], BattleOptions.Flags, _r);
                                     }
                                 }
@@ -1139,6 +1144,11 @@ namespace Braver.Field {
                 }
             }
 
+            var oldPosition = eMove.Model.Translation;
+            void ReportMove() {
+                _plugins.Call<IFieldLocation>(loc => loc.EntityMoved(eMove, false, oldPosition, eMove.Model.Translation)); //TODO running
+            }
+
             var currentTri = _walkmesh[eMove.WalkmeshTri];
             var newHeight = HeightInTriangle(currentTri, newPosition.X, newPosition.Y, false);
             if (newHeight != null) {
@@ -1149,6 +1159,7 @@ namespace Braver.Field {
 
                 eMove.Model.Translation = newPosition.WithZ(newHeight.Value);
                 ReportDebugEntityPos(eMove);
+                ReportMove();
                 return true;
             } else {
                 switch (DoesLeaveTri(eMove.Model.Translation.XY(), newPosition.XY(), eMove.WalkmeshTri, true, out short? newTri, out Vector2 newDest)) {
@@ -1172,6 +1183,7 @@ namespace Braver.Field {
                     throw new Exception();
                 eMove.Model.Translation = new Vector3(newDest.X, newDest.Y, newHeight.Value);
                 ReportDebugEntityPos(eMove);
+                ReportMove();
                 return true;
             }
         }
