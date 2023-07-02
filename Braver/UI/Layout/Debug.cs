@@ -24,11 +24,17 @@ namespace Braver.UI.Layout {
         }
 
         private void Update() {
-            lNoFieldScripts.Color = Game.GameOptions.NoFieldScripts ? Color.White : Color.Gray;
-            lNoRandomBattles.Color = Game.GameOptions.NoRandomBattles ? Color.White : Color.Gray;
-            lSkipBattleMenu.Color = Game.GameOptions.SkipBattleMenu ? Color.White : Color.Gray;
-            lAutoSaveOnFieldEntry.Color = Game.GameOptions.AutoSaveOnFieldEntry ? Color.White : Color.Gray;
-            lSeparateSaveFiles.Color = Game.GameOptions.SeparateSaveFiles ? Color.White : Color.Gray;
+
+            void DoLabel(Label L, bool option) {
+                L.Color = option ? Color.White : Color.Gray;
+                L.FocusDescription = L.Text + " " + (option ? "On" : "Off");
+            }
+
+            DoLabel(lNoFieldScripts, Game.GameOptions.NoFieldScripts);
+            DoLabel(lNoRandomBattles, Game.GameOptions.NoRandomBattles);
+            DoLabel(lSkipBattleMenu, Game.GameOptions.SkipBattleMenu);
+            DoLabel(lAutoSaveOnFieldEntry, Game.GameOptions.AutoSaveOnFieldEntry);
+            DoLabel(lSeparateSaveFiles, Game.GameOptions.SeparateSaveFiles);
         }
 
         public void LabelClick(Label L) {
@@ -44,6 +50,7 @@ namespace Braver.UI.Layout {
                 Game.GameOptions.SeparateSaveFiles = !Game.GameOptions.SeparateSaveFiles;
 
             Update();
+            ChangeFocus(Focus); //to re-announce new state
         }
 
         public override bool ProcessInput(InputState input) {

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Description="Debug Options">
 	<Root xsi:type="Box" X="0" Y="0" W="1280" H="720" ID="Root">
 		<Component xsi:type="Label" X="200" Y="30">DEBUG OPTIONS</Component>
 

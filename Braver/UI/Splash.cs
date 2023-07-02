@@ -34,7 +34,7 @@ namespace Braver.UI {
         }
 
         private void Announce() {
-            Game.UIPlugins.Call<UISystem>(ui => ui.Menu(_items, _menu));
+            Game.UIPlugins.Call<UISystem>(ui => ui.Menu(_items, _menu, this));
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {

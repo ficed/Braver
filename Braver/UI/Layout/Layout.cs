@@ -57,7 +57,7 @@ namespace Braver.UI.Layout {
         public virtual Action OnFocussed  { get; set; }
 
         [XmlIgnore]
-        public virtual string Description => FocusDescription ?? "Unknown";
+        public virtual string Description => FocusDescription ?? null;
 
         [XmlIgnore]
         public Container Parent { get; internal set; }
@@ -227,7 +227,7 @@ namespace Braver.UI.Layout {
         public bool Enabled { get; set; } = true;
 
         [XmlIgnore]
-        public override string Description => Text ?? base.Description;
+        public override string Description => base.Description ?? Text;
 
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             if (!string.IsNullOrWhiteSpace(Text))
@@ -351,7 +351,7 @@ namespace Braver.UI.Layout {
                 Focus?.OnFocussed?.Invoke();
                 var group = FocusGroup.FocussableChildren().Select(child => child.Component).ToList();
                 Game.InvokeOnMainThread(
-                    () => Game.UIPlugins.Call<UISystem>(ui => ui.Menu(group.Select(c => c.Description), group.IndexOf(f))),
+                    () => Game.UIPlugins.Call<UISystem>(ui => ui.Menu(group.Select(c => c.Description), group.IndexOf(f), FocusGroup)),
                     1
                 ); //delay so initial announcement happens after loading has finished
             }

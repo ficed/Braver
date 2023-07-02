@@ -74,10 +74,13 @@ namespace Braver {
 
         public abstract string Description { get; }
 
+        bool IScreen.HasFinishedLoading => _frames > 0;
+
         protected SpriteBatch _fxBatch;
         
         private Transition _transition;
         private Action _transitionAction;
+        private int _frames = 0;
 
         protected bool _readyToRender;
         protected Plugins.PluginInstances _plugins;
@@ -96,7 +99,9 @@ namespace Braver {
         protected abstract void DoRender();
 
         public virtual void Reactivated() { }
-        public virtual void Dispose() { }
+        public virtual void Dispose() {
+            _plugins?.Dispose();
+        }
 
         public void FadeOut(Action then, int frames = 30) {
             _transition = new FadeTransition(
@@ -126,6 +131,7 @@ namespace Braver {
                     _transitionAction?.Invoke();
                 }
             }
+            _frames++;
         }
 
         public void Render() {

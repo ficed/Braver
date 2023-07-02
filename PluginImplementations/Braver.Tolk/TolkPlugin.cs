@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Field;
 using Braver.Plugins;
 using Braver.Plugins.Field;
 using Braver.Plugins.UI;
@@ -15,6 +16,7 @@ namespace Braver.Tolk {
     public class TolkConfig {
         public bool EnableSAPI { get; set; } = true;
         public bool EnableFootsteps { get; set; } = true;
+        public bool EnableFocusTracking { get; set; } = true;
     }
 
     public class TolkPlugin : Plugin {
@@ -29,14 +31,14 @@ namespace Braver.Tolk {
             if (t == typeof(UISystem))
                 return new TolkInstance(_config);
             else if (t == typeof(IFieldLocation))
-                return new FootstepPlugin(_game);
+                return new FootstepFocusPlugin(_game, _config.EnableFootsteps, _config.EnableFocusTracking);
             else
                 throw new NotSupportedException();
         }
 
         public override IEnumerable<Type> GetPluginInstances() {
             yield return typeof(UISystem);
-            if (_config.EnableFootsteps)
+            if (_config.EnableFootsteps || _config.EnableFocusTracking)
                 yield return typeof(IFieldLocation);
         }
 
@@ -67,25 +69,33 @@ namespace Braver.Tolk {
             DavyKager.Tolk.Speak(dialog, false);
         }
 
-        public void Menu(IEnumerable<string> items, int selected) {
+        private object _lastMenuContainer = null;
+        public void Menu(IEnumerable<string> items, int selected, object container) {
             DavyKager.Tolk.Speak(
                 $"Menu {items.ElementAtOrDefault(selected)}, {selected + 1} of {items.Count()}",
-                false
+                _lastMenuContainer == container
             );
+            _lastMenuContainer = container;
         }
     }
 
-    public class FootstepPlugin : IFieldLocation, IDisposable {
+    public class FootstepFocusPlugin : IFieldLocation, IDisposable {
 
-        private IAudioItem _footsteps;
+        private IAudioItem _footsteps, _focusSound;
         private bool _playing = false;
         private Queue<Vector3> _positions = new();
         private Vector3 _lastPosition;
+        private string _lastFocusName;
 
-        public FootstepPlugin(BGame game) {
-            _footsteps = game.Audio.LoadStream(typeof(TolkPlugin).FullName, "footsteps.ogg");
-            _footsteps.Play(1f, 0f, true);
-            _footsteps.Pause();
+        public FootstepFocusPlugin(BGame game, bool footsteps, bool focus) {
+            if (footsteps) {
+                _footsteps = game.Audio.LoadStream(typeof(TolkPlugin).FullName, "footsteps.ogg");
+                _footsteps.Play(1f, 0f, true, 1f);
+                _footsteps.Pause();
+            }
+            if (focus) {
+                _focusSound = game.Audio.LoadStream(typeof(TolkPlugin).FullName, "focus.ogg");
+            }
         }
 
         public void EntityMoved(IFieldEntity entity, bool isRunning, Vector3 from, Vector3 to) {
@@ -95,24 +105,47 @@ namespace Braver.Tolk {
             }
         }
 
-        public void Step() {
-            while (_positions.Count > 5)
-                _positions.Dequeue();
-            _positions.Enqueue(_lastPosition);
-            bool shouldPlay = (_positions.First() - _positions.Last()).Length() > 13f;
-            if (shouldPlay != _playing) {
-                System.Diagnostics.Debug.WriteLine($"Tolk change!");
-                if (shouldPlay)
-                    _footsteps.Resume();
-                else
-                    _footsteps.Pause();
-                _playing = shouldPlay;
+        private int _focusCountdown=180;
+        public void Step(IField field) {
+
+            if (_footsteps != null) {
+                while (_positions.Count > 5)
+                    _positions.Dequeue();
+                _positions.Enqueue(_lastPosition);
+                bool shouldPlay = (_positions.First() - _positions.Last()).Length() > 13f;
+                if (shouldPlay != _playing) {
+                    //System.Diagnostics.Debug.WriteLine($"Tolk change!");
+                    if (shouldPlay)
+                        _footsteps.Resume();
+                    else
+                        _footsteps.Pause();
+                    _playing = shouldPlay;
+                }
+                //System.Diagnostics.Debug.WriteLine($"Tolk step! {string.Join(",", _positions)}");
             }
-            System.Diagnostics.Debug.WriteLine($"Tolk step! {string.Join(",", _positions)}");
+
+            if ((_focusSound != null) && (--_focusCountdown == 0)) {
+                var focusState = field.GetFocusState();
+                if (focusState != null) {
+                    System.Diagnostics.Debug.WriteLine($"Focus at walkmesh distance {focusState.WalkmeshDistance}");
+                    if (field.Options.HasFlag(FieldOptions.PlayerControls))
+                        _focusSound.Play(1f, 0f, false, (float)Math.Pow(0.9, focusState.WalkmeshDistance));
+
+                    if (_lastFocusName != focusState.TargetName) {
+                        _lastFocusName = focusState.TargetName;
+                        DavyKager.Tolk.Output("Focus " + _lastFocusName);
+                    }
+                }
+                _focusCountdown = 180;
+            }
         }
 
         public void Dispose() {
-            _footsteps.Dispose();
+            _footsteps?.Dispose();
+        }
+
+        public void FocusChanged() {
+            _focusCountdown = 1;
         }
     }
 }

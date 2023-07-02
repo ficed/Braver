@@ -376,14 +376,19 @@ namespace Braver {
             private NAudio.Vorbis.VorbisWaveReader _vorbis;
             private VolumeSampleProvider _volume;
             private PanningSampleProvider _pan;
+            private SmbPitchShiftingSampleProvider _pitch;
             private bool _shouldLoop;
 
             public LoadedAudioItem(Stream s) {
                 _waveOut = new WaveOut();
                 _waveOut.PlaybackStopped += _waveOut_PlaybackStopped;
                 _vorbis = new NAudio.Vorbis.VorbisWaveReader(s, true);
-                _pan = new PanningSampleProvider(_volume = new VolumeSampleProvider(_vorbis));
-                _waveOut.Init(_pan);
+                _pitch = new SmbPitchShiftingSampleProvider(
+                    _pan = new PanningSampleProvider(_volume = new VolumeSampleProvider(_vorbis))
+                ) {
+                    PitchFactor = 1f
+                };
+                _waveOut.Init(_pitch);
             }
 
             private void _waveOut_PlaybackStopped(object sender, StoppedEventArgs e) {
@@ -405,10 +410,13 @@ namespace Braver {
                 _waveOut.Resume();
             }
 
-            public void Play(float volume, float pan, bool loop) {
+            public void Play(float volume, float pan, bool loop, float pitch) {
+                _vorbis.Position = 0;
                 _shouldLoop = loop;
                 _volume.Volume = volume;
                 _pan.Pan = pan;
+                _pitch.PitchFactor = pitch;
+                System.Diagnostics.Debug.WriteLine($"AudioItem play vol {volume} pan {pan} pitch {pitch}");
                 _waveOut.Play();
             }
 

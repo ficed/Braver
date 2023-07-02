@@ -24,7 +24,7 @@ namespace Braver {
     }
 
     public interface IAudioItem : IDisposable {
-        void Play(float volume, float pan, bool loop);
+        void Play(float volume, float pan, bool loop, float pitch);
         void Pause();
         void Resume();
         void Stop();

@@ -28,6 +28,7 @@ namespace Braver.Plugins {
 
     public interface IScreen {
         string Description { get; }
+        bool HasFinishedLoading { get; }
     }
 
     public interface IFieldEntity {

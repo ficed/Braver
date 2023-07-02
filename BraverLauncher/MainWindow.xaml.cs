@@ -81,7 +81,7 @@ namespace BraverLauncher {
                 txtMovies.Text = settings.GetValueOrDefault("Movies");
                 txtSave.Text = settings.GetValueOrDefault("Save");
                 if (txtSave.Text == ".") txtSave.Text = "";
-                slMusicVolume.Value = double.Parse(settings.GetValueOrDefault("Options.MusicVolume") ?? "100");
+                slMusicVolume.Value = double.Parse(settings.GetValueOrDefault("Options.MusicVolume") ?? "1") * 100;
             } 
         }
 

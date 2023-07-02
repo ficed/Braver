@@ -230,6 +230,12 @@ namespace Ficedula.FF7.Field {
             yield return V1;
             yield return V2;
         }
+
+        public IEnumerable<short> AdjacentTris() {
+            if (V01Tri != null) yield return V01Tri.Value;
+            if (V12Tri != null) yield return V12Tri.Value;
+            if (V20Tri != null) yield return V20Tri.Value;
+        }
     }
 
     public class Walkmesh {

@@ -18,6 +18,6 @@ namespace Braver.Plugins.UI {
         void Dialog(string dialog);
         void Choices(IEnumerable<string> choices, int selected);
 
-        void Menu(IEnumerable<string> items, int selected);
+        void Menu(IEnumerable<string> items, int selected, object container);
     }
 }

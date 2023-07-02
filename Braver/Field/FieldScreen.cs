@@ -39,26 +39,9 @@ namespace Braver.Field {
         }
     }
 
-    [Flags]
-    public enum FieldOptions {
-        None = 0,
-        PlayerControls = 0x1,
-        //LinesActive = 0x2,
-        MenuEnabled = 0x4, 
-        CameraTracksPlayer = 0x8,
-        CameraIsAsyncScrolling = 0x10,
-        MusicLocked = 0x20,
-        UseMovieCam = 0x40,
-        GatewaysEnabled = 0x80,
-        ShowPlayerHand = 0x100,
-
-        NoScripts = 0x1000,
-
-        DEFAULT = PlayerControls | MenuEnabled | CameraTracksPlayer | UseMovieCam | GatewaysEnabled | ShowPlayerHand,    
-    }
-
     public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
-        Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage> {
+        Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage>,
+        IField {
 
         private PerspView3D _view3D;
         private View2D _view2D;
@@ -93,6 +76,17 @@ namespace Braver.Field {
         public DialogEvent FieldDialog { get; private set; }
         public TriggersAndGateways TriggersAndGateways { get; private set; }
         public Shake ShakeEffect { get; private set; }
+
+        private class Focusable {
+            public string Name { get; set; }
+            public Func<Vector3> Position { get; set; }
+            public Func<int> WalkmeshTri { get; set; }
+            public Func<bool> Active { get; set; }
+            public object Source { get; set; }
+        }
+
+        private List<Focusable> _focusables = new();
+        private Focusable _currentFocus;
 
 
         private EncounterTable[] _encounters;
@@ -378,6 +372,29 @@ namespace Braver.Field {
                 g.Net.Send(new Net.ScreenReadyMessage());
             }
             Entity.DEBUG_OUT = false;
+
+            foreach(var entity in Entities.Where(e => e.Model != null)) {
+                _focusables.Add(new Focusable {
+                    Name = entity.Name,
+                    Position = () => entity.Model.Translation,
+                    WalkmeshTri = () => entity.WalkmeshTri,
+                    Source = entity,
+                    Active = () => entity.Model.Visible && (entity != Player)
+                });
+            }
+            foreach(var gateway in TriggersAndGateways.Gateways) {
+                var middle = (gateway.V0.ToX() + gateway.V1.ToX()) * 0.5f;
+                var tri = FindWalkmeshForPosition(middle);
+                if (tri != null) {
+                    _focusables.Add(new Focusable {
+                        Name = "Exit " + TriggersAndGateways.Gateways.IndexOf(gateway),
+                        Position = () => middle,
+                        WalkmeshTri = () => tri.Value,
+                        Source = gateway,
+                        Active = () => true,
+                    });
+                }
+            }
         }
 
         private int _nextModelIndex = 0;
@@ -482,7 +499,7 @@ namespace Braver.Field {
                         entity.Model?.FrameStep();
                 }
             }
-            _plugins.Call<IFieldLocation>(loc => loc.Step());
+            _plugins.Call<IFieldLocation>(loc => loc.Step(this));
             _frame++;
         }
 
@@ -619,6 +636,19 @@ namespace Braver.Field {
             (LineEvents.GoAway, 6),
         };
 
+        private void SwitchFocus(int offset) {
+            _currentFocusState = null;
+            foreach (int i in Enumerable.Range(1, _focusables.Count - 1)) {
+                int newIndex = (_focusables.IndexOf(_currentFocus) + offset * i + _focusables.Count) % _focusables.Count;
+                var candidate = _focusables[newIndex];
+                if (candidate.Active()) {
+                    _currentFocus = candidate;
+                    return;
+                }
+            }
+            _currentFocus = null;
+        }
+
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
             if (!(Game.Net is Net.Server)) return;
@@ -638,6 +668,11 @@ namespace Braver.Field {
                 _renderModels = !_renderModels;
                 ReportAllModelPositions();
             }
+
+            if (input.IsJustDown(InputKey.PanLeft))
+                SwitchFocus(-1);
+            if (input.IsJustDown(InputKey.PanRight))
+                SwitchFocus(+1);
 
             if (input.IsJustDown(InputKey.Debug5))
                 Game.PushScreen(new UI.Layout.LayoutScreen("FieldDebugger", parm: this));
@@ -1171,6 +1206,7 @@ namespace Braver.Field {
                     case LeaveTriResult.Success:
                     case LeaveTriResult.SlideNewTri:
                         eMove.WalkmeshTri = newTri.Value;
+                        _currentFocusState = null; //Could be a bit cleverer about when to invalidate this
                         currentTri = _walkmesh[newTri.Value];
                         ClampToTriangle(ref newDest, currentTri);
                         break; //Treat same as success, code below will move us accordingly
@@ -1253,6 +1289,18 @@ namespace Braver.Field {
             }
         }
 
+        public int? FindWalkmeshForPosition(Vector3 position) {
+            foreach(int t in Enumerable.Range(0, _walkmesh.Count)) {
+                var height = HeightInTriangle(t, position.X, position.Y, false);
+                if (height != null) {
+                    if (((height.Value - 5) <= position.Z) && (height.Value > (position.Z - 5))) //TODO - is this fudge factor needed, the right size, ...?
+                        return t;
+                }
+            }
+
+            return null;
+        }
+
         public void DropToWalkmesh(Entity e, Vector2 position, int walkmeshTri, bool exceptOnFailure = true) {
             var tri = _walkmesh[walkmeshTri];
 
@@ -1263,6 +1311,7 @@ namespace Braver.Field {
 
             e.Model.Translation = new Vector3(position.X, position.Y, height.GetValueOrDefault());
             e.WalkmeshTri = walkmeshTri;
+            _currentFocusState = null; //Could be a bit cleverer about when to invalidate this
             ReportDebugEntityPos(e);
         }
 
@@ -1351,6 +1400,35 @@ namespace Braver.Field {
 
         public void Received(Net.FieldEntityModelMessage message) {
             Entities[message.EntityID].Model = FieldModels[message.ModelID];
+        }
+
+        private FocusState _currentFocusState;
+        Vector3 IField.PlayerPosition => Player?.Model?.Translation ?? Vector3.Zero;
+        FocusState IField.GetFocusState() {
+            if ((_currentFocus != null) && (_currentFocusState == null) && (Player != null) && (_currentFocus.Source != Player)) {
+                Dictionary<WalkmeshTriangle, int> distance = new();
+                distance[_walkmesh[Player.WalkmeshTri]] = 0;
+                Queue<WalkmeshTriangle> toConsider = new Queue<WalkmeshTriangle>();
+                toConsider.Enqueue(_walkmesh[Player.WalkmeshTri]);
+
+                while (toConsider.Any()) {
+                    var tri = toConsider.Dequeue();
+                    foreach(var adjacent in tri.AdjacentTris()) {
+                        var adj = _walkmesh[adjacent];
+                        if (!distance.ContainsKey(adj)) {
+                            distance[adj] = distance[tri] + 1;
+                            toConsider.Enqueue(adj);
+                        }
+                    }
+                }
+
+                _currentFocusState = new FocusState {
+                    TargetName = _currentFocus.Name,
+                    TargetPosition = _currentFocus.Position(),
+                    WalkmeshDistance = distance[_walkmesh[_currentFocus.WalkmeshTri()]],
+                };
+            }
+            return _currentFocusState;
         }
     }
 
