@@ -131,7 +131,7 @@ namespace Braver {
         public ShopData Data { get; private set; }
 
         public override void Init(BGame g) {
-            using(var s = g.Open("root", "ff7.exe")) {
+            using (var s = File.OpenRead(g.GetPath("FF7EXE"))) {
                 Data = new ShopData(s, 0x521E18, 0x523858);
             }
         }

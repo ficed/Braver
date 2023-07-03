@@ -21,6 +21,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BraverLauncher {
     /// <summary>
@@ -79,6 +80,8 @@ namespace BraverLauncher {
                     .ToDictionary(sa => sa[0], sa => sa[1], StringComparer.InvariantCultureIgnoreCase);
                 txtFF7.Text = settings.GetValueOrDefault("FF7");
                 txtMovies.Text = settings.GetValueOrDefault("Movies");
+                txtMusic.Text = settings.GetValueOrDefault("Music");
+                txtExe.Text = settings.GetValueOrDefault("FF7EXE");
                 txtSave.Text = settings.GetValueOrDefault("Save");
                 if (txtSave.Text == ".") txtSave.Text = "";
                 slMusicVolume.Value = double.Parse(settings.GetValueOrDefault("Options.MusicVolume") ?? "1") * 100;
@@ -174,13 +177,31 @@ namespace BraverLauncher {
             }
         }
 
+        private void btnExe_Click(object sender, RoutedEventArgs e) {
+            var dlg = new Ookii.Dialogs.Wpf.VistaOpenFileDialog {
+                Filter = "Exe files|*.exe",
+                Multiselect = false,
+            };
+            if (dlg.ShowDialog() ?? false) {
+                txtExe.Text = dlg.FileName;
+            }
+        }
+
+        private void btnMusic_Click(object sender, RoutedEventArgs e) {
+            DoBrowse(txtMusic);
+        }
+
         private void btnLaunch_Click(object sender, RoutedEventArgs e) {
-            if (!File.Exists(Path.Combine(txtFF7.Text, "FF7.exe"))) {
-                MessageBox.Show("Cannot locate FF7.exe - check the path", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            if (!Directory.Exists(Path.Combine(txtFF7.Text, "data"))) {
+                MessageBox.Show("Cannot locate data folder - check the path", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             if (!File.Exists(Path.Combine(txtMovies.Text, "opening.mp4")) && !File.Exists(Path.Combine(txtMovies.Text, "opening.avi"))) {
                 MessageBox.Show("Cannot locate opening movie - check the path", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            if (!File.Exists(txtExe.Text)) {
+                MessageBox.Show("Cannot locate main exe - check the path", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -190,6 +211,8 @@ namespace BraverLauncher {
 
             File.WriteAllLines(_braverConfigPath, new[] {
                 $"FF7={txtFF7.Text}",
+                $"FF7EXE={txtExe.Text}",
+                $"Music={txtMusic.Text}",
                 $"Movies={txtMovies.Text}",
                 $"Save={save}",
                 $"Braver=.",

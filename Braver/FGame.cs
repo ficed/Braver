@@ -171,6 +171,20 @@ namespace Braver {
                 _writer = new StreamWriter(file, false);
             }
 
+            public override void Fail(string message) {
+                lock (_writer) {
+                    _writer.WriteLine(message);
+                    _writer.Flush();
+                }
+            }
+
+            public override void Fail(string message, string detailMessage) {
+                lock (_writer) {
+                    _writer.WriteLine(message + ": " + detailMessage);
+                    _writer.Flush();
+                }
+            }
+
             public override void Write(string message) {
                 lock (_writer) {
                     _writer.Write(message);

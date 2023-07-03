@@ -2,7 +2,7 @@
   "profiles": {
     "Braver": {
       "commandName": "Project",
-      "commandLineArgs": "_debughost=localhost port=12508 key=ficedula ff7=C:\\games\\ff7 braver=C:\\Users\\ficed\\Projects\\F7\\data xbraver=C:\\Users\\ficed\\Projects\\F7\\temp xbdata=C:\\temp\\data.bpack Options.AutoSaveOnFieldEntry=true Options.SeparateSaveFiles=true save=C:\\Users\\ficed\\AppData\\Roaming\\Braver\\save movies=C:\\Users\\ficed\\Projects\\F7\\movies Options.MusicVolume=0.1 plugins=C:\\Users\\ficed\\Projects\\F7\\PluginImplementations\\Braver.Tolk\\bin\\Debug"
+      "commandLineArgs": "_debughost=localhost port=12508 key=ficedula ff7=C:\\games\\ff7 braver=C:\\Users\\ficed\\Projects\\F7\\data xbraver=C:\\Users\\ficed\\Projects\\F7\\temp xbdata=C:\\temp\\data.bpack _Options.AutoSaveOnFieldEntry=true Options.SeparateSaveFiles=true save=C:\\Users\\ficed\\AppData\\Roaming\\Braver\\save movies=C:\\Users\\ficed\\Projects\\F7\\movies music=C:\\games\\FF7\\data\\music_oggs ff7exe=C:\\games\\FF7\\ff7.exe Options.MusicVolume=0.1 plugins=C:\\Users\\ficed\\Projects\\F7\\PluginImplementations\\Braver.Tolk\\bin\\Debug"
     }
   }
 }

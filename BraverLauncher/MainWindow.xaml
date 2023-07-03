@@ -27,9 +27,11 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Label Grid.Row="0" x:Name="lblFF7">FF7 Path (folder containing FF7.exe)</Label>
+                    <Label Grid.Row="0" x:Name="lblFF7">FF7 Path (should contain 'data' subfolder)</Label>
                     <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtFF7" AutomationProperties.LabeledBy="{Binding ElementName=lblFF7}" />
                     <Button Grid.Row="0" Grid.Column="2" x:Name="btnFF7" Padding="5" Click="btnFF7_Click" AutomationProperties.HelpText="Select FF7 Folder">...</Button>
 
@@ -37,12 +39,20 @@
                     <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtMovies" AutomationProperties.LabeledBy="{Binding ElementName=lblMovies}" />
                     <Button Grid.Row="1" Grid.Column="2" x:Name="btnMovies" Padding="5" Click="btnMovies_Click" AutomationProperties.HelpText="Select Movie Folder">...</Button>
 
-                    <Label Grid.Row="2" x:Name="lblSave">Savegame Path (leave blank to save in Braver folder)</Label>
-                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtSave" AutomationProperties.LabeledBy="{Binding ElementName=lblSave}" />
-                    <Button Grid.Row="2" Grid.Column="2" x:Name="btnSave" Padding="5" Click="btnSave_Click" AutomationProperties.HelpText="Select Save Folder">...</Button>
+                    <Label Grid.Row="2" x:Name="lblExe">Exe path (main FF7 executable)</Label>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtExe" AutomationProperties.LabeledBy="{Binding ElementName=lblExe}" />
+                    <Button Grid.Row="2" Grid.Column="2" x:Name="btnExe" Padding="5" Click="btnExe_Click" AutomationProperties.HelpText="Select Exe File">...</Button>
 
-                    <Label Grid.Row="3" x:Name="lblMusicVolume">Music Volume</Label>
-                    <Slider Grid.Row="3" Grid.Column="1" x:Name="slMusicVolume" Minimum="0" Maximum="100" Value="100" SmallChange="2" LargeChange="10" AutomationProperties.LabeledBy="{Binding ElementName=lblMusicVolume}" />
+                    <Label Grid.Row="3" x:Name="lblMusic">Music Path (folder containing pre.ogg)</Label>
+                    <TextBox Grid.Row="3" Grid.Column="1" x:Name="txtMusic" AutomationProperties.LabeledBy="{Binding ElementName=lblMusic}" />
+                    <Button Grid.Row="3" Grid.Column="2" x:Name="btnMusic" Padding="5" Click="btnMusic_Click" AutomationProperties.HelpText="Select Music Folder">...</Button>
+
+                    <Label Grid.Row="4" x:Name="lblSave">Savegame Path (leave blank to save in Braver folder)</Label>
+                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="txtSave" AutomationProperties.LabeledBy="{Binding ElementName=lblSave}" />
+                    <Button Grid.Row="4" Grid.Column="2" x:Name="btnSave" Padding="5" Click="btnSave_Click" AutomationProperties.HelpText="Select Save Folder">...</Button>
+
+                    <Label Grid.Row="5" x:Name="lblMusicVolume">Music Volume</Label>
+                    <Slider Grid.Row="5" Grid.Column="1" x:Name="slMusicVolume" Minimum="0" Maximum="100" Value="100" SmallChange="2" LargeChange="10" AutomationProperties.LabeledBy="{Binding ElementName=lblMusicVolume}" />
                 </Grid>
             </TabItem>
             <TabItem Header="Plugins">

@@ -148,7 +148,9 @@ namespace Braver {
             void DoPlay(string track) {
                 var current = contexts.Peek();
                 DoStop();
-                string file = System.IO.Path.Combine(_musicFolder, track + ".ogg");
+                string file = Path.Combine(_musicFolder, track + ".ogg");
+                if (!File.Exists(file)) return; //TODO - report error
+
                 int loopStart, loopEnd;
                 using (var reader = new NVorbis.VorbisReader(file)) {
                     loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));
