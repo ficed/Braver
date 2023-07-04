@@ -49,6 +49,9 @@ namespace Braver {
                     settings[setting[0]] = setting[1];
             }
 
+            if (!settings.ContainsKey("braver")) 
+                throw new F7Exception($"Not configured - please run BraverLauncher first to configure the game");
+
             GameOptions = new GameOptions(settings);
 
             string dataFile = Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "data.txt");

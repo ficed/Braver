@@ -1,3 +1,5 @@
+LOG		%braver%\log.txt	%braver%\log2.txt
+
 DATA    LGP     field   %ff7%\data\field\flevel.lgp
 DATA    LGP     field   %ff7%\data\field\char.lgp
 
@@ -12,9 +14,11 @@ DATA    FILE    wm      %ff7%\data\wm
 
 DATA    LGP     battle  %ff7%\data\battle\battle.lgp
 DATA    LGP     battle  %ff7%\data\battle\magic.lgp
-DATA    FILE    battle  %ff7%\data\battle
 
-DATA    FILE    kernel  %ff7%\data\kernel
+DATA    FILE?    battle  %ff7%\data\battle
+DATA    FILE?    kernel  %ff7%\data\kernel
+DATA    FILE?    battle  %ff7%\data\lang-en\battle
+DATA    FILE?    kernel  %ff7%\data\lang-en\kernel
 
 DATA    FILE    root    %ff7%
 
@@ -41,5 +45,3 @@ PATH	SAVE	%save%
 PATH	FF7EXE	%ff7exe%
 
 PATH	PLUGINS	%plugins%
-
-LOG		%braver%\log.txt	%braver%\log2.txt

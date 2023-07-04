@@ -149,7 +149,10 @@ namespace Braver {
                 var current = contexts.Peek();
                 DoStop();
                 string file = Path.Combine(_musicFolder, track + ".ogg");
-                if (!File.Exists(file)) return; //TODO - report error
+                if (!File.Exists(file)) {
+                    System.Diagnostics.Trace.WriteLine($"Failed to find music track {file}");
+                    return;
+                }
 
                 int loopStart, loopEnd;
                 using (var reader = new NVorbis.VorbisReader(file)) {
@@ -166,41 +169,45 @@ namespace Braver {
                 current.Track = track;
             }
 
-            while (true) {
-                var command = await _channel.Reader.ReadAsync();
-                if (command == null) break;
+            try {
+                while (true) {
+                    var command = await _channel.Reader.ReadAsync();
+                    if (command == null) break;
 
-                switch (command.Command) {
-                    case CommandType.SetVolume:
-                        _volume = command.Param;
-                        if (contexts.Peek().WaveOut != null)
-                            contexts.Peek().Volume.Volume = _masterVolume * _volume / 127f;
-                        break;
+                    switch (command.Command) {
+                        case CommandType.SetVolume:
+                            _volume = command.Param;
+                            if (contexts.Peek().WaveOut != null)
+                                contexts.Peek().Volume.Volume = _masterVolume * _volume / 127f;
+                            break;
 
-                    case CommandType.Play:
-                        if (command.Track != contexts.Peek().Track)
+                        case CommandType.Play:
+                            if (command.Track != contexts.Peek().Track)
+                                DoPlay(command.Track);
+                            break;
+
+                        case CommandType.Stop:
+                            DoStop();
+                            break;
+
+                        case CommandType.Pop:
+                            DoStop();
+                            contexts.Pop();
+                            if (contexts.Peek().Vorbis != null)
+                                contexts.Peek().WaveOut.Resume();
+                            break;
+
+                        case CommandType.Push:
+                            if (contexts.Peek().Vorbis != null)
+                                contexts.Peek().WaveOut.Pause();
+                            contexts.Push(new MusicContext());
                             DoPlay(command.Track);
-                        break;
-
-                    case CommandType.Stop:
-                        DoStop();
-                        break;
-
-                    case CommandType.Pop:
-                        DoStop();
-                        contexts.Pop();
-                        if (contexts.Peek().Vorbis != null)
-                            contexts.Peek().WaveOut.Resume();
-                        break;
-
-                    case CommandType.Push:
-                        if (contexts.Peek().Vorbis != null)
-                            contexts.Peek().WaveOut.Pause();
-                        contexts.Push(new MusicContext());
-                        DoPlay(command.Track);
-                        break;
+                            break;
+                    }
                 }
-
+            } catch (Exception ex) {
+                System.Diagnostics.Trace.WriteLine($"Music thread crashed! {ex}");
+                throw;
             }
         }
 
