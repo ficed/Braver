@@ -401,8 +401,10 @@ namespace Braver {
             }
 
             private void _waveOut_PlaybackStopped(object sender, StoppedEventArgs e) {
-                if (_shouldLoop)
+                if (_shouldLoop) {
+                    _vorbis.Position = 0;
                     _waveOut.Play();
+                }
             }
 
             public void Dispose() {

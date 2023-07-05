@@ -4,11 +4,13 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Battle;
 using Braver.Field;
 using Braver.Plugins;
 using Braver.Plugins.Field;
 using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
+using System;
 using System.Windows.Forms;
 
 namespace Braver.Tolk {
@@ -76,6 +78,25 @@ namespace Braver.Tolk {
                 _lastMenuContainer == container
             );
             _lastMenuContainer = container;
+        }
+
+        public void BattleCharacterReady(ICombatant character) {
+            DavyKager.Tolk.Speak($"{character.Name} ready", false);
+        }
+
+        public void BattleTargetHighlighted(IEnumerable<ICombatant> targets) {
+            if (targets != null)
+                DavyKager.Tolk.Speak($"Targetting {string.Join(", ", targets.Select(c => c.Name))}", true);
+        }
+
+        public void BattleActionStarted(string action) {
+            DavyKager.Tolk.Speak(action, false);
+        }
+
+        public void BattleActionResult(IInProgress result) {
+            string s = result.Description;
+            if (!string.IsNullOrEmpty(s))
+                DavyKager.Tolk.Speak(s, false);
         }
     }
 
@@ -146,6 +167,13 @@ namespace Braver.Tolk {
 
         public void FocusChanged() {
             _focusCountdown = 1;
+        }
+
+        public void Suspended() {
+            if (_playing) {
+                _footsteps.Pause(); 
+                _playing = false;
+            }
         }
     }
 }

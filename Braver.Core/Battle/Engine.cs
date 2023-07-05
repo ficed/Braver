@@ -27,6 +27,12 @@ namespace Braver.Battle {
         Counter,
     }
 
+    public interface IInProgress {
+        string Description { get; }
+        bool Step(int frames); //return true if done
+        bool IsIndefinite { get; }
+    }
+
     public class QueuedAction {
         public ICombatant Source { get; private set; }
         public Ability Ability { get; private set; }

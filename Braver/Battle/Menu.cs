@@ -4,8 +4,11 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
+using Braver.Plugins.UI;
 using Braver.UI;
 using Microsoft.Xna.Framework;
+using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,15 +20,18 @@ namespace Braver.Battle {
         private int _item, _subItem, _column, _subTop;
         private CharacterAction _subMenu;
         private FGame _game;
+        private PluginInstances _plugins;
 
         public ICharacterAction SelectedAction { get; private set; }
         public CharacterCombatant Combatant { get; private set; }
 
-        public Menu(FGame game, UIBatch ui, CharacterCombatant combatant) {
+        public Menu(FGame game, UIBatch ui, CharacterCombatant combatant, PluginInstances plugins) {
             _game = game;
             _ui = ui;
             Combatant = combatant;
             _game.Audio.PlaySfx(Sfx.SaveReady, 1f, 0f);
+            _plugins = plugins;
+            AnnounceMain();
         }
 
         public void Step() {
@@ -57,7 +63,23 @@ namespace Braver.Battle {
             }
         }
 
+        private void AnnounceMain() {
+            _plugins.Call<UISystem>(ui => ui.Menu(
+                Combatant.Actions.Select(a => a.Name),
+                _item,
+                this
+            ));
+        }
+
         public bool ProcessInput(InputState input) {
+            void AnnounceSub() {
+                _plugins.Call<UISystem>(ui => ui.Menu(
+                    _subMenu.SubMenu.Select(a => a.Name),
+                    _subItem,
+                    _subMenu
+                ));
+            }
+
             bool blip = true;
             if (SelectedAction != null) {
                 if (input.IsJustDown(InputKey.Cancel)) {
@@ -67,32 +89,40 @@ namespace Braver.Battle {
                 } else
                     blip = false;
             } else if (_subMenu == null) {
-                if (input.IsRepeating(InputKey.Up))
+                if (input.IsRepeating(InputKey.Up)) {
                     _item = Math.Max(0, _item - 1);
-                else if (input.IsRepeating(InputKey.Down))
+                    AnnounceMain();
+                } else if (input.IsRepeating(InputKey.Down)) {
                     _item = Math.Min(Combatant.Actions.Count - 1, _item + 1);
-                else if (input.IsRepeating(InputKey.Left))
+                    AnnounceMain();
+                } else if (input.IsRepeating(InputKey.Left)) {
                     _column = Math.Max(-1, _column - 1);
-                else if (input.IsRepeating(InputKey.Right))
+                    AnnounceMain();
+                } else if (input.IsRepeating(InputKey.Right)) {
                     _column = Math.Min(1, _column + 1);
-                else if (input.IsJustDown(InputKey.OK)) {
+                    AnnounceMain();
+                } else if (input.IsJustDown(InputKey.OK)) {
                     if (Combatant.Actions[_item].SubMenu != null) {
                         _subMenu = Combatant.Actions[_item];
                         _subTop = _subItem = 0;
-                    } else 
+                        AnnounceSub();
+                    } else
                         SelectedAction = Combatant.Actions[_item];
                 } else
                     blip = false;
             } else {
-                if (input.IsRepeating(InputKey.Up))
+                if (input.IsRepeating(InputKey.Up)) {
                     _subItem = Math.Max(0, _subItem - 1);
-                else if (input.IsRepeating(InputKey.Down))
+                    AnnounceSub();
+                } else if (input.IsRepeating(InputKey.Down)) {
                     _subItem = Math.Min(_subMenu.SubMenu.Count - 1, _subItem + 1);
-                else if (input.IsJustDown(InputKey.OK)) {
+                    AnnounceSub();
+                } else if (input.IsJustDown(InputKey.OK)) {
                     SelectedAction = _subMenu.SubMenu[_subItem];
                 } else if (input.IsJustDown(InputKey.Cancel)) {
                     _subMenu = null;
                     _game.Audio.PlaySfx(Sfx.Cancel, 1f, 0f);
+                    AnnounceMain();
                     blip = false;
                 } else
                     blip = false;

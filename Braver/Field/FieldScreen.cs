@@ -1364,6 +1364,10 @@ namespace Braver.Field {
             Battle.BattleScreen.Launch(Game, which, BattleOptions.Flags);
         }
 
+        public override void Suspended() {
+            base.Suspended();
+            _plugins.Call<IFieldLocation>(f => f.Suspended());
+        }
 
         public void Received(Net.FieldModelMessage message) {
             var model = FieldModels[message.ModelID];

@@ -85,7 +85,8 @@ namespace BraverLauncher {
                 txtSave.Text = settings.GetValueOrDefault("Save");
                 if (txtSave.Text == ".") txtSave.Text = "";
                 slMusicVolume.Value = double.Parse(settings.GetValueOrDefault("Options.MusicVolume") ?? "1") * 100;
-            } 
+                slBattleSpeed.Value = 1024 - double.Parse(settings.GetValueOrDefault("Options.BattleSpeed") ?? "128");
+            }
         }
 
         private void DoBrowse(TextBox txt) {
@@ -218,7 +219,8 @@ namespace BraverLauncher {
                 $"Braver=.",
                 $"Plugins={Path.GetDirectoryName(_pluginConfigPath)}",
                 $"BData={Path.Combine(Path.GetDirectoryName(_braverConfigPath), "Data.bpack")}",
-                $"Options.MusicVolume={slMusicVolume.Value/100}"
+                $"Options.MusicVolume={slMusicVolume.Value/100}",
+                $"Options.BattleSpeed={1024 - (int)slBattleSpeed.Value}"
             });
 
             using (var fs = new FileStream(_pluginConfigPath, FileMode.Create))

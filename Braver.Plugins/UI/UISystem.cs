@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Battle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Braver.Plugins.UI {
+
     public interface UISystem : IPluginInstance {
 
         void ActiveScreenChanged(IScreen screen);
@@ -19,5 +21,10 @@ namespace Braver.Plugins.UI {
         void Choices(IEnumerable<string> choices, int selected);
 
         void Menu(IEnumerable<string> items, int selected, object container);
+
+        void BattleCharacterReady(ICombatant character);
+        void BattleTargetHighlighted(IEnumerable<ICombatant> targets);
+        void BattleActionStarted(string action);
+        void BattleActionResult(IInProgress result);
     }
 }

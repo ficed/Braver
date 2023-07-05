@@ -239,6 +239,8 @@ namespace Braver {
         }
 
         public void PushScreen(Screen s) {
+            if (_screens.Any())
+                Screen.Suspended();
             _screens.Push(s);
             s.Init(this, _graphics);
             UIPlugins.Call<UISystem>(ui => ui.ActiveScreenChanged(s));

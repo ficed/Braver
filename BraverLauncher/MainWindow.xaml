@@ -29,6 +29,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Label Grid.Row="0" x:Name="lblFF7">FF7 Path (should contain 'data' subfolder)</Label>
@@ -53,6 +54,9 @@
 
                     <Label Grid.Row="5" x:Name="lblMusicVolume">Music Volume</Label>
                     <Slider Grid.Row="5" Grid.Column="1" x:Name="slMusicVolume" Minimum="0" Maximum="100" Value="100" SmallChange="2" LargeChange="10" AutomationProperties.LabeledBy="{Binding ElementName=lblMusicVolume}" />
+
+                    <Label Grid.Row="6" x:Name="lblBattleSpeed">Battle Speed</Label>
+                    <Slider Grid.Row="6" Grid.Column="1" x:Name="slBattleSpeed" Minimum="0" Maximum="1024" Value="896" SmallChange="16" LargeChange="64" AutomationProperties.LabeledBy="{Binding ElementName=lblBattleSpeed}" />
                 </Grid>
             </TabItem>
             <TabItem Header="Plugins">

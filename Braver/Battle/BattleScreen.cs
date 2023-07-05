@@ -5,6 +5,7 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Net;
+using Braver.Plugins.UI;
 using Braver.UI;
 using Braver.UI.Layout;
 using Ficedula.FF7;
@@ -12,6 +13,7 @@ using Ficedula.FF7.Battle;
 using Ficedula.FF7.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using NAudio.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -122,6 +124,14 @@ namespace Braver.Battle {
         private Menu _activeMenu;
 
         private TargetGroup _targets;
+        private TargetGroup Targets {
+            get => _targets;
+            set {
+                _targets = value;
+                TargetsChanged();
+            }
+        }
+
         private bool _toggleMultiSingleTarget;
 
         private ActionInProgress _actionInProgress;
@@ -132,9 +142,25 @@ namespace Braver.Battle {
 
         private bool _debugCamera = false;
 
+        private void TargetsChanged() {
+            IEnumerable<ICombatant> current = null;
+            if (_targets != null) {
+                if (_targets.SingleTarget != null)
+                    current = Enumerable.Repeat(_targets.SingleTarget, 1);
+                else
+                    current = _targets.Targets;
+            }
+            Game.UIPlugins.Call<UISystem>(ui => ui.BattleTargetHighlighted(current));
+        }
+
         public IReadOnlyDictionary<ICombatant, Model> Models => _models;
         public PerspView3D View3D => _view;
-        public override string Description => "Battle";
+        public override string Description {
+            get {
+                var enemies = _engine.ActiveCombatants.OfType<EnemyCombatant>();
+                return "Battle with " + string.Join(", ", enemies.Select(e => e.Name));
+            }
+        }
 
         private void AddModel(string code, Vector3 position, ICombatant combatant) {
             var model = Model.LoadBattleModel(Graphics, Game, code);
@@ -353,7 +379,7 @@ namespace Braver.Battle {
             }
 
             var callbacks = new Callbacks(Game.Memory);
-            _engine = new Engine(128, combatants, Game, callbacks);
+            _engine = new Engine(Game.GameOptions.BattleSpeed, combatants, Game, callbacks);
 
             _engine.ReadyForAction += c => { };
             _engine.ActionQueued += a => { };
@@ -372,7 +398,12 @@ namespace Braver.Battle {
                 Targets = targets;
                 MustTargetWholeGroup = mustTargetWholeGroup;
                 IsDefault = isDefault;
-                SingleTarget = Targets[0];
+                if (!MustTargetWholeGroup)
+                    SetDefaultSingleTarget();
+            }
+
+            public void SetDefaultSingleTarget() {
+                SingleTarget = Targets.OrderBy(c => c.IsAlive() ? 0 : 1).FirstOrDefault();
             }
 
             public override string ToString() {
@@ -443,8 +474,10 @@ namespace Braver.Battle {
 
             if (_activeMenu == null) {
                 var chr = ReadyToAct.FirstOrDefault();
-                if (chr != null)
-                    _activeMenu = new Menu(Game, _menuUI, chr);
+                if (chr != null) {
+                    Game.UIPlugins.Call<UISystem>(ui => ui.BattleCharacterReady(chr));
+                    _activeMenu = new Menu(Game, _menuUI, chr, Game.UIPlugins);
+                }
             } else if (!_activeMenu.Combatant.ReadyForAction)
                 _activeMenu = null;
 
@@ -457,20 +490,20 @@ namespace Braver.Battle {
 
             var action = _activeMenu?.SelectedAction;
             if (action == null)
-                _targets = null;
+                Targets = null;
             else {
-                if (_targets == null)
-                    _targets = GetTargetOptions(_activeMenu.Combatant, _activeMenu.SelectedAction.TargetFlags).First(tg => tg.IsDefault);
+                if (Targets == null)
+                    Targets = GetTargetOptions(_activeMenu.Combatant, _activeMenu.SelectedAction.TargetFlags).First(tg => tg.IsDefault);
             }
 
-            if (_targets != null) {
+            if (Targets != null) {
                 IEnumerable<ICombatant> targets;
-                if (_targets.SingleTarget != null)
-                    targets = Enumerable.Repeat(_targets.SingleTarget, 1);
+                if (Targets.SingleTarget != null)
+                    targets = Enumerable.Repeat(Targets.SingleTarget, 1);
                 else if (_activeMenu.SelectedAction.TargetFlags.HasFlag(TargettingFlags.RandomTarget))
-                    targets = Enumerable.Repeat(_targets.Targets[((long)elapsed.TotalGameTime.TotalMilliseconds / 100) % _targets.Targets.Length], 1);
+                    targets = Enumerable.Repeat(Targets.Targets[((long)elapsed.TotalGameTime.TotalMilliseconds / 100) % Targets.Targets.Length], 1);
                 else
-                    targets = _targets.Targets;
+                    targets = Targets.Targets;
 
                 foreach (var target in targets) {
                     var screenPos = GetModelScreenPos(target);
@@ -480,7 +513,7 @@ namespace Braver.Battle {
             }
 
             if (_actionInProgress != null) {
-                _actionInProgress.Step(elapsed);
+                _actionInProgress.Step();
                 if (_actionInProgress.IsComplete) {
                     System.Diagnostics.Trace.WriteLine($"Action {_actionInProgress} now complete");
                     _actionInProgress = null;
@@ -497,15 +530,14 @@ namespace Braver.Battle {
 
                 var pendingDeadEnemies = _models
                     .Where(kv => !kv.Key.IsPlayer && !kv.Key.IsAlive())
-                    .Select(kv => kv.Value)
-                    .Where(m => m.Visible);
+                    .Where(kv => kv.Value.Visible);
 
                 if (_engine.AnyQueuedCounters)
                     DoExecuteNextQueuedAction();
                 else if (pendingDeadEnemies.Any()) {
-                    _actionInProgress = new ActionInProgress("FadeDeadEnemies");
+                    _actionInProgress = new ActionInProgress("FadeDeadEnemies", Game.UIPlugins);
                     foreach (var enemy in pendingDeadEnemies) {
-                        _actionInProgress.Add(1, new EnemyDeath(60, enemy));
+                        _actionInProgress.Add(1, new EnemyDeath(60, enemy.Key, enemy.Value));
                         Game.Audio.PlaySfx(Sfx.EnemyDeath, 1f, 0f); //TODO 3d position?!
                     }
                 } else if (CheckForBattleEnd()) {
@@ -529,7 +561,7 @@ namespace Braver.Battle {
 
         private void DoExecuteNextQueuedAction() {
             if (_engine.ExecuteNextAction(out var nextAction, out var results)) {
-                _actionInProgress = new ActionInProgress($"Action {nextAction.Name} by {nextAction.Source.Name}");
+                _actionInProgress = new ActionInProgress($"Action {nextAction.Name} by {nextAction.Source.Name}", Game.UIPlugins);
                 _actionComplete += () => {
                     foreach (var result in results) {
                         result.Apply(nextAction);
@@ -546,14 +578,14 @@ namespace Braver.Battle {
                     foreach (var text in nextAction.QueuedText) {
                         _actionInProgress.Add(phase++, new BattleTitle(
                             Ficedula.FF7.Text.Expand(Ficedula.FF7.Text.Convert(text, 0), chars, party),
-                            60, _menuUI, 1f
+                            60, _menuUI, 1f, true
                         ));
                     }
                 }
 
                 //TODO this isn't always needed
                 _actionInProgress.Add(phase, new BattleTitle(
-                    nextAction.Name ?? "(Unknown)", 60, _menuUI, 0.75f
+                    nextAction.Name ?? "(Unknown)", 60, _menuUI, 0.75f, false
                 ));
 
                 //TODO all the animations!!
@@ -563,14 +595,16 @@ namespace Braver.Battle {
                             _actionInProgress.Add(phase, new BattleResultText(
                                 _menuUI, Math.Abs(result.HPDamage).ToString(), result.HPDamage < 0 ? Color.White : Color.Green,
                                 () => GetModelScreenPos(result.Target), new Vector2(0, -1),
-                                60
+                                60,
+                                $"{result.Target.Name} {Math.Abs(result.HPDamage)} {(result.HPDamage >= 0 ? "healing" : "damage")}"
                             ));
                         }
                         if (result.MPDamage != 0) {
                             _actionInProgress.Add(phase, new BattleResultText(
                                 _menuUI, $"{Math.Abs(result.MPDamage)} {Font.BATTLE_MP}", result.MPDamage < 0 ? Color.White : Color.Green,
                                 () => GetModelScreenPos(result.Target), new Vector2(0, -1),
-                                60
+                                60,
+                                $"{result.Target.Name} {Math.Abs(result.HPDamage)} MP {(result.HPDamage >= 0 ? "healing" : "damage")}"
                             ));
                         }
                         //TODO anything else?!?!
@@ -578,7 +612,8 @@ namespace Braver.Battle {
                         _actionInProgress.Add(phase, new BattleResultText(
                             _menuUI, Font.BATTLE_MISS.ToString(), Color.White,
                             () => GetModelScreenPos(result.Target), new Vector2(0, -1),
-                            60
+                            60,
+                            $"{result.Target.Name} missed"
                         ));
                     }
                 }
@@ -637,28 +672,33 @@ namespace Braver.Battle {
                 var ready = ReadyToAct.ToList();
                 int index = ready.IndexOf(_activeMenu?.Combatant);
                 if (ready.Any()) {
-                    _activeMenu = new Menu(Game, _menuUI, ready[(index + 1) % ready.Count]);
-                    _targets = null;
+                    var menuFor = ready[(index + 1) % ready.Count];
+                    Game.UIPlugins.Call<UISystem>(ui => ui.BattleCharacterReady(menuFor));
+                    _activeMenu = new Menu(Game, _menuUI, menuFor, Game.UIPlugins);
+                    Targets = null;
                 }
-            } else if (_targets != null) {
+            } else if (Targets != null) {
                 bool blip = false;
-                if (!_targets.MustTargetWholeGroup) {
+                if (!Targets.MustTargetWholeGroup) {
                     if (input.IsRepeating(InputKey.Up)) {
-                        _targets.SingleTarget = _targets.Targets[(_targets.Targets.IndexOf(_targets.SingleTarget) + _targets.Targets.Length - 1) % _targets.Targets.Length];
+                        Targets.SingleTarget = Targets.Targets[(Targets.Targets.IndexOf(Targets.SingleTarget) + Targets.Targets.Length - 1) % Targets.Targets.Length];
                         blip = true;
+                        TargetsChanged();
                     } else if (input.IsRepeating(InputKey.Down)) {
-                        _targets.SingleTarget = _targets.Targets[(_targets.Targets.IndexOf(_targets.SingleTarget) + 1) % _targets.Targets.Length];
+                        Targets.SingleTarget = Targets.Targets[(Targets.Targets.IndexOf(Targets.SingleTarget) + 1) % Targets.Targets.Length];
                         blip = true;
+                        TargetsChanged();
                     }
                 }
 
                 if (_activeMenu.SelectedAction.TargetFlags.HasFlag(TargettingFlags.ToggleMultiSingleTarget) && input.IsJustDown(InputKey.Select)) {
-                    _targets.MustTargetWholeGroup = !_targets.MustTargetWholeGroup;
+                    Targets.MustTargetWholeGroup = !Targets.MustTargetWholeGroup;
                     blip = true;
-                    if (_targets.MustTargetWholeGroup)
-                        _targets.SingleTarget = null;
+                    if (Targets.MustTargetWholeGroup)
+                        Targets.SingleTarget = null;
                     else
-                        _targets.SingleTarget = _targets.Targets[0];
+                        Targets.SetDefaultSingleTarget();
+                    TargetsChanged();
                 }
 
                 int groupShift = 0;
@@ -669,11 +709,11 @@ namespace Braver.Battle {
 
                 if (groupShift != 0) {
                     var groups = GetTargetOptions(_activeMenu.Combatant, _activeMenu.SelectedAction.TargetFlags).ToList();
-                    int current = groups.FindIndex(g => g.Targets.Any(t => _targets.Targets.Contains(t)));
+                    int current = groups.FindIndex(g => g.Targets.Any(t => Targets.Targets.Contains(t)));
                     int newIndex = current + groupShift;
                     if ((newIndex >= 0) && (newIndex < groups.Count)) {
-                        _targets = groups[newIndex];
-                        System.Diagnostics.Trace.WriteLine($"Now targetting {_targets}");
+                        Targets = groups[newIndex];
+                        System.Diagnostics.Trace.WriteLine($"Now targetting {Targets}");
                         blip = true;
                     }
                 }
@@ -682,7 +722,7 @@ namespace Braver.Battle {
                     var source = _activeMenu.Combatant;
                     var q = new QueuedAction(
                         source, _activeMenu.SelectedAction.Ability.Value,
-                        _targets.SingleTarget == null ? _targets.Targets : new[] { _targets.SingleTarget },
+                        Targets.SingleTarget == null ? Targets.Targets : new[] { Targets.SingleTarget },
                         ActionPriority.Normal, _activeMenu.SelectedAction.Name
                     );
                     //TODO limit priority

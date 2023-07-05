@@ -99,6 +99,7 @@ namespace Braver {
         protected abstract void DoRender();
 
         public virtual void Reactivated() { }
+        public virtual void Suspended() { }
         public virtual void Dispose() {
             _plugins?.Dispose();
         }

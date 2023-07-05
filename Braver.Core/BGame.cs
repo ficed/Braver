@@ -88,6 +88,7 @@ namespace Braver {
         public bool AutoSaveOnFieldEntry { get; set; }
         public bool SeparateSaveFiles { get; set; }
         public float MusicVolume { get; set; } = 1f;
+        public int BattleSpeed { get; set; } = 128;
 
         public GameOptions(Dictionary<string, string> settings) {
             foreach (var prop in typeof(GameOptions).GetProperties()) {
@@ -96,6 +97,8 @@ namespace Braver {
                         prop.SetValue(this, bool.Parse(value));
                     else if (prop.PropertyType == typeof(float))
                         prop.SetValue(this, float.Parse(value));
+                    else if (prop.PropertyType == typeof(int))
+                        prop.SetValue(this, int.Parse(value));
                     else
                         throw new NotImplementedException();
                 }
