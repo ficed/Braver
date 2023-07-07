@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -22,6 +23,7 @@ namespace Braver.UI {
 
         private string _host, _key;
         private int _port;
+        private PluginInstances<IUI> _plugins;
 
         public override string Description => "Braver";
 
@@ -34,7 +36,7 @@ namespace Braver.UI {
         }
 
         private void Announce() {
-            Game.UIPlugins.Call<UISystem>(ui => ui.Menu(_items, _menu, this));
+            _plugins.Call(ui => ui.Menu(_items, _menu, this));
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
@@ -44,6 +46,7 @@ namespace Braver.UI {
                 g.Net = new Net.Server();
             }
             base.Init(g, graphics);
+            _plugins = GetPlugins<IUI>("_Splash");
             _ui = new UIBatch(graphics, g);
             FadeIn(null);
             Layout.LayoutScreen.BeginBackgroundLoad(g, "MainMenu");

@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -351,7 +352,7 @@ namespace Braver.UI.Layout {
                 Focus?.OnFocussed?.Invoke();
                 var group = FocusGroup.FocussableChildren().Select(child => child.Component).ToList();
                 Game.InvokeOnMainThread(
-                    () => Game.UIPlugins.Call<UISystem>(ui => ui.Menu(group.Select(c => c.Description), group.IndexOf(f), FocusGroup)),
+                    () => _screen.Plugins.Call(ui => ui.Menu(group.Select(c => c.Description), group.IndexOf(f), FocusGroup)),
                     1
                 ); //delay so initial announcement happens after loading has finished
             }
@@ -518,6 +519,8 @@ namespace Braver.UI.Layout {
         public object Param { get; private set; }
         public override string Description => _model.Description ?? _layout.Description ?? "No description";
 
+        public PluginInstances<IUI> Plugins { get; private set; }
+
         public LayoutScreen(string layout, LayoutModel model = null, object parm = null) {
             _layoutFile = layout;
             Param = parm;
@@ -526,6 +529,7 @@ namespace Braver.UI.Layout {
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
+            Plugins = GetPlugins<IUI>(_layoutFile);
             g.Net.Send(new Net.UIScreenMessage());
             _model.Created(Game, this);
 

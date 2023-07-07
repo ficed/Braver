@@ -12,7 +12,7 @@ namespace Braver.Plugins {
         public abstract Version Version { get; }
         public abstract object ConfigObject { get; }
         public abstract IEnumerable<Type> GetPluginInstances();
-        public abstract IPluginInstance Get(string context, Type t);
+        public abstract IEnumerable<IPluginInstance> Get(string context, Type t);
 
         public abstract void Init(BGame game);
     }
@@ -96,21 +96,21 @@ namespace Braver.Plugins {
             }
         }
 
-        public PluginInstances GetInstances(string context, params Type[] types) {
-            var instances = types
-                .SelectMany(t => _types[t].Select(plugin => plugin.Get(context, t)));
-            return new PluginInstances(instances);
+        public PluginInstances<T> GetInstances<T>(string context) where T : IPluginInstance {
+            var instances = _types[typeof(T)].SelectMany(plugin => plugin.Get(context, typeof(T)));
+            return new PluginInstances<T>(instances.Cast<T>());
         }
     }
 
-    public class PluginInstances : IDisposable {
 
-        private List<IPluginInstance> _instances;
-        internal PluginInstances(IEnumerable<IPluginInstance> instances) {
+    public class PluginInstances<T> : IDisposable where T : IPluginInstance {
+
+        private List<T> _instances;
+        internal PluginInstances(IEnumerable<T> instances) {
             _instances = instances.ToList();
         }
 
-        public void Call<T>(Action<T> action) where T : IPluginInstance {
+        public void Call(Action<T> action) {
             foreach (var instance in _instances.OfType<T>())
                 action(instance);
         }

@@ -5,6 +5,7 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Plugins;
+using Braver.Plugins.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -53,7 +54,7 @@ namespace Braver.Field {
 
         private Dictionary<int, List<TexLayer>> _layersByPalette = new();
         private List<Ficedula.FF7.Field.BackgroundPalette> _palettes;
-        private PluginInstances _plugins;
+        private PluginInstances<IBackground> _plugins;
 
         private uint[] _paletteStore = new uint[16 * 16 * 4]; //TODO - how many 256-colour palettes do we need to store? More than two apparently!
 
@@ -77,7 +78,7 @@ namespace Braver.Field {
                 layer.Tex.SetData(0, new Rectangle(0, y, layer.Tex.Width, 1), layer.Data[y], 0, layer.Tex.Width);
         }
 
-        public Background(FGame game, PluginInstances plugins, GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
+        public Background(FGame game, PluginInstances<IBackground> plugins, GraphicsDevice graphics, Ficedula.FF7.Field.Background bg) {
             _game = game;
             _bg = bg;
             _plugins = plugins;
@@ -243,7 +244,7 @@ namespace Braver.Field {
                 }
             }
 
-            _plugins.Call<Plugins.Field.IBackground>(bg => bg.Init(graphics, _layers));
+            _plugins.Call(bg => bg.Init(graphics, _layers));
 
             _blankingVerts = new[] {
                 new VertexPositionColor {

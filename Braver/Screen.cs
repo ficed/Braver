@@ -83,7 +83,13 @@ namespace Braver {
         private int _frames = 0;
 
         protected bool _readyToRender;
-        protected Plugins.PluginInstances _plugins;
+        private List<IDisposable> _pluginInstances = new();
+
+        protected PluginInstances<T> GetPlugins<T>(string context) where T : IPluginInstance {
+            var instances = Game.PluginManager.GetInstances<T>(context);
+            _pluginInstances.Add(instances);
+            return instances;
+        }
 
         public virtual void Init(FGame g, GraphicsDevice graphics) {
             Game = g;
@@ -101,7 +107,8 @@ namespace Braver {
         public virtual void Reactivated() { }
         public virtual void Suspended() { }
         public virtual void Dispose() {
-            _plugins?.Dispose();
+            foreach (var plugins in _pluginInstances)
+                plugins.Dispose();
         }
 
         public void FadeOut(Action then, int frames = 30) {

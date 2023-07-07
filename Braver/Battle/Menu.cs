@@ -20,12 +20,12 @@ namespace Braver.Battle {
         private int _item, _subItem, _column, _subTop;
         private CharacterAction _subMenu;
         private FGame _game;
-        private PluginInstances _plugins;
+        private PluginInstances<IBattleUI> _plugins;
 
         public ICharacterAction SelectedAction { get; private set; }
         public CharacterCombatant Combatant { get; private set; }
 
-        public Menu(FGame game, UIBatch ui, CharacterCombatant combatant, PluginInstances plugins) {
+        public Menu(FGame game, UIBatch ui, CharacterCombatant combatant, PluginInstances<IBattleUI> plugins) {
             _game = game;
             _ui = ui;
             Combatant = combatant;
@@ -64,7 +64,7 @@ namespace Braver.Battle {
         }
 
         private void AnnounceMain() {
-            _plugins.Call<UISystem>(ui => ui.Menu(
+            _plugins.Call(ui => ui.Menu(
                 Combatant.Actions.Select(a => a.Name),
                 _item,
                 this
@@ -73,7 +73,7 @@ namespace Braver.Battle {
 
         public bool ProcessInput(InputState input) {
             void AnnounceSub() {
-                _plugins.Call<UISystem>(ui => ui.Menu(
+                _plugins.Call(ui => ui.Menu(
                     _subMenu.SubMenu.Select(a => a.Name),
                     _subItem,
                     _subMenu

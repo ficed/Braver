@@ -5,6 +5,7 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Net;
+using Braver.Plugins;
 using Braver.Plugins.UI;
 using Braver.UI;
 using Braver.UI.Layout;
@@ -139,6 +140,7 @@ namespace Braver.Battle {
 
         private Engine _engine;
         private BattleDebug _debug;
+        private PluginInstances<IBattleUI> _plugins;
 
         private bool _debugCamera = false;
 
@@ -150,7 +152,7 @@ namespace Braver.Battle {
                 else
                     current = _targets.Targets;
             }
-            Game.UIPlugins.Call<UISystem>(ui => ui.BattleTargetHighlighted(current));
+            _plugins.Call(ui => ui.BattleTargetHighlighted(current));
         }
 
         public IReadOnlyDictionary<ICombatant, Model> Models => _models;
@@ -358,6 +360,7 @@ namespace Braver.Battle {
                 _debug = new BattleDebug(Graphics, Game, _engine, this);
 
             _menuUI = new UI.UIBatch(Graphics, Game);
+            _plugins = GetPlugins<IBattleUI>(_formationID.ToString());
 
             g.Audio.PlayMusic("bat", true); //TODO!
         }
@@ -475,8 +478,8 @@ namespace Braver.Battle {
             if (_activeMenu == null) {
                 var chr = ReadyToAct.FirstOrDefault();
                 if (chr != null) {
-                    Game.UIPlugins.Call<UISystem>(ui => ui.BattleCharacterReady(chr));
-                    _activeMenu = new Menu(Game, _menuUI, chr, Game.UIPlugins);
+                    _plugins.Call(ui => ui.BattleCharacterReady(chr));
+                    _activeMenu = new Menu(Game, _menuUI, chr, _plugins);
                 }
             } else if (!_activeMenu.Combatant.ReadyForAction)
                 _activeMenu = null;
@@ -535,7 +538,7 @@ namespace Braver.Battle {
                 if (_engine.AnyQueuedCounters)
                     DoExecuteNextQueuedAction();
                 else if (pendingDeadEnemies.Any()) {
-                    _actionInProgress = new ActionInProgress("FadeDeadEnemies", Game.UIPlugins);
+                    _actionInProgress = new ActionInProgress("FadeDeadEnemies", _plugins);
                     foreach (var enemy in pendingDeadEnemies) {
                         _actionInProgress.Add(1, new EnemyDeath(60, enemy.Key, enemy.Value));
                         Game.Audio.PlaySfx(Sfx.EnemyDeath, 1f, 0f); //TODO 3d position?!
@@ -561,7 +564,7 @@ namespace Braver.Battle {
 
         private void DoExecuteNextQueuedAction() {
             if (_engine.ExecuteNextAction(out var nextAction, out var results)) {
-                _actionInProgress = new ActionInProgress($"Action {nextAction.Name} by {nextAction.Source.Name}", Game.UIPlugins);
+                _actionInProgress = new ActionInProgress($"Action {nextAction.Name} by {nextAction.Source.Name}", _plugins);
                 _actionComplete += () => {
                     foreach (var result in results) {
                         result.Apply(nextAction);
@@ -673,8 +676,8 @@ namespace Braver.Battle {
                 int index = ready.IndexOf(_activeMenu?.Combatant);
                 if (ready.Any()) {
                     var menuFor = ready[(index + 1) % ready.Count];
-                    Game.UIPlugins.Call<UISystem>(ui => ui.BattleCharacterReady(menuFor));
-                    _activeMenu = new Menu(Game, _menuUI, menuFor, Game.UIPlugins);
+                    _plugins.Call(ui => ui.BattleCharacterReady(menuFor));
+                    _activeMenu = new Menu(Game, _menuUI, menuFor, _plugins);
                     Targets = null;
                 }
             } else if (Targets != null) {

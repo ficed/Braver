@@ -13,15 +13,16 @@ using System.Threading.Tasks;
 
 namespace Braver.Plugins.UI {
 
-    public interface UISystem : IPluginInstance {
-
+    public interface ISystem : IPluginInstance {
         void ActiveScreenChanged(IScreen screen);
+    }
 
-        void Dialog(string dialog);
-        void Choices(IEnumerable<string> choices, int selected);
-
+    public interface IUI : IPluginInstance {
         void Menu(IEnumerable<string> items, int selected, object container);
+    }
 
+    public interface IBattleUI : IPluginInstance {
+        void Menu(IEnumerable<string> items, int selected, object container);
         void BattleCharacterReady(ICombatant character);
         void BattleTargetHighlighted(IEnumerable<ICombatant> targets);
         void BattleActionStarted(string action);

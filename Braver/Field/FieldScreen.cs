@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Braver.Plugins.Field;
 using Ficedula.FF7.Field;
 using Microsoft.Xna.Framework;
@@ -56,6 +57,10 @@ namespace Braver.Field {
         private bool _renderUI = true;
 
         private string _debugEntity = "ba";
+
+        private PluginInstances<IFieldLocation> _fieldPlugins;
+        private PluginInstances<IBackground> _bgPlugins;
+        private PluginInstances<IDialog> _dialogPlugins;
 
         private List<WalkmeshTriangle> _walkmesh;
 
@@ -174,11 +179,11 @@ namespace Braver.Field {
                     field = new FieldFile(s);
             }
 
-            _plugins = g.PluginManager.GetInstances(
-                _file, 
-                typeof(Plugins.Field.IDialog), typeof(Plugins.Field.IBackground), typeof(Plugins.Field.IFieldLocation)
-            );
-            Background = new Background(g, _plugins, graphics, field.GetBackground());
+            _fieldPlugins = GetPlugins<IFieldLocation>(_file);
+            _dialogPlugins = GetPlugins<IDialog>(_file);
+            _bgPlugins = GetPlugins<IBackground>(_file);
+
+            Background = new Background(g, _bgPlugins, graphics, field.GetBackground());
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();
             _encounters = field.GetEncounterTables().ToArray();
@@ -341,7 +346,7 @@ namespace Braver.Field {
                 _bgZTo = Background.AutoDetectZTo;
             }
 
-            Dialog = new Dialog(g, _plugins, graphics);
+            Dialog = new Dialog(g, _dialogPlugins, graphics);
             FieldUI = new FieldUI(g, graphics);
 
             g.Memory.ResetScratch();
@@ -499,7 +504,7 @@ namespace Braver.Field {
                         entity.Model?.FrameStep();
                 }
             }
-            _plugins.Call<IFieldLocation>(loc => loc.Step(this));
+            _fieldPlugins.Call(loc => loc.Step(this));
             _frame++;
         }
 
@@ -1181,7 +1186,7 @@ namespace Braver.Field {
 
             var oldPosition = eMove.Model.Translation;
             void ReportMove() {
-                _plugins.Call<IFieldLocation>(loc => loc.EntityMoved(eMove, false, oldPosition, eMove.Model.Translation)); //TODO running
+                _fieldPlugins.Call(loc => loc.EntityMoved(eMove, false, oldPosition, eMove.Model.Translation)); //TODO running
             }
 
             var currentTri = _walkmesh[eMove.WalkmeshTri];
@@ -1366,7 +1371,7 @@ namespace Braver.Field {
 
         public override void Suspended() {
             base.Suspended();
-            _plugins.Call<IFieldLocation>(f => f.Suspended());
+            _fieldPlugins.Call(f => f.Suspended());
         }
 
         public void Received(Net.FieldModelMessage message) {

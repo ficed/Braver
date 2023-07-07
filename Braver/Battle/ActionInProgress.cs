@@ -18,15 +18,15 @@ namespace Braver.Battle {
         private Dictionary<int?, List<IInProgress>> _items = new();
         private string _name;
         private Dictionary<IInProgress, int> _frames = new();
-        private PluginInstances _plugins;
+        private PluginInstances<IBattleUI> _plugins;
 
         public bool IsComplete => !_items.Keys.Any(phase => phase != null);
 
-        public ActionInProgress(string name, PluginInstances plugins) {
+        public ActionInProgress(string name, PluginInstances<IBattleUI> plugins) {
             _name = name;
             _plugins = plugins;
             System.Diagnostics.Trace.WriteLine($"Starting new action {name}");
-            _plugins.Call<UISystem>(ui => ui.BattleActionStarted(name));
+            _plugins.Call(ui => ui.BattleActionStarted(name));
         }
 
         public void Add(int? phase, IInProgress inProgress) {
@@ -52,7 +52,7 @@ namespace Braver.Battle {
                 for (int i = list.Count - 1; i >= 0; i--) {
                     if (!_frames.TryGetValue(list[i], out int frame)) {
                         frame = 0;
-                        _plugins.Call<UISystem>(ui => ui.BattleActionResult(list[i]));
+                        _plugins.Call(ui => ui.BattleActionResult(list[i]));
                     }
                     if (list[i].Step(frame) && !list[i].IsIndefinite)
                         list.RemoveAt(i);

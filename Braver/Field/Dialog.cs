@@ -5,6 +5,7 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Plugins;
+using Braver.Plugins.Field;
 using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -59,27 +60,27 @@ namespace Braver.Field {
 
             public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
 
-            public void StateChanged(FGame g) {
-                g.UIPlugins.Call<UISystem>(ui => ui.Dialog(Text[ScreenProgress]));
+            public void StateChanged(PluginInstances<IDialog> plugins) {
+                plugins.Call(ui => ui.Dialog(Text[ScreenProgress]));
                 if (ReadyForChoice)
-                    ChoiceChanged(g);
+                    ChoiceChanged(plugins);
             }
 
-            public void ChoiceChanged(FGame g) {
+            public void ChoiceChanged(PluginInstances<IDialog> plugins) {
                 var lines = Text[ScreenProgress].Split('\r');
                 var choices = ChoiceLines.Select(i => lines[i]);
-                g.UIPlugins.Call<UISystem>(ui => ui.Choices(choices, Choice));
+                plugins.Call(ui => ui.ChoiceSelected(choices, Choice));
             }
         }
 
         private List<Window> _windows = Enumerable.Range(0, 10).Select(_ => new Window()).ToList();
         private FGame _game;
-        private PluginInstances _plugins;
+        private PluginInstances<IDialog> _plugins;
         private UI.UIBatch _ui;
 
         public bool IsActive => _windows.Any(w => (w.State != WindowState.Hidden) && !w.Options.HasFlag(DialogOptions.IsPermanent));
 
-        public Dialog(FGame g, PluginInstances plugins, GraphicsDevice graphics) {
+        public Dialog(FGame g, PluginInstances<IDialog> plugins, GraphicsDevice graphics) {
             _game = g;
             _plugins = plugins;
             _ui = new UI.UIBatch(graphics, g);
@@ -126,7 +127,7 @@ namespace Braver.Field {
                 .ToArray();
             win.FrameProgress = win.ScreenProgress = win.LineScroll = 0;
 
-            win.StateChanged(_game);
+            win.StateChanged(_plugins);
 
             if (win.Options.HasFlag(DialogOptions.NoBorder))
                 win.State = WindowState.Displaying;
@@ -152,7 +153,7 @@ namespace Braver.Field {
             _windows[window].OnClosed = onClosed;
             _windows[window].OnChoice = null;
             _windows[window].ChoiceLines = null;
-            _plugins.Call<Plugins.Field.IDialog>(dlg => dlg.Showing(window, tag, _windows[window].Text));
+            _plugins.Call(dlg => dlg.Showing(window, tag, _windows[window].Text));
         }
         public void Ask(int window, int tag, string text, IEnumerable<int> choices, Action<int?> onChoice) {
             PrepareWindow(window, text);
@@ -160,7 +161,7 @@ namespace Braver.Field {
             _windows[window].OnClosed = null;
             _windows[window].OnChoice = onChoice;
             _windows[window].Choice = 0;
-            _plugins.Call<Plugins.Field.IDialog>(dlg => dlg.Asking(window, tag, _windows[window].Text, _windows[window].ChoiceLines));
+            _plugins.Call(dlg => dlg.Asking(window, tag, _windows[window].Text, _windows[window].ChoiceLines));
         }
 
         public void ProcessInput(InputState input) { 
@@ -177,7 +178,7 @@ namespace Braver.Field {
                         if (input.IsJustDown(InputKey.OK)) {
                             if (window.ScreenProgress < (window.Text.Length - 1)) { //next screen
                                 window.ScreenProgress++;
-                                window.StateChanged(_game);
+                                window.StateChanged(_plugins);
                                 window.LineScroll = window.FrameProgress = 0;                                
                                 window.State = WindowState.Displaying;
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
@@ -191,13 +192,13 @@ namespace Braver.Field {
                         } else if (input.IsJustDown(InputKey.Down)) {
                             if (window.ReadyForChoice) {
                                 window.Choice = (window.Choice + 1) % window.ChoiceLines.Length;
-                                window.ChoiceChanged(_game);
+                                window.ChoiceChanged(_plugins);
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             }
                         } else if (input.IsJustDown(InputKey.Up)) {
                             if (window.ReadyForChoice) {
                                 window.Choice = (window.Choice + window.ChoiceLines.Length + 1) % window.ChoiceLines.Length;
-                                window.ChoiceChanged(_game);
+                                window.ChoiceChanged(_plugins);
                                 _game.Audio.PlaySfx(Sfx.Cursor, 1f, 0f);
                             }
                         }

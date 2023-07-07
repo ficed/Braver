@@ -20,13 +20,12 @@ namespace Braver {
 
         private Stack<Screen> _screens = new();
         private GraphicsDevice _graphics;
+        private PluginInstances<ISystem> _systemPlugins;
 
         public Net.Net Net { get; set; }
 
         public Screen Screen => _screens.Peek();
         public PluginManager PluginManager { get; }
-        public PluginInstances UIPlugins { get; }
-
 
         public FGame(GraphicsDevice graphics) {
             _graphics = graphics;
@@ -162,7 +161,7 @@ namespace Braver {
                 }
             }
 
-            UIPlugins = PluginManager.GetInstances("Braver", typeof(UISystem));
+            _systemPlugins = PluginManager.GetInstances<ISystem>("");
         }
 
         private class TraceFile : TraceListener {
@@ -243,7 +242,7 @@ namespace Braver {
                 Screen.Suspended();
             _screens.Push(s);
             s.Init(this, _graphics);
-            UIPlugins.Call<UISystem>(ui => ui.ActiveScreenChanged(s));
+            _systemPlugins.Call(sys => sys.ActiveScreenChanged(s));
         }
 
         public void PopScreen(Screen current) {
@@ -252,7 +251,7 @@ namespace Braver {
             current.Dispose();
             Net.Send(new Net.PopScreenMessage());
             Screen.Reactivated();
-            UIPlugins.Call<UISystem>(ui => ui.ActiveScreenChanged(Screen));
+            _systemPlugins.Call(sys => sys.ActiveScreenChanged(Screen));
         }
 
         public void ChangeScreen(Screen from, Screen to) {

@@ -29,17 +29,22 @@ namespace Braver.Tolk {
         public override Version Version => new Version(0, 0, 1);
         public override object ConfigObject => _config;
 
-        public override IPluginInstance Get(string context, Type t) {
-            if (t == typeof(UISystem))
-                return new TolkInstance(_config);
-            else if (t == typeof(IFieldLocation))
-                return new FootstepFocusPlugin(_game, _config.EnableFootsteps, _config.EnableFocusTracking);
+        private TolkInstance _tolk;
+        public override IEnumerable<IPluginInstance> Get(string context, Type t) {
+            if ((t == typeof(IUI)) || (t == typeof(ISystem)) || (t == typeof(IDialog)) || (t == typeof(IBattleUI))) {
+                _tolk ??= new TolkInstance(_config);
+                yield return _tolk;
+            } else if (t == typeof(IFieldLocation))
+                yield return new FootstepFocusPlugin(_game, _config.EnableFootsteps, _config.EnableFocusTracking);
             else
                 throw new NotSupportedException();
         }
 
         public override IEnumerable<Type> GetPluginInstances() {
-            yield return typeof(UISystem);
+            yield return typeof(ISystem);
+            yield return typeof(IDialog);
+            yield return typeof(IUI);
+            yield return typeof(IBattleUI);
             if (_config.EnableFootsteps || _config.EnableFocusTracking)
                 yield return typeof(IFieldLocation);
         }
@@ -49,7 +54,7 @@ namespace Braver.Tolk {
         }
     }
 
-    public class TolkInstance : UISystem {
+    public class TolkInstance : ISystem, IDialog, IUI, IBattleUI {
 
         public TolkInstance(TolkConfig config) {
             DavyKager.Tolk.TrySAPI(config.EnableSAPI);
@@ -60,7 +65,7 @@ namespace Braver.Tolk {
             DavyKager.Tolk.Speak(screen.Description, true);
         }
 
-        public void Choices(IEnumerable<string> choices, int selected) {
+        public void ChoiceSelected(IEnumerable<string> choices, int selected) {
             DavyKager.Tolk.Speak(
                 $"Choice {choices.ElementAtOrDefault(selected)}, {selected + 1} of {choices.Count()}",
                 false
@@ -97,6 +102,18 @@ namespace Braver.Tolk {
             string s = result.Description;
             if (!string.IsNullOrEmpty(s))
                 DavyKager.Tolk.Speak(s, false);
+        }
+
+        public void Showing(int window, int tag, IEnumerable<string> text) {
+            //
+        }
+
+        public void Asking(int window, int tag, IEnumerable<string> text, IEnumerable<int> choiceLines) {
+            //
+        }
+
+        public void ChoiceMade(int window, int choice) {
+            //
         }
     }
 
