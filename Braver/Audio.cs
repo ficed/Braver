@@ -9,6 +9,7 @@ using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Channels;
@@ -83,7 +84,7 @@ namespace Braver {
                 if ((_samplesRead <= _loopStart) && (_samplesRead > _seekBeforeLoopStart)) {
                     _samplesBeforeLoopStart = _samplesRead;
                     _seekBeforeLoopStart = _source.Position;
-                } else if (_samplesRead >= _loopEnd) {
+                } else if ((_samplesRead >= _loopEnd) && (_loopEnd > 0)) {
                     read -= (int)(_samplesRead - _loopEnd);
                     _samplesRead = _samplesBeforeLoopStart;
                     _source.Position = _seekBeforeLoopStart;
@@ -98,8 +99,12 @@ namespace Braver {
                     }
                 }
 
-                if (read == 0)
-                    System.Diagnostics.Debugger.Break();
+                if (read == 0) {
+                    Trace.WriteLine("Manually restarting music playback");
+                    _source.Position = 0;
+                    read = _source.Read(buffer, offset, count);
+                }
+
                 return read;
             }
         }
@@ -154,11 +159,17 @@ namespace Braver {
                     return;
                 }
 
-                int loopStart, loopEnd;
-                using (var reader = new NVorbis.VorbisReader(file)) {
-                    loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));
-                    loopEnd = int.Parse(reader.Tags.GetTagSingle("LOOPEND"));
-                }                    
+                int loopStart = 0, loopEnd = 0;
+                try {
+                    using (var reader = new NVorbis.VorbisReader(file)) {
+                        foreach(var tag in reader.Tags.All) 
+                            Trace.WriteLine($"Vorbis tag: {tag.Key} = {string.Join(", ", tag.Value)}");
+                        loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));
+                        loopEnd = int.Parse(reader.Tags.GetTagSingle("LOOPEND"));
+                    }
+                } catch (Exception ex) {
+                    Trace.WriteLine($"Failed to parse vorbis tags: {ex}");
+                }
                 current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(file);
                 current.WaveOut = new NAudio.Wave.WaveOut();
                 //current.WaveOut.Init(current.Vorbis);
@@ -362,23 +373,6 @@ namespace Braver {
             _channel.Writer.TryWrite(null);
         }
 
-
-        private NAudio.Wave.WaveOut _streamOut;
-
-        public void PlaySfxStream(Stream s, float volume, float pan) {
-            //TODO very basic implementation
-            //TODO pan
-            //TODO non-ogg!
-            //TODO - this won't work for network clients!
-            _streamOut?.Stop();
-            _streamOut?.Dispose();
-            _streamOut = new NAudio.Wave.WaveOut();
-            var vorbis = new NAudio.Vorbis.VorbisWaveReader(s, true);
-            _streamOut.Init(vorbis);
-            _streamOut.Volume = volume;            
-            _streamOut.Play();
-        }
-
         private class LoadedAudioItem : IAudioItem {
 
             private WaveOut _waveOut;
@@ -388,13 +382,16 @@ namespace Braver {
             private SmbPitchShiftingSampleProvider _pitch;
             private bool _shouldLoop;
 
+            public bool IsPlaying => _waveOut.PlaybackState == PlaybackState.Playing;
+
             public LoadedAudioItem(Stream s) {
                 _waveOut = new WaveOut();
                 _waveOut.PlaybackStopped += _waveOut_PlaybackStopped;
                 _vorbis = new NAudio.Vorbis.VorbisWaveReader(s, true);
-                _pitch = new SmbPitchShiftingSampleProvider(
-                    _pan = new PanningSampleProvider(_volume = new VolumeSampleProvider(_vorbis))
-                ) {
+                _volume = new VolumeSampleProvider(_vorbis);
+                if (_vorbis.WaveFormat.Channels == 1)
+                    _pan = new PanningSampleProvider(_volume);
+                _pitch = new SmbPitchShiftingSampleProvider((ISampleProvider)_pan ?? _volume) {
                     PitchFactor = 1f
                 };
                 _waveOut.Init(_pitch);
@@ -425,9 +422,10 @@ namespace Braver {
                 _vorbis.Position = 0;
                 _shouldLoop = loop;
                 _volume.Volume = volume;
-                _pan.Pan = pan;
+                if (_pan != null)
+                    _pan.Pan = pan;
                 _pitch.PitchFactor = pitch;
-                System.Diagnostics.Debug.WriteLine($"AudioItem play vol {volume} pan {pan} pitch {pitch}");
+                Trace.WriteLine($"AudioItem play vol {volume} pan {pan} pitch {pitch}");
                 _waveOut.Play();
             }
 

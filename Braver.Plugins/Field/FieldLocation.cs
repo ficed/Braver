@@ -48,6 +48,7 @@ namespace Braver.Plugins.Field {
     }
 
     public interface IFieldLocation : IPluginInstance {
+        void Init(int fieldID, string fieldFile);
         void Step(IField field);
         void Suspended();
         void EntityMoved(IFieldEntity entity, bool isRunning, Vector3 from, Vector3 to);

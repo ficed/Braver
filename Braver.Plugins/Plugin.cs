@@ -52,28 +52,38 @@ namespace Braver.Plugins {
         }
 
         private void Configure(Plugin p, PluginConfig config) {
-            var obj = p.ConfigObject;
-            if (obj == null)
-                return;
-            foreach(var prop in obj.GetType().GetProperties()) {
-                var cvar = config.Vars.Find(v => v.Name == prop.Name);
-                if (cvar != null) {
-                    if (prop.PropertyType == typeof(string))
-                        prop.SetValue(obj, cvar.Value);
-                    else if (prop.PropertyType == typeof(bool))
-                        prop.SetValue(obj, bool.Parse(cvar.Value));
-                    else if (prop.PropertyType == typeof(int))
-                        prop.SetValue(obj, int.Parse(cvar.Value));
-                    else if (prop.PropertyType == typeof(float))
-                        prop.SetValue(obj, float.Parse(cvar.Value));
-                    else if (prop.PropertyType == typeof(double))
-                        prop.SetValue(obj, double.Parse(cvar.Value));
-                    else if (prop.PropertyType.IsEnum)
-                        prop.SetValue(obj, Enum.Parse(prop.PropertyType, cvar.Value));
-                    else
-                        throw new NotImplementedException();
+
+            void DoConfigure(object o, string prefix) {
+                if (o == null)
+                    return;
+
+                foreach (var prop in o.GetType().GetProperties()) {
+
+                    if (prop.PropertyType.IsClass && prop.PropertyType != typeof(string)) {
+                        DoConfigure(prop.GetValue(o), prefix + prop.Name + ".");
+                    } else {
+                        var cvar = config.Vars.Find(v => v.Name == prefix + prop.Name);
+                        if (cvar != null) {
+                            if (prop.PropertyType == typeof(string))
+                                prop.SetValue(o, cvar.Value);
+                            else if (prop.PropertyType == typeof(bool))
+                                prop.SetValue(o, bool.Parse(cvar.Value));
+                            else if (prop.PropertyType == typeof(int))
+                                prop.SetValue(o, int.Parse(cvar.Value));
+                            else if (prop.PropertyType == typeof(float))
+                                prop.SetValue(o, float.Parse(cvar.Value));
+                            else if (prop.PropertyType == typeof(double))
+                                prop.SetValue(o, double.Parse(cvar.Value));
+                            else if (prop.PropertyType.IsEnum)
+                                prop.SetValue(o, Enum.Parse(prop.PropertyType, cvar.Value));
+                            else
+                                throw new NotImplementedException();
+                        }
+                    }
                 }
             }
+
+            DoConfigure(p.ConfigObject, "");
         }
 
         public void Init(BGame game, IEnumerable<Plugin> plugins, PluginConfigs configs) {

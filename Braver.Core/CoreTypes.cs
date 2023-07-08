@@ -28,6 +28,7 @@ namespace Braver {
         void Pause();
         void Resume();
         void Stop();
+        bool IsPlaying { get; }
     }
 
     public interface IAudio {
@@ -44,7 +45,6 @@ namespace Braver {
         void PlaySfx(int which, float volume, float pan, int? channel = null);
         void PlaySfx(Sfx which, float volume, float pan, int? channel = null);
 
-        void PlaySfxStream(Stream s, float volume, float pan);
         IAudioItem LoadStream(string path, string file);
     }
 

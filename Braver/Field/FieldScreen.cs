@@ -183,6 +183,8 @@ namespace Braver.Field {
             _dialogPlugins = GetPlugins<IDialog>(_file);
             _bgPlugins = GetPlugins<IBackground>(_file);
 
+            _fieldPlugins.Call(f => f.Init(_destination.DestinationFieldID, _file));
+
             Background = new Background(g, _bgPlugins, graphics, field.GetBackground());
             Movie = new Movie(g, graphics);
             FieldDialog = field.GetDialogEvent();

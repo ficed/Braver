@@ -192,5 +192,9 @@ namespace Braver.Tolk {
                 _playing = false;
             }
         }
+
+        public void Init(int fieldID, string fieldFile) {
+            //
+        }
     }
 }

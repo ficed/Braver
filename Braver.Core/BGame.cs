@@ -241,12 +241,31 @@ namespace Braver {
         }
 
         public Stream TryOpen(string category, string file) {
-            foreach (var source in _data[category].Reverse<DataSource>()) {
-                var s = source.TryOpen(file);
-                if (s != null)
-                    return s;
+            if (_data.TryGetValue(category, out var sources)) {
+                foreach (var source in sources.Reverse<DataSource>()) {
+                    var s = source.TryOpen(file);
+                    if (s != null)
+                        return s;
+                }
             }
             return null;
+        }
+
+        public IEnumerable<T> TryOpenAll<T>(string category, string file, Func<Stream, T> opener) {
+            if (_data.TryGetValue(category, out var sources)) {
+                foreach (var source in sources.Reverse<DataSource>()) {
+                    using (var s = source.TryOpen(file)) {
+                        if (s != null)
+                            yield return opener(s);
+                    }
+                }
+            }
+        }
+        public IEnumerable<T> OpenAll<T>(string category, string file, Func<Stream, T> opener) {
+            var results = TryOpenAll(category, file, opener);
+            if (results == null)
+                throw new F7Exception($"Could not open {category}/{file}");
+            return results;
         }
 
         public Stream Open(string category, string file) {
