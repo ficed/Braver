@@ -119,11 +119,13 @@ namespace Braver._7HShim {
                 prop.SetSetMethod(setBuild);
             }
 
+            var defaults = new Dictionary<string, int>();
             foreach (XmlNode xoption in modinfo.SelectNodes("ConfigOption")) {
                 string optType = xoption.SelectSingleNode("Type").InnerText;
                 string optID = xoption.SelectSingleNode("ID").InnerText;
                 string optName = xoption.SelectSingleNode("Name").InnerText;
                 string optDesc = xoption.SelectSingleNode("Description").InnerText;
+                string def = xoption.SelectSingleNode("Default")?.InnerText;
                 if (optType.Equals("Bool", StringComparison.InvariantCultureIgnoreCase)) {
                     DoProp(optID, typeof(bool), optName, optDesc);
                 } else if (optType.Equals("List", StringComparison.InvariantCultureIgnoreCase)) {
@@ -137,10 +139,15 @@ namespace Braver._7HShim {
                     var builtEnum = enumtype.CreateType();
                     DoProp(optID, builtEnum, optName, optDesc);
                 }
+                if (def != null)
+                    defaults[optID] = int.Parse(def);
             }
 
             var built = typ.CreateType();
-            return (SevenHConfig)Activator.CreateInstance(built);
+            var config = (SevenHConfig)Activator.CreateInstance(built);
+            foreach (var def in defaults)
+                config._settings[def.Key] = def.Value;
+            return config;
         }
     }
 
@@ -195,7 +202,14 @@ namespace Braver._7HShim {
 
         public override IEnumerable<string> GetFolders() {
             return _iro.AllFolderNames()
-                .Where(s => !s.Contains('\\'));
+                .Select(s => {
+                    int separator = s.IndexOf('\\');
+                    if (separator >= 0)
+                        return s.Substring(0, separator);
+                    else
+                        return s;
+                })
+                .Distinct();
         }
 
         public override IEnumerable<string> GetSubFolders(string folder) {

@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
 using Microsoft.Xna.Framework.Audio;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -24,9 +25,11 @@ namespace Braver {
         private FGame _game;
         private byte _volume = 127;
         private float _masterVolume;
+        private PluginInstances<ISfxSource> _sfxPlugins;
 
-        public Audio(FGame game, string soundFolder) {
+        public Audio(FGame game, string soundFolder, PluginInstances<ISfxSource> sfxPlugins) {
             _game = game;
+            _sfxPlugins = sfxPlugins;
             _masterVolume = game.GameOptions.MusicVolume;
             _channel = Channel.CreateBounded<MusicCommand>(8);
             Task.Run(RunMusic);
@@ -278,9 +281,18 @@ namespace Braver {
         private DateTime _lastPromote = DateTime.MinValue;
         private Dictionary<int, SoundEffectInstance> _channels = new();
 
-        private LoadedEffect GetEffect(int which) {
+        private SfxData DefaultSfxData(int which) {
             byte[] raw = _sfxSource.ExportPCM(which, out int freq, out int channels);
-            var fx = new SoundEffect(raw, freq, channels == 1 ? AudioChannels.Mono : AudioChannels.Stereo);
+            return new SfxData {
+                RawData = raw,
+                Channels = channels,
+                Frequency = freq,
+            };
+        }
+
+        private LoadedEffect GetEffect(int which) {
+            var data = _sfxPlugins.Call(sfx => sfx.Load(which)) ?? DefaultSfxData(which);
+            var fx = new SoundEffect(data.RawData, data.Frequency, data.Channels == 1 ? AudioChannels.Mono : AudioChannels.Stereo);
             return new LoadedEffect {
                 Effect = fx,
                 ShouldLoop = _sfxSource.GetExtraData(which)[0] != 0, //TODO - seems like it *might* be right?!
@@ -437,6 +449,23 @@ namespace Braver {
         public IAudioItem LoadStream(string path, string file) {
             //TODO networking
             return new LoadedAudioItem(_game.Open(path, file));
+        }
+
+        public void DecodeStream(Stream s, out byte[] rawData, out int channels, out int frequency) {
+            using (var reader = new NVorbis.VorbisReader(s, false)) {
+                channels = reader.Channels;
+                frequency = reader.SampleRate;
+                rawData = new byte[0];
+                float[] buffer = new float[0x10000];
+                short[] sBuffer = new short[0x10000];
+                int read;
+                while((read = reader.ReadSamples(buffer, 0, buffer.Length)) != 0) {
+                    for (int i = 0; i < read; i++)
+                        sBuffer[i] = (short)(buffer[i] * short.MaxValue);
+                    Array.Resize(ref rawData, rawData.Length + read * 2);
+                    Buffer.BlockCopy(sBuffer, 0, rawData, rawData.Length - read * 2, read * 2);
+                }
+            }
         }
     }
 

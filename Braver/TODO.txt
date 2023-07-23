@@ -1,4 +1,8 @@
-﻿WM:
+﻿Plugins:
+	FFNx:
+		Field-specific sfx overrides
+
+WM:
 	Gradient background for sky on world map
 	Track steps
 	Encounter tables

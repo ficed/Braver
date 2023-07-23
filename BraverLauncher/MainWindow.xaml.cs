@@ -194,6 +194,7 @@ namespace BraverLauncher {
                             };
                             DoAdd("", cb);
                             cb.Checked += (_o, _e) => SetProp(fullPropName, (cb.IsChecked ?? false).ToString());
+                            cb.Unchecked += (_o, _e) => SetProp(fullPropName, (cb.IsChecked ?? false).ToString());
                         } else if (prop.PropertyType.IsEnum) {
                             object val;
                             if (string.IsNullOrEmpty(v?.Value))

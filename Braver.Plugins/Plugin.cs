@@ -124,6 +124,13 @@ namespace Braver.Plugins {
             foreach (var instance in _instances.OfType<T>())
                 action(instance);
         }
+        public U Call<U>(Func<T, U> fetch) where U : class {
+            foreach (var instance in _instances.OfType<T>().Reverse()) {
+                U result = fetch(instance);
+                if (result != null) return result;
+            }
+            return null;
+        }
 
         public void Dispose() {
             foreach (var instance in _instances.OfType<IDisposable>())

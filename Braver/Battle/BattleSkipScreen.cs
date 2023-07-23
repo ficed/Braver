@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -24,6 +25,12 @@ namespace Braver.Battle {
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
             _ui = new UI.UIBatch(graphics, g);
+            g.Audio.PlayMusic("bat", true); //TODO!
+            var plugins = GetPlugins<IBattleUI>("_BattleSkipScreen");
+            Game.InvokeOnMainThread(
+                () => plugins.Call(ui => ui.BattleActionStarted("Up to win battle, Down to lose battle")),
+                1
+            ); //delay so initial announcement happens after loading has finished
         }
 
         protected override void DoRender() {

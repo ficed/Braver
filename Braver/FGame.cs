@@ -122,12 +122,6 @@ namespace Braver {
                     throw new NotSupportedException($"Unrecognised data spec {spec}");
             }
 
-            Audio = new Audio(this, _paths["SFX"]);
-
-            Audio.Precache(Sfx.Cursor, true);
-            Audio.Precache(Sfx.Cancel, true);
-            Audio.Precache(Sfx.Invalid, true);
-
             PluginManager = new PluginManager();
             if (_paths.ContainsKey("PLUGINS") && !string.IsNullOrWhiteSpace(_paths["PLUGINS"])) {
 
@@ -162,15 +156,32 @@ namespace Braver {
             }
 
             _systemPlugins = PluginManager.GetInstances<ISystem>("");
+
+            Audio = new Audio(this, _paths["SFX"], PluginManager.GetInstances<ISfxSource>(""));
+
+            Audio.Precache(Sfx.Cursor, true);
+            Audio.Precache(Sfx.Cancel, true);
+            Audio.Precache(Sfx.Invalid, true);
         }
 
         private class TraceFile : TraceListener {
 
             private StreamWriter _writer;
-            private DateTime _lastFlush = DateTime.Now;
 
             public TraceFile(string file) {
                 _writer = new StreamWriter(file, false);
+                new System.Threading.Thread(BackgroundFlush) {
+                    IsBackground = true,
+                    Name = "BackgroundLogFlusher"
+                }.Start();
+            }
+
+            private void BackgroundFlush() {
+                while (true) {
+                    System.Threading.Thread.Sleep(10000);
+                    lock (_writer)
+                        _writer.Flush();
+                }
             }
 
             public override void Fail(string message) {
@@ -190,20 +201,12 @@ namespace Braver {
             public override void Write(string message) {
                 lock (_writer) {
                     _writer.Write(message);
-                    if (_lastFlush < DateTime.Now.AddSeconds(-10)) {
-                        _writer.Flush();
-                        _lastFlush = DateTime.Now;
-                    }
                 }
             }
 
             public override void WriteLine(string message) {
                 lock (_writer) {
                     _writer.WriteLine(message);
-                    if (_lastFlush < DateTime.Now.AddSeconds(-10)) {
-                        _writer.Flush();
-                        _lastFlush = DateTime.Now;
-                    }
                 }
             }
         }
