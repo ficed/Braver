@@ -122,7 +122,7 @@ namespace Braver {
                     throw new NotSupportedException($"Unrecognised data spec {spec}");
             }
 
-            Audio = new Audio(this, _paths["MUSIC"], _paths["SFX"]);
+            Audio = new Audio(this, _paths["SFX"]);
 
             Audio.Precache(Sfx.Cursor, true);
             Audio.Precache(Sfx.Cancel, true);

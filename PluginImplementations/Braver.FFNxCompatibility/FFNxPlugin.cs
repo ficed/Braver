@@ -13,6 +13,7 @@ using Tommy;
 namespace Braver.FFNxCompatibility {
 
     public class FFNxConfig {
+        [ConfigProperty("Enable Field Ambient Sounds")]
         public bool FieldAmbientSounds { get; set; } = true;
     }
 

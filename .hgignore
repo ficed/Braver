@@ -3,3 +3,4 @@ syntax: glob
 */obj/*
 */bin/*
 *.user
+PluginImplementations/output/*

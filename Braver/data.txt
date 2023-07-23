@@ -36,7 +36,7 @@ DATA	PACK?	save	%bdata%
 DATA	PACK?	ui		%bdata%
 DATA	PACK?	wm		%bdata%
 
-PATH	MUSIC	%music%
+DATA	FILE?	vgmstream	%music%
 PATH	SFX		%ff7%\data\sound
 PATH	FFMPEG	%braver%\ffmpeg.exe
 PATH	MOVIES	%movies%

@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -132,10 +133,12 @@ namespace BraverLauncher {
                 void DoAdd(string name, Control c) {
                     gPluginConfig.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
                     if (!string.IsNullOrEmpty(name)) {
-                        var lbl = new Label { Content = name };
+                        var lbl = new Label { Content = name, Margin = new Thickness(3) };
                         Grid.SetRow(lbl, gPluginConfig.RowDefinitions.Count - 1);
                         gPluginConfig.Children.Add(lbl);
+                        AutomationProperties.SetLabeledBy(c, lbl);
                     }
+                    c.Margin = new Thickness(3);
                     Grid.SetRow(c, gPluginConfig.RowDefinitions.Count - 1);
                     Grid.SetColumn(c, 1);
                     gPluginConfig.Children.Add(c);
@@ -157,24 +160,64 @@ namespace BraverLauncher {
                 DoAdd("", enabled);
                 enabled.Checked += (_o, _e) => config.Enabled = enabled.IsChecked ?? false;
 
-                foreach (var prop in plugin.Plugin.ConfigObject.GetType().GetProperties()) {
-                    var v = config.Vars.FirstOrDefault(cv => cv.Name == prop.Name);
-                    if (prop.PropertyType == typeof(string)) {
-                        TextBox tb = new TextBox {
-                            Text = v.Value ?? prop.GetValue(plugin.Plugin.ConfigObject)?.ToString() ?? string.Empty,
+                void DoObj(object o, IEnumerable<string> path, string category) {
+
+                    if (!string.IsNullOrWhiteSpace(category)) {
+                        gPluginConfig.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
+                        var heading = new TextBlock {
+                            Text = category,
+                            FontWeight = FontWeights.Bold,
+                            Margin = new Thickness(0, 5, 0, 0),
                         };
-                        DoAdd(prop.Name, tb);
-                        tb.TextChanged += (_o, _e) => SetProp(prop.Name, tb.Text);
-                    } else if (prop.PropertyType == typeof(bool)) {
-                        CheckBox cb = new CheckBox {
-                            Content = prop.Name,
-                            IsChecked = (bool)prop.GetValue(plugin.Plugin.ConfigObject),
-                        };
-                        DoAdd("", cb);
-                        cb.Checked += (_o, _e) => SetProp(prop.Name, (cb.IsChecked ?? false).ToString());
-                    } else
-                        throw new NotImplementedException();
+                        Grid.SetColumnSpan(heading, 2);
+                        Grid.SetRow(heading, gPluginConfig.RowDefinitions.Count - 1);
+                        gPluginConfig.Children.Add(heading);
+                    }
+
+                    foreach (var prop in o.GetType().GetProperties()) {
+                        string fullPropName = string.Join(".", path.Concat(new[] { prop.Name }));
+                        var v = config.Vars.FirstOrDefault(cv => cv.Name == fullPropName);
+                        var attr = prop.GetCustomAttributes(true).OfType<ConfigPropertyAttribute>().FirstOrDefault();
+                        string name = attr?.Name ?? prop.Name,
+                            desc = attr?.Description;
+
+                        if (prop.PropertyType == typeof(string)) {
+                            TextBox tb = new TextBox {
+                                Text = v.Value ?? prop.GetValue(o)?.ToString() ?? string.Empty,
+                            };
+                            DoAdd(name, tb);
+                            tb.TextChanged += (_o, _e) => SetProp(fullPropName, tb.Text);
+                        } else if (prop.PropertyType == typeof(bool)) {
+                            CheckBox cb = new CheckBox {
+                                Content = name,
+                                IsChecked = v == null ? (bool)prop.GetValue(o) : bool.Parse(v.Value),
+                            };
+                            DoAdd("", cb);
+                            cb.Checked += (_o, _e) => SetProp(fullPropName, (cb.IsChecked ?? false).ToString());
+                        } else if (prop.PropertyType.IsEnum) {
+                            object val;
+                            if (string.IsNullOrEmpty(v?.Value))
+                                val = prop.GetValue(o);
+                            else
+                                val = Enum.Parse(prop.PropertyType, v?.Value);
+                            ComboBox cb = new ComboBox {
+                                ItemsSource = Enum.GetValues(prop.PropertyType),
+                                SelectedValue = val,
+                            };
+                            DoAdd(name, cb);
+                            cb.SelectionChanged += (_o, _e) => SetProp(fullPropName, cb.SelectedValue.ToString());
+                        } else if (!prop.PropertyType.IsValueType) {
+                            DoObj(
+                                prop.GetValue(o),
+                                path.Concat(new[] { prop.Name }),
+                                (category + " " + name).Trim()
+                            );
+                        } else 
+                            throw new NotImplementedException();
+                    }
                 }
+
+                DoObj(plugin.Plugin.ConfigObject, Enumerable.Empty<string>(), "");
             }
         }
 

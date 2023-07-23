@@ -6,9 +6,11 @@
 
 using Braver.Plugins;
 using Braver.Plugins.UI;
+using IrosArchive;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Windows.Forms;
 using System.Xml;
 
 namespace Braver._7HShim {
@@ -21,24 +23,31 @@ namespace Braver._7HShim {
         protected void SetInt(string name, int i) => _settings[name] = i;
         protected int GetInt(string name) => _settings.GetValueOrDefault(name);
 
+        private static char[] OP_CHARS = new[] { '=', '<', '>', '!' };
         internal bool Evaluate(string comparison) {
-            string[] parts = comparison.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 3)
-                throw new InvalidDataException($"Bad comparison: {comparison}");
-            int val1 = _settings.GetValueOrDefault(parts[0]),
-                val2 = int.Parse(parts[2]);
+            int opStart = comparison.IndexOfAny(OP_CHARS),
+                opEnd = comparison.LastIndexOfAny(OP_CHARS);
+            string operand0 = comparison.Substring(0, opStart).Trim(),
+                operand1 = comparison.Substring(opEnd + 1).Trim(),
+                op = comparison.Substring(opStart, opEnd - opStart + 1).Trim();
 
-            if (parts[1] == "=")
+            if (string.IsNullOrEmpty(operand0) || string.IsNullOrEmpty(operand1) || string.IsNullOrEmpty(op))
+                throw new InvalidDataException($"Bad comparison: {comparison}");
+
+            int val1 = _settings.GetValueOrDefault(operand0),
+                val2 = int.Parse(operand1);
+
+            if (op == "=")
                 return val1 == val2;
-            else if (parts[1] == "!=")
+            else if (op == "!=")
                 return val1 != val2;
-            else if (parts[1] == "<")
+            else if (op == "<")
                 return val1 < val2;
-            else if (parts[1] == ">")
+            else if (op == ">")
                 return val1 > val2;
-            else if (parts[1] == "<=")
+            else if (op == "<=")
                 return val1 <= val2;
-            else if (parts[1] == ">=")
+            else if (op == ">=")
                 return val1 >= val2;
             else
                 throw new InvalidDataException($"Bad comparison: {comparison}");
@@ -59,26 +68,31 @@ namespace Braver._7HShim {
 
         public static SevenHConfig Build(XmlNode modinfo, ModuleBuilder module) {
             var id = Guid.Parse(modinfo.SelectSingleNode("ID").InnerText);
-            var typ = module.DefineType("Config" + id.ToString("N"), System.Reflection.TypeAttributes.Class | System.Reflection.TypeAttributes.Public, typeof(SevenHConfig));
+            var typ = module.DefineType("Config" + id.ToString("N"), TypeAttributes.Class | TypeAttributes.Public, typeof(SevenHConfig));
 
             var mGetB = typeof(SevenHConfig).GetMethod(nameof(GetBool), BindingFlags.NonPublic | BindingFlags.Instance);
             var mSetB = typeof(SevenHConfig).GetMethod(nameof(SetBool), BindingFlags.NonPublic | BindingFlags.Instance);
             var mGetI = typeof(SevenHConfig).GetMethod(nameof(GetInt), BindingFlags.NonPublic | BindingFlags.Instance);
             var mSetI = typeof(SevenHConfig).GetMethod(nameof(SetInt), BindingFlags.NonPublic | BindingFlags.Instance);
 
-            void DoProp(string propName, Type propType) {
+            void DoProp(string propName, Type propType, string name, string description) {
 
                 MethodInfo mGet = propType == typeof(bool) ? mGetB : mGetI,
                     mSet = propType == typeof(bool) ? mSetB : mSetI;
 
                 var prop = typ.DefineProperty(
                     propName,
-                    System.Reflection.PropertyAttributes.None,
+                    PropertyAttributes.None,
                     propType, null
                 );
+                var attr = new CustomAttributeBuilder(
+                    typeof(ConfigPropertyAttribute).GetConstructor(new[] { typeof(string), typeof(string) }),
+                    new object[] { name, description }
+                );
+                prop.SetCustomAttribute(attr);
                 var getBuild = typ.DefineMethod(
                     "get_" + prop.Name,
-                    System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.HideBySig | System.Reflection.MethodAttributes.SpecialName,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
                     propType, null
                 );
                 var getIL = getBuild.GetILGenerator();
@@ -91,7 +105,7 @@ namespace Braver._7HShim {
 
                 var setBuild = typ.DefineMethod(
                     "set_" + prop.Name,
-                    System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.HideBySig | System.Reflection.MethodAttributes.SpecialName,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
                     null, new[] { propType }
                 );
                 var setIL = setBuild.GetILGenerator();
@@ -99,7 +113,7 @@ namespace Braver._7HShim {
                 setIL.Emit(OpCodes.Ldstr, prop.Name);
                 setIL.Emit(OpCodes.Ldarg_1);
                 if (propType.IsEnum)
-                    setIL.Emit(OpCodes.Castclass, typeof(int));
+                    setIL.Emit(OpCodes.Conv_I4);
                 setIL.Emit(OpCodes.Callvirt, mSet);
                 setIL.Emit(OpCodes.Ret);
                 prop.SetSetMethod(setBuild);
@@ -107,11 +121,13 @@ namespace Braver._7HShim {
 
             foreach (XmlNode xoption in modinfo.SelectNodes("ConfigOption")) {
                 string optType = xoption.SelectSingleNode("Type").InnerText;
-                string optName = xoption.SelectSingleNode("ID").InnerText;
+                string optID = xoption.SelectSingleNode("ID").InnerText;
+                string optName = xoption.SelectSingleNode("Name").InnerText;
+                string optDesc = xoption.SelectSingleNode("Description").InnerText;
                 if (optType.Equals("Bool", StringComparison.InvariantCultureIgnoreCase)) {
-                    DoProp(optName, typeof(bool));
+                    DoProp(optID, typeof(bool), optName, optDesc);
                 } else if (optType.Equals("List", StringComparison.InvariantCultureIgnoreCase)) {
-                    var enumtype = module.DefineEnum("List_" + optName, System.Reflection.TypeAttributes.Public, typeof(int));
+                    var enumtype = module.DefineEnum("List_" + optID, TypeAttributes.Public, typeof(int));
                     foreach(XmlNode xlistopt in xoption.SelectNodes("Option")) {
                         enumtype.DefineLiteral(
                             xlistopt.Attributes["Name"].Value.Replace(" ", "_"),
@@ -119,7 +135,7 @@ namespace Braver._7HShim {
                         );
                     }
                     var builtEnum = enumtype.CreateType();
-                    DoProp(optName, builtEnum);
+                    DoProp(optID, builtEnum, optName, optDesc);
                 }
             }
 
@@ -128,11 +144,97 @@ namespace Braver._7HShim {
         }
     }
 
-    internal class SevenHMod {
-        public XmlDocument ModXml { get; set; }
+    internal abstract class SevenHMod {
+        public XmlDocument ModXml { get; protected set; }
         public int ID { get; set; }
         public SevenHConfig Config { get; set; }
-        public string Root { get; set; }
+
+        public abstract IEnumerable<string> GetSubFolders(string folder);
+        public abstract IEnumerable<string> GetFolders();
+        public abstract DataSource GetDataSource(string folder, string subfolder);
+    }
+
+    internal class SevenHIroMod : SevenHMod, IDisposable {
+        private IrosArchive.IrosArc _iro;
+
+        public SevenHIroMod(string iroFile) {
+            _iro = new IrosArchive.IrosArc(iroFile);
+
+            var doc = new XmlDocument();
+            using (var s = _iro.GetData("mod.xml"))
+                doc.Load(s);
+            ModXml = doc;
+        }
+
+        private class IroDataSource : DataSource {
+            private IrosArchive.IrosArc _iro;
+            private string _folder;
+            private string[] _filenames;
+
+            public IroDataSource(IrosArc iro, string folder) {
+                _iro = iro;
+                _folder = folder;
+                _filenames = iro.AllFileNames()
+                    .Where(s => s.StartsWith(folder))
+                    .Select(s => Path.GetFileName(s))
+                    .ToArray();
+            }
+
+            public override IEnumerable<string> Scan() => _filenames;
+            public override Stream TryOpen(string file) => _iro.GetData(_folder + file);
+
+            public override string ToString() => $"IRO {_iro}";
+        }
+
+        public override DataSource GetDataSource(string folder, string subfolder) {
+            if (string.IsNullOrWhiteSpace(subfolder))
+                return new IroDataSource(_iro, folder + "\\");
+            else
+                return new IroDataSource(_iro, folder + "\\" + subfolder + "\\");
+        }
+
+        public override IEnumerable<string> GetFolders() {
+            return _iro.AllFolderNames()
+                .Where(s => !s.Contains('\\'));
+        }
+
+        public override IEnumerable<string> GetSubFolders(string folder) {
+            string prefix = folder + "\\";
+            return _iro.AllFolderNames()
+                .Where(s => s.StartsWith(prefix))
+                .Select(s => s.Substring(prefix.Length))
+                .Where(s => !s.Contains('\\'));
+        }
+
+        public void Dispose() {
+            _iro.Dispose();
+        }
+    }
+
+    internal class SevenHFileMod : SevenHMod {
+        private string _root;
+
+        public SevenHFileMod(string root) {
+            _root = root;
+            var doc = new XmlDocument();
+            doc.Load(Path.Combine(_root, "mod.xml"));
+            ModXml = doc;
+        }
+
+        public override DataSource GetDataSource(string folder, string subfolder) {
+            return new FileDataSource(Path.Combine(_root, folder, subfolder));
+        }
+
+        public override IEnumerable<string> GetFolders() {
+            return Directory.GetDirectories(_root)
+                .Select(fn => Path.GetFileName(fn));
+        }
+
+        public override IEnumerable<string> GetSubFolders(string folder) {
+            return Directory.GetDirectories(Path.Combine(_root, folder))
+                .Select(fn => Path.GetFileName(fn));
+        }
+
     }
 
     public class SevenHConfigCollection {
@@ -155,6 +257,16 @@ namespace Braver._7HShim {
                     PropertyAttributes.None,
                     config.GetType(), null
                 );
+
+                var attr = new CustomAttributeBuilder(
+                    typeof(ConfigPropertyAttribute).GetConstructor(new[] { typeof(string), typeof(string) }),
+                    new object[] { 
+                        mod.ModXml.SelectSingleNode("/ModInfo/Name").InnerText,
+                        mod.ModXml.SelectSingleNode("/ModInfo/Description").InnerText
+                    }
+                );
+                prop.SetCustomAttribute(attr);
+
                 var getBuild = typ.DefineMethod(
                     "get_" + prop.Name,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
@@ -214,12 +326,15 @@ namespace Braver._7HShim {
                 if (File.Exists(modxml)) {
                     var doc = new XmlDocument();
                     doc.Load(modxml);
-                    _mods.Add(new SevenHMod {
-                        ModXml = doc,
+                    _mods.Add(new SevenHFileMod(subdirectory) {
                         ID = _mods.Count + 1,
-                        Root = subdirectory,
                     });
                 }
+            }
+            foreach(string iro in Directory.GetFiles(thisFolder, "*.iro")) {
+                _mods.Add(new SevenHIroMod(iro) {
+                    ID = _mods.Count + 1
+                });
             }
 
             AssemblyName assemblyName = new AssemblyName("SevenHShim.DynamicConfig");
@@ -239,7 +354,10 @@ namespace Braver._7HShim {
 
         public override void Init(BGame game) {
             foreach(var mod in _mods) {
+                HashSet<string> remainingFolders = new HashSet<string>(mod.GetFolders(), StringComparer.InvariantCultureIgnoreCase);
                 foreach(XmlNode xfolder in mod.ModXml.SelectNodes("/ModInfo/ModFolder")) {
+                    string folder = xfolder.Attributes["Folder"].Value;
+                    remainingFolders.Remove(folder);
                     bool isActive;
                     if (xfolder.Attributes["ActiveWhen"] != null)
                         isActive = mod.Config.Evaluate(xfolder.Attributes["ActiveWhen"].Value);
@@ -248,11 +366,12 @@ namespace Braver._7HShim {
                     else
                         isActive = true;
                     if (isActive) {
-                        string folder = Path.Combine(mod.Root, xfolder.Attributes["Folder"].Value);
-                        foreach (string datafolder in Directory.GetDirectories(folder))
-                            game.AddDataSource(Path.GetFileName(datafolder), new FileDataSource(datafolder));
+                        foreach (string datafolder in mod.GetSubFolders(folder))
+                            game.AddDataSource(Path.GetFileName(datafolder), mod.GetDataSource(folder, datafolder));
                     }
                 }
+                foreach (string folder in remainingFolders)
+                    game.AddDataSource(Path.GetFileName(folder), mod.GetDataSource(folder, ""));
             }
         }
     }

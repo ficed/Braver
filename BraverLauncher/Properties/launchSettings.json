@@ -1,7 +1,8 @@
 {
   "profiles": {
     "BraverLauncher": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "/plugins:C:\\Users\\ficed\\Projects\\F7\\PluginImplementations\\output\\Debug"
     }
   }
 }

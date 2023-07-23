@@ -19,16 +19,14 @@ namespace Braver {
 
     public class Audio : IAudio {
 
-        private string _musicFolder;
         private Channel<MusicCommand> _channel;
         private Ficedula.FF7.Audio _sfxSource;
         private FGame _game;
         private byte _volume = 127;
         private float _masterVolume;
 
-        public Audio(FGame game, string musicFolder, string soundFolder) {
+        public Audio(FGame game, string soundFolder) {
             _game = game;
-            _musicFolder = musicFolder;
             _masterVolume = game.GameOptions.MusicVolume;
             _channel = Channel.CreateBounded<MusicCommand>(8);
             Task.Run(RunMusic);
@@ -153,15 +151,15 @@ namespace Braver {
             void DoPlay(string track) {
                 var current = contexts.Peek();
                 DoStop();
-                string file = Path.Combine(_musicFolder, track + ".ogg");
-                if (!File.Exists(file)) {
-                    System.Diagnostics.Trace.WriteLine($"Failed to find music track {file}");
+                var source = _game.TryOpen("vgmstream", track + ".ogg");
+                if (source == null) {
+                    Trace.WriteLine($"Failed to find music track {track}.ogg");
                     return;
                 }
 
                 int loopStart = 0, loopEnd = 0;
                 try {
-                    using (var reader = new NVorbis.VorbisReader(file)) {
+                    using (var reader = new NVorbis.VorbisReader(source, false)) {
                         foreach(var tag in reader.Tags.All) 
                             Trace.WriteLine($"Vorbis tag: {tag.Key} = {string.Join(", ", tag.Value)}");
                         loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));
@@ -170,7 +168,8 @@ namespace Braver {
                 } catch (Exception ex) {
                     Trace.WriteLine($"Failed to parse vorbis tags: {ex}");
                 }
-                current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(file);
+                source.Position = 0;
+                current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(source, true);
                 current.WaveOut = new NAudio.Wave.WaveOut();
                 //current.WaveOut.Init(current.Vorbis);
                 current.Volume = new VolumeSampleProvider(new LoopProvider(current.Vorbis, loopStart, loopEnd));

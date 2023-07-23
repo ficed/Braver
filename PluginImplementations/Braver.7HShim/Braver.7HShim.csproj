@@ -17,6 +17,7 @@
       <Private>False</Private>
       <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
     </ProjectReference>
+    <ProjectReference Include="..\..\IrosArchive\IrosArchive.csproj" />
   </ItemGroup>
 
 </Project>

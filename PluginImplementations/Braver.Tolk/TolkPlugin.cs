@@ -16,8 +16,11 @@ using System.Windows.Forms;
 namespace Braver.Tolk {
 
     public class TolkConfig {
+        [ConfigProperty("Enable SAPI support")]
         public bool EnableSAPI { get; set; } = true;
+        [ConfigProperty("Enable Footstep Sounds")]
         public bool EnableFootsteps { get; set; } = true;
+        [ConfigProperty("Enable Focus sounds")]
         public bool EnableFocusTracking { get; set; } = true;
     }
 
@@ -79,7 +82,7 @@ namespace Braver.Tolk {
         private object _lastMenuContainer = null;
         public void Menu(IEnumerable<string> items, int selected, object container) {
             DavyKager.Tolk.Speak(
-                $"Menu {items.ElementAtOrDefault(selected)}, {selected + 1} of {items.Count()}",
+                $"{items.ElementAtOrDefault(selected)}, {selected + 1} of {items.Count()}",
                 _lastMenuContainer == container
             );
             _lastMenuContainer = container;

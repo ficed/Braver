@@ -7,6 +7,7 @@
 using Ficedula.FF7;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
@@ -48,6 +49,8 @@ namespace Braver {
             } else
                 return null;
         }
+
+        public override string ToString() => $"Pack";
     }
 
     public class LGPDataSource : DataSource {
@@ -59,6 +62,8 @@ namespace Braver {
 
         public override IEnumerable<string> Scan() => _lgp.Filenames;
         public override Stream TryOpen(string file) => _lgp.TryOpen(file);
+
+        public override string ToString() => _lgp.ToString();
     }
 
     public class FileDataSource : DataSource {
@@ -79,6 +84,8 @@ namespace Braver {
                 return new FileStream(fn, FileMode.Open, FileAccess.Read);
             return null;
         }
+
+        public override string ToString() => $"File source {_root}";
     }
 
     public class GameOptions {
@@ -150,6 +157,7 @@ namespace Braver {
         public void AddDataSource(string folder, DataSource source) {
             if (!_data.TryGetValue(folder, out var list))
                 list = _data[folder] = new List<DataSource>();
+            Trace.WriteLine($"Adding data source for folder {folder}: {source}");
             list.Add(source);
         }
         public string GetPath(string name) => _paths[name];

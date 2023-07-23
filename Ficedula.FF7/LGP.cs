@@ -97,5 +97,7 @@ namespace Ficedula.FF7 {
         public void Dispose() {
             _source.Dispose();
         }
+
+        public override string ToString() => $"LGP {_source}";
     }
 }
