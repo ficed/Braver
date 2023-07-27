@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace Braver {
 
@@ -82,11 +83,10 @@ namespace Braver {
 
                 int read = _source.Read(buffer, offset, count);
                 _samplesRead += read;
-                if ((_samplesRead <= _loopStart) && (_samplesRead > _seekBeforeLoopStart)) {
+                if ((_samplesRead <= _loopStart) && (_samplesRead > _samplesBeforeLoopStart)) {
                     _samplesBeforeLoopStart = _samplesRead;
                     _seekBeforeLoopStart = _source.Position;
-                } else if ((_samplesRead >= _loopEnd) && (_loopEnd > 0)) {
-                    read -= (int)(_samplesRead - _loopEnd);
+                } else if ((_samplesRead >= _loopEnd) && ((_loopEnd > 0) || read == 0)) {
                     _samplesRead = _samplesBeforeLoopStart;
                     _source.Position = _seekBeforeLoopStart;
                     int toDiscard = (int)(_loopStart - _samplesBeforeLoopStart);
@@ -95,9 +95,7 @@ namespace Braver {
                         toDiscard -= discard;
                         _samplesRead += discard;
                     }
-                    if (read == 0) { //Don't want to seem like end of stream, so must return some data now we've looped back!
-                        read = _source.Read(buffer, offset, count);
-                    }
+                    read = _source.Read(buffer, offset, count);
                 }
 
                 if (read == 0) {
@@ -161,15 +159,11 @@ namespace Braver {
                 }
 
                 int loopStart = 0, loopEnd = 0;
-                try {
-                    using (var reader = new NVorbis.VorbisReader(source, false)) {
-                        foreach(var tag in reader.Tags.All) 
-                            Trace.WriteLine($"Vorbis tag: {tag.Key} = {string.Join(", ", tag.Value)}");
-                        loopStart = int.Parse(reader.Tags.GetTagSingle("LOOPSTART"));
-                        loopEnd = int.Parse(reader.Tags.GetTagSingle("LOOPEND"));
-                    }
-                } catch (Exception ex) {
-                    Trace.WriteLine($"Failed to parse vorbis tags: {ex}");
+                using (var reader = new NVorbis.VorbisReader(source, false)) {
+                    foreach (var tag in reader.Tags.All)
+                        Trace.WriteLine($"Vorbis tag: {tag.Key} = {string.Join(", ", tag.Value)}");
+                    int.TryParse(reader.Tags.GetTagSingle("LOOPSTART").Trim(), out loopStart);
+                    int.TryParse(reader.Tags.GetTagSingle("LOOPEND").Trim(), out loopEnd);
                 }
                 source.Position = 0;
                 current.Vorbis = new NAudio.Vorbis.VorbisWaveReader(source, true);
@@ -180,6 +174,7 @@ namespace Braver {
                 current.Volume.Volume = _masterVolume * _volume / 127f;
                 current.WaveOut.Play();
                 current.Track = track;
+                Trace.WriteLine($"Playing track {track} at final volume {current.Volume.Volume}");
             }
 
             try {
@@ -190,8 +185,10 @@ namespace Braver {
                     switch (command.Command) {
                         case CommandType.SetVolume:
                             _volume = command.Param;
-                            if (contexts.Peek().WaveOut != null)
+                            if (contexts.Peek().WaveOut != null) {
                                 contexts.Peek().Volume.Volume = _masterVolume * _volume / 127f;
+                                Trace.WriteLine($"Changing music output volume to {contexts.Peek().Volume.Volume}");
+                            }
                             break;
 
                         case CommandType.Play:

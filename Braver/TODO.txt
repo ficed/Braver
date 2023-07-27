@@ -1,6 +1,11 @@
 ﻿Plugins:
 	FFNx:
 		Field-specific sfx overrides
+		Braver sfx cache is going to make FFNx sequential/shuffle irrelevant!
+	Tolk:
+		Faster, configurable tracking speed/frequency
+		AD on movies
+		AD on field entry
 
 WM:
 	Gradient background for sky on world map

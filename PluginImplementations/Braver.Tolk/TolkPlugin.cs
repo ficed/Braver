@@ -146,7 +146,8 @@ namespace Braver.Tolk {
             }
         }
 
-        private int _focusCountdown=180;
+        private const int FOCUS_EVERY_X_FRAMES = 60;
+        private int _focusCountdown = FOCUS_EVERY_X_FRAMES;
         public void Step(IField field) {
 
             if (_footsteps != null) {
@@ -170,14 +171,14 @@ namespace Braver.Tolk {
                 if (focusState != null) {
                     System.Diagnostics.Debug.WriteLine($"Focus at walkmesh distance {focusState.WalkmeshDistance}");
                     if (field.Options.HasFlag(FieldOptions.PlayerControls))
-                        _focusSound.Play(1f, 0f, false, (float)Math.Pow(0.9, focusState.WalkmeshDistance));
+                        _focusSound.Play(1f, 0f, false, 0.5f + (float)Math.Pow(0.9, focusState.WalkmeshDistance));
 
                     if (_lastFocusName != focusState.TargetName) {
                         _lastFocusName = focusState.TargetName;
                         DavyKager.Tolk.Output("Focus " + _lastFocusName);
                     }
                 }
-                _focusCountdown = 180;
+                _focusCountdown = FOCUS_EVERY_X_FRAMES;
             }
         }
 

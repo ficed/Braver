@@ -109,7 +109,8 @@ namespace Braver.FFNxCompatibility {
         public SfxData Load(int sfxID) {
             var file = GetAudioEntry(_sfx, $"{sfxID + 1}");
 
-            if (file != null) {                
+            if (file != null) {
+                Trace.WriteLine($"FFNxSfx: Remapping sfx {sfxID}->{file}");
                 return LoadIndividual(file);
             } else
                 return null;

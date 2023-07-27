@@ -42,6 +42,11 @@ namespace BraverLauncher {
         public MainWindow() {
             InitializeComponent();
 
+            System.Globalization.CultureInfo.CurrentCulture =
+                System.Globalization.CultureInfo.CurrentUICulture =
+                System.Globalization.CultureInfo.DefaultThreadCurrentCulture =
+                System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
             string root = Environment.GetCommandLineArgs()
                 .Where(s => s.StartsWith("/root:"))
                 .Select(s => s.Substring(6))

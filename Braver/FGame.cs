@@ -122,6 +122,10 @@ namespace Braver {
                     throw new NotSupportedException($"Unrecognised data spec {spec}");
             }
 
+            Trace.WriteLine("Braver: Data initialised");
+            foreach (var setting in settings)
+                Trace.WriteLine($"  Config: {setting.Key} = {setting.Value}");
+
             PluginManager = new PluginManager();
             if (_paths.ContainsKey("PLUGINS") && !string.IsNullOrWhiteSpace(_paths["PLUGINS"])) {
 
