@@ -4,6 +4,8 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
+using Braver.Plugins.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -36,10 +38,9 @@ namespace Braver.Field {
         private static Regex _reSize = new Regex(@"(\d+)x(\d+)");
 
         private string[] _files;
-
         private FGame _game;
-
         private Ficedula.FF7.Field.MovieCam _cam;
+        private PluginInstances<IMovie> _plugins;
 
         private static string[] _extensions = new[] { ".mp4", ".avi" };
 
@@ -51,10 +52,11 @@ namespace Braver.Field {
             return Path.Combine(_game.GetPath("Movies"), name + _extensions[0]); //...although it'll fail at runtime, but lets us continue running for now
         }
 
-        public Movie(FGame g, GraphicsDevice graphics) {
+        public Movie(FGame g, GraphicsDevice graphics, PluginInstances<IMovie> plugins) {
             _game = g;
             _graphics = graphics;
             _spriteBatch = new SpriteBatch(graphics);
+            _plugins = plugins;
 
             _files = g.OpenString("movies", "movielist.txt")
                 .Split('\n')
@@ -193,12 +195,15 @@ namespace Braver.Field {
             //Now we have a texture, make it available to be played
             _process = process;
             _frame = -1;
+
+            _plugins.Call(m => m.Loaded(Path.GetFileName(filename)));
         }
 
         public void Play(Action onComplete) {
             _frame = 0;
             _effectInstance?.Play();
             _onComplete = onComplete;
+            _plugins.Call(m => m.Playing(_frame));
         }
 
         public void Render() {
@@ -261,7 +266,11 @@ namespace Braver.Field {
                 }
                 _texture.SetData(_framebuffer);
                 _frame++;
+                _plugins.Call(m => m.Playing(_frame));
                 _frameIncrement -= _gameFramesPerVideoFrame;
+
+                if (_process == null)
+                    _plugins.Call(m => m.Stopped());
             } else {
                 //
             }

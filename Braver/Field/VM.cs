@@ -2299,6 +2299,10 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                     s.Overlay.Fade(frames, BlendState.Additive, cStandard, cStandard, null);
                     return OpResult.Continue;
 
+                case 12:
+                    s.Overlay.Fade(frames, GraphicsUtil.BlendSubtractive, Color.Black, cStandard, null);
+                    return OpResult.Continue;
+
                 default: //TODO - other types!
                     throw new NotImplementedException();
             }
@@ -2471,6 +2475,12 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                         s.Options &= ~FieldOptions.ShowPlayerHand;
                     else
                         s.Options |= FieldOptions.ShowPlayerHand;
+                    break;
+
+                case 0xF8: //field message speed - TODO!
+                    f.ReadU8();
+                    byte speed = f.ReadU8();
+                    //TODO!
                     break;
 
                 case 0xFD:

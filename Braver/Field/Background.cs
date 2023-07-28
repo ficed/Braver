@@ -60,16 +60,22 @@ namespace Braver.Field {
 
         private void RedrawLayer(TexLayer layer, bool clear) {
 
+            //VERY TODO - e.g. EchoS blackbgh. Probably we're decoding it wrong.
+            if ((layer.Tex.Height > 2048) || (layer.Tex.Width > 2048))
+                return;
+
             foreach (var tile in layer.Sprites) {
                 int destX = tile.DestX + layer.OffsetX, destY = tile.DestY + layer.OffsetY;
-                var src = _bg.Pages[tile.TextureID].Data;
-                var pal = _palettes[tile.PaletteID].Colours;
-                foreach (int y in Enumerable.Range(0, 16)) {
-                    foreach (int x in Enumerable.Range(0, 16)) {
-                        byte p = src[tile.SrcY + y][tile.SrcX + x];
-                        uint c = pal[p];
-                        if (((c >> 24) != 0) || clear)
-                            layer.Data[destY + y][destX + x] = c;
+                if (_bg.Pages.TryGetValue(tile.TextureID, out var page)) {
+                    var src = page.Data;
+                    var pal = _palettes[tile.PaletteID].Colours;
+                    foreach (int y in Enumerable.Range(0, 16)) {
+                        foreach (int x in Enumerable.Range(0, 16)) {
+                            byte p = src[tile.SrcY + y][tile.SrcX + x];
+                            uint c = pal[p];
+                            if (((c >> 24) != 0) || clear)
+                                layer.Data[destY + y][destX + x] = c;
+                        }
                     }
                 }
             }

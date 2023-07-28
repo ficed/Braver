@@ -62,7 +62,9 @@ namespace Braver.Field {
         }
         public Vector3 Translation {
             get => _translation;
-            set => DoSetNet(ref _translation, value, msg => msg.Translation = value);
+            set {
+                DoSetNet(ref _translation, value, msg => msg.Translation = value);
+            }
         }
         public Vector3 Translation2 {
             get => _translation2;

@@ -61,6 +61,7 @@ namespace Braver.Field {
         private PluginInstances<IFieldLocation> _fieldPlugins;
         private PluginInstances<IBackground> _bgPlugins;
         private PluginInstances<IDialog> _dialogPlugins;
+        private PluginInstances<IMovie> _moviePlugins;
 
         private List<WalkmeshTriangle> _walkmesh;
 
@@ -117,7 +118,7 @@ namespace Braver.Field {
             if (Player == null) {
                 var autoPlayer = Entities
                     .Where(e => e.Character != null)
-                    .FirstOrDefault(e => e.Character == Game.SaveData.Party.FirstOrDefault());
+                    .FirstOrDefault(e => e.Character == Game.SaveData.Party.OrderBy(c => c.CharIndex).FirstOrDefault());
                 if (autoPlayer != null)
                     SetPlayer(Entities.IndexOf(autoPlayer));
             }
@@ -182,11 +183,12 @@ namespace Braver.Field {
             _fieldPlugins = GetPlugins<IFieldLocation>(_file);
             _dialogPlugins = GetPlugins<IDialog>(_file);
             _bgPlugins = GetPlugins<IBackground>(_file);
+            _moviePlugins = GetPlugins<IMovie>(_file);
 
             _fieldPlugins.Call(f => f.Init(_destination.DestinationFieldID, _file));
 
             Background = new Background(g, _bgPlugins, graphics, field.GetBackground());
-            Movie = new Movie(g, graphics);
+            Movie = new Movie(g, graphics, _moviePlugins);
             FieldDialog = field.GetDialogEvent();
             _encounters = field.GetEncounterTables().ToArray();
 

@@ -24,6 +24,8 @@ namespace Braver.Tolk {
         public bool EnableFocusTracking { get; set; } = true;
         [ConfigProperty("Voice dialogue")]
         public bool VoiceDialogue { get; set; } = true;
+        [ConfigProperty("Movie AD")]
+        public bool MovieAD { get; set; } = true;
     }
 
     public class TolkPlugin : Plugin {
@@ -41,6 +43,8 @@ namespace Braver.Tolk {
                 yield return _tolk;
             } else if (t == typeof(IFieldLocation))
                 yield return new FootstepFocusPlugin(_game, _config.EnableFootsteps, _config.EnableFocusTracking);
+            else if (t == typeof(IMovie))
+                yield return new MovieAD(_game);
             else
                 throw new NotSupportedException();
         }
@@ -52,10 +56,50 @@ namespace Braver.Tolk {
             yield return typeof(IBattleUI);
             if (_config.EnableFootsteps || _config.EnableFocusTracking)
                 yield return typeof(IFieldLocation);
+            if (_config.MovieAD)
+                yield return typeof(IMovie);
         }
 
         public override void Init(BGame game) {
             _game = game;
+
+            string root = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "data");
+            if (Directory.Exists(root)) {
+                foreach(string folder in Directory.GetDirectories(root)) {
+                    game.AddDataSource(Path.GetFileName(folder), new FileDataSource(folder));
+                }
+            }
+        }
+    }
+
+    public class MovieAD : IMovie, IDisposable {
+        private readonly BGame _game;
+        private IAudioItem? _ad;
+
+        public MovieAD(BGame game) {
+            _game = game;
+        }
+
+        public void Dispose() {
+            Stopped();
+        }
+
+        public void Loaded(string movie) {
+            _ad?.Dispose();
+            _ad = _game.Audio.TryLoadStream("MovieAD", Path.ChangeExtension(movie, ".ogg"));
+        }
+
+        public void Playing(int frame) {
+            if ((frame == 0) && (_ad != null))
+                _ad.Play(1f, 0f, false, 1f);
+        }
+
+        public void Stopped() {
+            if (_ad != null) {
+                _ad.Stop();
+                _ad.Dispose();
+                _ad = null;
+            }
         }
     }
 

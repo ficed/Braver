@@ -20,6 +20,7 @@ namespace Braver.UI.Layout {
         public Box Root;
 
         public override bool IsRazorModel => true;
+        public override string Description => "Name character " + lName?.Description;
 
         public int CharacterID { get; set; }
 
