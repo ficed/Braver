@@ -18,6 +18,8 @@ namespace Braver.FFNxCompatibility {
         public bool FieldAmbientSounds { get; set; } = true;
         [ConfigProperty("Allow replacing sound effects")]
         public bool ReplaceSfx { get; set; } = true;
+        [ConfigProperty("Allow voicing field dialog")]
+        public bool FieldDialogVoices { get; set; } = true;
     }
 
     public class FFNxPlugin : Plugin {
@@ -45,6 +47,9 @@ namespace Braver.FFNxCompatibility {
                 _sfx ??= GetToml("Sfx");
                 yield return new FFNxSfx(_game, _sfx);
             }
+            if (t == typeof(IDialog)) {
+                yield return new FFNxFieldVoices(_game, context);
+            }
         }
 
         public override IEnumerable<Type> GetPluginInstances() {
@@ -52,6 +57,8 @@ namespace Braver.FFNxCompatibility {
                 yield return typeof(IFieldLocation);
             if (_config.ReplaceSfx)
                 yield return typeof(ISfxSource);
+            if (_config.FieldDialogVoices)
+                yield return typeof(IDialog);
         }
 
         public override void Init(BGame game) {
@@ -114,6 +121,49 @@ namespace Braver.FFNxCompatibility {
                 return LoadIndividual(file);
             } else
                 return null;
+        }
+    }
+
+    public class FFNxFieldVoices : IDialog, IDisposable {
+
+        private IAudioItem _playing;
+        private BGame _game;
+        private string _field;
+
+        public FFNxFieldVoices(BGame game, string field) {
+            _game = game;
+            _field = field;
+        }
+
+        public void Asking(int window, int tag, IEnumerable<string> text, IEnumerable<int> choiceLines) {
+            //
+        }
+
+        public void ChoiceMade(int window, int choice) {
+            //
+        }
+
+        public void ChoiceSelected(IEnumerable<string> choices, int selected) {
+            //
+        }
+
+        public void Dialog(int tag, int index, string dialog) {
+            if (_playing != null) {
+                _playing.Stop();
+                _playing.Dispose();
+                _playing = null;
+            }
+            _playing = _game.Audio.TryLoadStream("Voice", $"{_field}\\{tag}.ogg")
+                ?? _game.Audio.TryLoadStream("Voice", $"{_field}\\{tag}{(char)('a' + index)}.ogg");
+            _playing?.Play(1f, 0f, false, 1f);
+        }
+
+        public void Dispose() {
+            _playing?.Dispose();
+        }
+
+        public void Showing(int window, int tag, IEnumerable<string> text) {
+            //
         }
     }
 

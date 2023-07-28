@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -404,6 +405,10 @@ namespace Braver.UI {
                 Color colour = item.colour;
                 foreach (char c in item.text) {
                     switch (c) {
+                        case '¬':
+                            Trace.TraceWarning($"Unrecognised char in string '{item.text}'");
+                            break;
+
                         case '\xE012':
                             //Colour change opcode ... ignore and just pay attention to the actual colour code
                             break;
@@ -420,6 +425,18 @@ namespace Braver.UI {
                             colour = _colours[c - 0xE020];
                             break;
                         case '\xE030': //pause opcode - just skip
+                            break;
+
+                        case '\xE040': //avatar opcodes - just skip
+                        case '\xE041':
+                        case '\xE042':
+                        case '\xE043':
+                        case '\xE044':
+                        case '\xE045':
+                        case '\xE046':
+                        case '\xE047':
+                        case '\xE048':
+                        case '\xE049':
                             break;
 
                         case ' ':

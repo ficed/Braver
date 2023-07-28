@@ -217,7 +217,14 @@ namespace Braver._7HShim {
             return _iro.AllFolderNames()
                 .Where(s => s.StartsWith(prefix))
                 .Select(s => s.Substring(prefix.Length))
-                .Where(s => !s.Contains('\\'));
+                .Select(s => {
+                    int separator = s.IndexOf('\\');
+                    if (separator >= 0)
+                        return s.Substring(0, separator);
+                    else
+                        return s;
+                })
+                .Distinct();
         }
 
         public void Dispose() {
@@ -366,6 +373,19 @@ namespace Braver._7HShim {
             yield break;
         }
 
+        private static Dictionary<string, string> _folderRemap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
+            ["char.lgp"] = "field",
+            ["flevel.lgp"] = "field",
+        };
+
+        private string RemapSourceName(string name) {
+            name = Path.GetFileName(name);
+            if (_folderRemap.TryGetValue(name, out string remap))
+                return remap;
+            else
+                return name;
+        }
+
         public override void Init(BGame game) {
             foreach(var mod in _mods) {
                 HashSet<string> remainingFolders = new HashSet<string>(mod.GetFolders(), StringComparer.InvariantCultureIgnoreCase);
@@ -381,11 +401,11 @@ namespace Braver._7HShim {
                         isActive = true;
                     if (isActive) {
                         foreach (string datafolder in mod.GetSubFolders(folder))
-                            game.AddDataSource(Path.GetFileName(datafolder), mod.GetDataSource(folder, datafolder));
+                            game.AddDataSource(RemapSourceName(datafolder), mod.GetDataSource(folder, datafolder));
                     }
                 }
                 foreach (string folder in remainingFolders)
-                    game.AddDataSource(Path.GetFileName(folder), mod.GetDataSource(folder, ""));
+                    game.AddDataSource(RemapSourceName(folder), mod.GetDataSource(folder, ""));
             }
         }
     }

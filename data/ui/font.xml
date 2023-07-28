@@ -66,6 +66,7 @@
 				<Glyph X="224" Y="120" W="10" H="24" Layer="0">249</Glyph>
 				<Glyph X="8" Y="144" W="13" H="24" Layer="0">169</Glyph>
 				<Glyph X="8" Y="192" W="8" H="24" Layer="0">8221</Glyph>
+				<Glyph X="56" Y="144" W="5" H="24" Layer="0">8217</Glyph>
 				<Glyph X="24" Y="0" W="3" H="24" Layer="1">33</Glyph>
 				<Glyph X="48" Y="0" W="7" H="24" Layer="1">34</Glyph>
 				<Glyph X="72" Y="0" W="16" H="24" Layer="1">35</Glyph>
@@ -122,6 +123,7 @@
 				<Glyph X="240" Y="96" W="12" H="24" Layer="1">126</Glyph>
 				<Glyph X="240" Y="192" W="8" H="24" Layer="1">8220</Glyph>
 				<Glyph X="24" Y="192" W="24" H="24" Layer="1">8230</Glyph>
+				<Glyph X="216" Y="192" W="18" H="24" Layer="1">8212</Glyph>
 			</Glyphs>
 		</FontSet>
 

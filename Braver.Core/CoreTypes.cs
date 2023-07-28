@@ -46,6 +46,7 @@ namespace Braver {
         void PlaySfx(Sfx which, float volume, float pan, int? channel = null);
 
         IAudioItem LoadStream(string path, string file);
+        IAudioItem TryLoadStream(string path, string file);
         void DecodeStream(Stream s, out byte[] rawData, out int channels, out int frequency);
     }
 

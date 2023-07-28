@@ -15,7 +15,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace Braver {
 
@@ -444,8 +443,17 @@ namespace Braver {
         }
 
         public IAudioItem LoadStream(string path, string file) {
+            var item = TryLoadStream(path, file);
+            if (item == null) throw new InvalidDataException($"Could not find audio stream {path}/{file}");
+            return item;
+        }
+        public IAudioItem TryLoadStream(string path, string file) {
             //TODO networking
-            return new LoadedAudioItem(_game.Open(path, file));
+            var s = _game.TryOpen(path, file);
+            if (s != null)
+                return new LoadedAudioItem(s);
+            else
+                return null;
         }
 
         public void DecodeStream(Stream s, out byte[] rawData, out int channels, out int frequency) {

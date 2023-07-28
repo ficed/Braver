@@ -47,7 +47,7 @@ namespace Braver.Field {
             public int X, Y, Width, Height;
             public string[] Text;
             public WindowState State = WindowState.Hidden;
-            public int FrameProgress, ScreenProgress;
+            public int FrameProgress, ScreenProgress, Tag;
             public Action OnClosed;
             public Action<int?> OnChoice;
             public int Choice;
@@ -61,7 +61,7 @@ namespace Braver.Field {
             public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
 
             public void StateChanged(PluginInstances<IDialog> plugins) {
-                plugins.Call(ui => ui.Dialog(Text[ScreenProgress]));
+                plugins.Call(ui => ui.Dialog(Tag, ScreenProgress, Text[ScreenProgress]));
                 if (ReadyForChoice)
                     ChoiceChanged(plugins);
             }
@@ -118,7 +118,7 @@ namespace Braver.Field {
             _windows[window].VariableY = y;
         }
 
-        private void PrepareWindow(int window, string text) {
+        private void PrepareWindow(int window, string text, int tag) {
             var chars = _game.SaveData.Characters.Select(c => c?.Name).ToArray();
             var party = _game.SaveData.Party.Select(c => c?.Name).ToArray();
             var win = _windows[window];
@@ -126,6 +126,7 @@ namespace Braver.Field {
                 .Select(line => Ficedula.FF7.Text.Expand(line, chars, party))
                 .ToArray();
             win.FrameProgress = win.ScreenProgress = win.LineScroll = 0;
+            win.Tag = tag;
 
             win.StateChanged(_plugins);
 
@@ -149,14 +150,14 @@ namespace Braver.Field {
         }
 
         public void Show(int window, int tag, string text, Action onClosed) {
-            PrepareWindow(window, text);
+            PrepareWindow(window, text, tag);
             _windows[window].OnClosed = onClosed;
             _windows[window].OnChoice = null;
             _windows[window].ChoiceLines = null;
             _plugins.Call(dlg => dlg.Showing(window, tag, _windows[window].Text));
         }
         public void Ask(int window, int tag, string text, IEnumerable<int> choices, Action<int?> onChoice) {
-            PrepareWindow(window, text);
+            PrepareWindow(window, text, tag);
             _windows[window].ChoiceLines = choices.ToArray();
             _windows[window].OnClosed = null;
             _windows[window].OnChoice = onChoice;

@@ -1802,18 +1802,18 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                         s.Game.PushScreen(new UI.Layout.LayoutScreen("Name", parm: parmValue));
                     else
                         throw new NotImplementedException();
-                    break;
+                    return OpResult.ContinueNextFrame;
 
                 case 0x8:
                     s.Game.PushScreen(new UI.Layout.LayoutScreen("Shop", parm: parmValue));
-                    break;
+                    return OpResult.ContinueNextFrame;
 
                 case 0x9:
                     s.Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
-                    break;
+                    return OpResult.ContinueNextFrame;
                 case 0xE:
                     s.Game.PushScreen(new UI.Layout.LayoutScreen("SaveMenu"));
-                    break;
+                    return OpResult.ContinueNextFrame;
 
                 case 0x12: //Save materia - saving main stock & party member 0, since that seems like the intended use...
                     var saved = s.Game.Singleton(() => new SavedMateria());
@@ -2471,6 +2471,11 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                         s.Options &= ~FieldOptions.ShowPlayerHand;
                     else
                         s.Options |= FieldOptions.ShowPlayerHand;
+                    break;
+
+                case 0xFD:
+                    byte chr = f.ReadU8(), text = f.ReadU8();
+                    s.Game.SaveData.Characters[chr].Name = s.FieldDialog.Dialogs[text];
                     break;
 
                 default:

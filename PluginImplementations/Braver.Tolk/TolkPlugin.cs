@@ -22,6 +22,8 @@ namespace Braver.Tolk {
         public bool EnableFootsteps { get; set; } = true;
         [ConfigProperty("Enable Focus sounds")]
         public bool EnableFocusTracking { get; set; } = true;
+        [ConfigProperty("Voice dialogue")]
+        public bool VoiceDialogue { get; set; } = true;
     }
 
     public class TolkPlugin : Plugin {
@@ -59,9 +61,12 @@ namespace Braver.Tolk {
 
     public class TolkInstance : ISystem, IDialog, IUI, IBattleUI {
 
+        private bool _dialog;
+
         public TolkInstance(TolkConfig config) {
             DavyKager.Tolk.TrySAPI(config.EnableSAPI);
             DavyKager.Tolk.Load();
+            _dialog = config.VoiceDialogue;   
         }
 
         public void ActiveScreenChanged(IScreen screen) {
@@ -75,8 +80,9 @@ namespace Braver.Tolk {
             );
         }
 
-        public void Dialog(string dialog) {
-            DavyKager.Tolk.Speak(dialog, false);
+        public void Dialog(int tag, int index, string dialog) {
+            if (_dialog)
+                DavyKager.Tolk.Speak(dialog, false);
         }
 
         private object _lastMenuContainer = null;

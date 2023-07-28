@@ -14,7 +14,7 @@ namespace Braver.Plugins.Field {
     public interface IDialog : IPluginInstance {
         void Showing(int window, int tag, IEnumerable<string> text);
         void Asking(int window, int tag, IEnumerable<string> text, IEnumerable<int> choiceLines);
-        void Dialog(string dialog);
+        void Dialog(int tag, int index, string dialog);
         void ChoiceSelected(IEnumerable<string> choices, int selected);
         void ChoiceMade(int window, int choice);
     }
