@@ -21,6 +21,7 @@ namespace Braver {
         private Stack<Screen> _screens = new();
         private GraphicsDevice _graphics;
         private PluginInstances<ISystem> _systemPlugins;
+        private Overlay _overlay;
 
         public Net.Net Net { get; set; }
 
@@ -166,6 +167,8 @@ namespace Braver {
             Audio.Precache(Sfx.Cursor, true);
             Audio.Precache(Sfx.Cancel, true);
             Audio.Precache(Sfx.Invalid, true);
+
+            _overlay = new Overlay(graphics, this);
         }
 
         private class TraceFile : TraceListener {
@@ -321,6 +324,13 @@ namespace Braver {
 
             Net.Update();
             Audio.Update();
+        }
+
+        public void Draw() {
+            if (Screen.ShouldClear)
+                _graphics.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Screen.ClearColor, 1f, 0);
+            Screen.Render();
+            _overlay.Render();
         }
 
     }

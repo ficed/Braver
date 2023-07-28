@@ -291,6 +291,8 @@ namespace Braver.UI {
         private SpriteBatch _spriteBatch;
         private CompositeImages _images;
 
+        public bool WarnAboutUnrecognisedCharacters { get; set; } = true;
+
         public UIBatch(GraphicsDevice graphics, FGame g) {
             _graphics = graphics;
             _font = g.Singleton(() => new Font(graphics, g));
@@ -384,6 +386,8 @@ namespace Braver.UI {
             (2, 3, 2, 3),
         };
 
+        private HashSet<string> _alreadyWarned = new HashSet<string>();
+
         public void Render() {
             float scale = _graphics.Viewport.Width / 1280f;
             _spriteBatch.Begin(
@@ -406,7 +410,10 @@ namespace Braver.UI {
                 foreach (char c in item.text) {
                     switch (c) {
                         case '¬':
-                            Trace.TraceWarning($"Unrecognised char in string '{item.text}'");
+                            if (!_alreadyWarned.Contains(item.text) && WarnAboutUnrecognisedCharacters) {
+                                Trace.TraceWarning($"Unrecognised char in string '{item.text}'");
+                                _alreadyWarned.Add(item.text);
+                            }
                             break;
 
                         case '\xE012':

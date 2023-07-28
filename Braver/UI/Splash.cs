@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -52,6 +53,7 @@ namespace Braver.UI {
             Layout.LayoutScreen.BeginBackgroundLoad(g, "MainMenu");
             _readyToRender = true;
             g.InvokeOnMainThread(Announce, 2);
+            Trace.TraceWarning($"Braver {_version} started");
         }
 
         public override Color ClearColor => Color.Black;

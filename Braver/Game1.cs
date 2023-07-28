@@ -159,10 +159,8 @@ namespace Braver {
         }
 
         protected override void Draw(GameTime gameTime) {
-            if (_g.Screen.ShouldClear)
-                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, _g.Screen.ClearColor, 1f, 0);
             base.Draw(gameTime);
-            _g.Screen.Render();
+            _g.Draw();
         }
 
     }
