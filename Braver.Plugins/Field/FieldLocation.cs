@@ -14,10 +14,16 @@ using System.Threading.Tasks;
 
 namespace Braver.Field {
 
+    public struct FocusPoint {
+        public int WalkmeshTri { get; set; }
+        public Vector2 WalkmeshCenterScreenPos { get; set; }
+    }
+
     public class FocusState {
         public string TargetName { get; set; }
         public Vector3 TargetPosition { get; set; }
         public int WalkmeshDistance { get; set; }
+        public List<FocusPoint> Points { get; set; }
     }
 
     [Flags]

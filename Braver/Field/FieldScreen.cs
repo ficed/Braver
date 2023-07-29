@@ -1419,8 +1419,15 @@ namespace Braver.Field {
         Vector3 IField.PlayerPosition => Player?.Model?.Translation ?? Vector3.Zero;
         FocusState IField.GetFocusState() {
             if ((_currentFocus != null) && (_currentFocusState == null) && (Player != null) && (_currentFocus.Source != Player)) {
-                Dictionary<WalkmeshTriangle, int> distance = new();
-                distance[_walkmesh[Player.WalkmeshTri]] = 0;
+
+                Vector2 GetScreenPos(WalkmeshTriangle tri) {
+                    var middle = (tri.V0.ToX() + tri.V1.ToX() + tri.V2.ToX()) / 3;
+                    return _view3D.ProjectTo2D(middle).XY();
+                }
+
+                Dictionary<WalkmeshTriangle, (int distance, Vector2 screenPos)> calculated = new();
+                var playerTri = _walkmesh[Player.WalkmeshTri];
+                calculated[playerTri] = (0, GetScreenPos(playerTri));
                 Queue<WalkmeshTriangle> toConsider = new Queue<WalkmeshTriangle>();
                 toConsider.Enqueue(_walkmesh[Player.WalkmeshTri]);
 
@@ -1428,8 +1435,8 @@ namespace Braver.Field {
                     var tri = toConsider.Dequeue();
                     foreach(var adjacent in tri.AdjacentTris()) {
                         var adj = _walkmesh[adjacent];
-                        if (!distance.ContainsKey(adj)) {
-                            distance[adj] = distance[tri] + 1;
+                        if (!calculated.ContainsKey(adj)) {
+                            calculated[adj] = (calculated[tri].distance + 1, GetScreenPos(adj));
                             toConsider.Enqueue(adj);
                         }
                     }
@@ -1438,8 +1445,22 @@ namespace Braver.Field {
                 _currentFocusState = new FocusState {
                     TargetName = _currentFocus.Name,
                     TargetPosition = _currentFocus.Position(),
-                    WalkmeshDistance = distance[_walkmesh[_currentFocus.WalkmeshTri()]],
+                    WalkmeshDistance = calculated[_walkmesh[_currentFocus.WalkmeshTri()]].distance,
+                    Points = new List<FocusPoint>()
                 };
+                var last = _currentFocus.WalkmeshTri();
+                System.Diagnostics.Debug.WriteLine($"Focus target {calculated[_walkmesh[last]].screenPos}");
+                foreach (int d in Enumerable.Range(0, _currentFocusState.WalkmeshDistance).Reverse()) {
+                    var current = _walkmesh[last];
+                    _currentFocusState.Points.Add(new FocusPoint {
+                        WalkmeshTri = last,
+                        WalkmeshCenterScreenPos = calculated[current].screenPos,
+                    });
+                    var next = current.AdjacentTris()
+                        .Where(t => calculated[_walkmesh[t]].distance == d)
+                        .First();
+                    last = next;
+                }
             }
             return _currentFocusState;
         }

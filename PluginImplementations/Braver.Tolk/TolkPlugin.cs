@@ -220,9 +220,15 @@ namespace Braver.Tolk {
                 var focusState = field.GetFocusState();
                 if (focusState != null) {
                     System.Diagnostics.Debug.WriteLine($"Focus at walkmesh distance {focusState.WalkmeshDistance}");
-                    if (field.Options.HasFlag(FieldOptions.PlayerControls))
-                        _focusSound.Play(1f, 0f, false, 0.5f + (float)Math.Pow(0.9, focusState.WalkmeshDistance));
-
+                    if (field.Options.HasFlag(FieldOptions.PlayerControls)) {
+                        float pan = 0f;
+                        if (focusState.Points.Count > 1) {
+                            var direction = focusState.Points[focusState.Points.Count - 2].WalkmeshCenterScreenPos - focusState.Points[focusState.Points.Count - 1].WalkmeshCenterScreenPos;
+                            float sx = direction.X / 640f, sy = direction.Y / 360f;
+                            pan = Math.Clamp(sx / sy, -1f, +1f);
+                        }
+                        _focusSound.Play(1f, pan, false, 0.5f + (float)Math.Pow(0.9, focusState.WalkmeshDistance));
+                    }
                     if (_lastFocusName != focusState.TargetName) {
                         _lastFocusName = focusState.TargetName;
                         DavyKager.Tolk.Output("Focus " + _lastFocusName);
