@@ -144,6 +144,9 @@ namespace Braver {
                             new FileDataSource(folder)
                         };
                     }
+                    if (Directory.Exists(Path.Combine(folder, "BraverData"))) {
+                        plugins.Add(new DataOnlyPlugin(folder));
+                    }
                 }
 
                 if (plugins.Any()) {

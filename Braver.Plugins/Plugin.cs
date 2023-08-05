@@ -93,7 +93,7 @@ namespace Braver.Plugins {
                     Plugin = pl,
                     Config = configs.Configs.FirstOrDefault(cfg => cfg.PluginClass == pl.GetType().FullName) ?? new PluginConfig(),
                 })
-                .Where(pl => pl.Config.Enabled)
+                .Where(pl => pl.Config.Enabled || (pl.Plugin is DataOnlyPlugin))
                 .OrderBy(pl => pl.Config.Priority);
 
             foreach(var p in configuredPlugins) {
