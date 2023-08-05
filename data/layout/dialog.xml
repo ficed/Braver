@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+@{
+	var attributes = Model.Options.HasFlag(Braver.Field.DialogOptions.NoBorder) ?
+		"xsi:type='Group'" :
+		$"xsi:type='Box' BackgroundAlpha='{(Model.Options.HasFlag(Braver.Field.DialogOptions.Transparent) ? 0.5 : 1)}'";
+}
+
+<Component xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+		   @attributes
+		   X="@Model.X" Y="@Model.Y" W="@Model.Width" H="@Model.Height" 
+		   >
+	<Component xsi:type="Label" X="10" Y="10" ID="lText" />
+	@if (Model.Variable == Braver.Field.DialogVariable.Timer) {
+		<Component xsi:type="Label" X="@Model.VariableX" Y="@Model.VariableY" ID="lVariable" Font="clock" />
+	}
+	<Component xsi:type="Image" X="-38" Y="10" ID="iPointer">pointer</Component>
+</Component>

@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
@@ -130,8 +129,11 @@ namespace Braver.UI.Layout {
     }
 
     public class Box : Container {
+
+        public float BackgroundAlpha { get; set; } = 1f;
+
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
-            ui.DrawBox(new Rectangle(offsetX + X, offsetY + Y, W, H), getZ());
+            ui.DrawBox(new Rectangle(offsetX + X, offsetY + Y, W, H), getZ(), BackgroundAlpha);
             base.Draw(model, ui, offsetX, offsetY, getZ);
         }
     }
@@ -231,8 +233,13 @@ namespace Braver.UI.Layout {
         public override string Description => base.Description ?? Text;
 
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
-            if (!string.IsNullOrWhiteSpace(Text))
-                ui.DrawText(Font, Text, offsetX + X, offsetY + Y, getZ(), Color, Alignment);
+            if (!string.IsNullOrWhiteSpace(Text)) {
+                int ry = offsetY + Y;
+                foreach(string line in Text.Split('\r')) {
+                    ui.DrawText(Font, line, offsetX + X, ry, getZ(), Color, Alignment);
+                    ry += 25; //TODO?!
+                }
+            }
         }
     }
 

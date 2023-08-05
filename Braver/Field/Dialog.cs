@@ -6,13 +6,11 @@
 
 using Braver.Plugins;
 using Braver.Plugins.Field;
-using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Braver.Field {
 
@@ -32,7 +30,7 @@ namespace Braver.Field {
 
     public class Dialog {
 
-        private enum WindowState {
+        public enum WindowState {
             Hidden,
             Expanding,
             Displaying,
@@ -43,8 +41,13 @@ namespace Braver.Field {
         private const int MIN_SIZE = 16;
         private const int EXPAND_HIDE_FRAMES = 30;
 
-        private class Window {
-            public int X, Y, Width, Height;
+        public class Window {
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Width { get; set; }
+            public int Height { get; set; }
+            public DialogOptions Options { get; set; }
+
             public string[] Text;
             public WindowState State = WindowState.Hidden;
             public int FrameProgress, ScreenProgress, Tag;
@@ -52,11 +55,124 @@ namespace Braver.Field {
             public Action<int?> OnChoice;
             public int Choice;
             public int[] ChoiceLines;
-            public DialogOptions Options;
-            public DialogVariable Variable;
-            public int VariableX, VariableY;
+            public DialogVariable Variable { get; set; }
+            public int VariableX { get; set; }
+            public int VariableY { get; set; }
             public int LineScroll;
             public int TextPause; //# of frames left to wait for an embedded text pause to complete
+
+            public UI.Layout.Container Visual;
+            private UI.Layout.Label lText, lVariable;
+            private UI.Layout.Image iPointer;
+
+            public void Reset(FGame game) {
+                var cache = game.Singleton(() => new UI.Layout.RazorLayoutCache(game));
+                string xml = cache.ApplyPartial("dialog", false, this);
+                Visual = Serialisation.Deserialise<UI.Layout.Component>(xml) as UI.Layout.Container;
+                lText = Visual.Children.Single(c => c.ID == nameof(lText)) as UI.Layout.Label;
+                lVariable = Visual.Children.SingleOrDefault(c => c.ID == nameof(lVariable)) as UI.Layout.Label;
+                iPointer = Visual.Children.Single(c => c.ID == nameof(iPointer)) as UI.Layout.Image;
+                iPointer.Visible = false;
+            }
+
+            public void Render(FGame game, UI.UIBatch ui, Func<float> nextZ) {
+
+                void DrawText(ref int count) {
+                    int y = Y + 10 - LineScroll;
+                    float tz = nextZ();
+                    int lineCount = 0;
+
+                    switch (Variable) {
+                        case DialogVariable.None:
+                            break;
+
+                        case DialogVariable.Timer:
+                            int secs = game.CounterSeconds % 60,
+                                mins = game.CounterSeconds / 60;
+                            if (mins > 99) mins = 99;
+                            string timeText = $"{mins:00}{((secs % 2) == 0 ? ':' : ';')}{secs:00}";
+                            lVariable.Text = timeText;
+                            //TODO adjust Y in case of variable and text
+                            break;
+
+                        default:
+                            throw new NotSupportedException();
+                    }
+
+                    var toRender = new List<string>();
+
+                    foreach (string line in Text[ScreenProgress].Split('\r')) {
+                        string s = count < line.Length ? line.Substring(0, count) : line;
+
+                        //TODO - smooth scrolling, maybe scissor clip out the text within the box...
+                        if (y > (Y + Height - 25)) {
+                            LineScroll += 25;
+                            count = 0;
+                            break;
+                        }
+                        if (y > Y)
+                            toRender.Add(s);
+
+                        if (ReadyForChoice) {
+                            if (ChoiceLines[0] == lineCount)
+                                count = 99999;
+                            if (lineCount == ChoiceLines[Choice]) {
+                                iPointer.Visible = true;
+                                iPointer.Y = y;
+                            }
+                        } else
+                            iPointer.Visible = false;
+
+                        if ((s.Length > 0) && (s.Last() == '\xE030')) {
+                            //pause opcode
+                            TextPause = 10;
+                        }
+
+                        count -= s.Length;
+                        if (count <= 0)
+                            break;
+                        y += 25;
+                        lineCount++;
+                    }
+                    lText.Text = string.Join("\r", toRender);
+                }
+
+                switch (State) {
+                    case WindowState.Expanding:
+                        float rW = MIN_SIZE + (Width - MIN_SIZE) * 1f * FrameProgress / EXPAND_HIDE_FRAMES,
+                            rH = MIN_SIZE + (Height - MIN_SIZE) * 1f * FrameProgress / EXPAND_HIDE_FRAMES;
+
+                        Visual.W = (int)rW;
+                        Visual.H = (int)rH;
+
+                        break;
+                    case WindowState.Hiding:
+                        rW = MIN_SIZE + (Width - MIN_SIZE) * (1f - 1f * FrameProgress / EXPAND_HIDE_FRAMES);
+                        rH = MIN_SIZE + (Height - MIN_SIZE) * (1f - 1f * FrameProgress / EXPAND_HIDE_FRAMES);
+                        Visual.W = (int)rW;
+                        Visual.H = (int)rH;
+                        lText.Text = string.Empty;
+                        break;
+                    case WindowState.Displaying:
+                        Visual.W = Width;
+                        Visual.H = Height;
+                        int chars = FrameProgress / 4;
+                        DrawText(ref chars);
+                        if (chars > 0)
+                            State = WindowState.Wait;
+                        break;
+                    case WindowState.Wait:
+                        Visual.W = Width;
+                        Visual.H = Height;
+                        int i = 99999;
+                        DrawText(ref i);
+                        break;
+                    
+                    case WindowState.Hidden:
+                        return;
+                }
+                Visual.Draw(null, ui, 0, 0, nextZ);
+            }
 
             public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
 
@@ -128,8 +244,6 @@ namespace Braver.Field {
             win.FrameProgress = win.ScreenProgress = win.LineScroll = 0;
             win.Tag = tag;
 
-            win.StateChanged(_plugins);
-
             if (win.Options.HasFlag(DialogOptions.NoBorder))
                 win.State = WindowState.Displaying;
             else
@@ -147,6 +261,9 @@ namespace Braver.Field {
                 win.X = 640 - win.Width / 2;
                 win.Y = 720 - win.Height;
             }
+
+            win.Reset(_game);
+            win.StateChanged(_plugins);
         }
 
         public void Show(int window, int tag, string text, Action onClosed) {
@@ -241,91 +358,9 @@ namespace Braver.Field {
                 return z;
             }
 
-            void DrawText(Window w, ref int count) {
-                int y = w.Y + 10 - w.LineScroll;
-                float tz = NextZ();
-                int lineCount = 0;
-
-                switch (w.Variable) {
-                    case DialogVariable.None:
-                        break;
-
-                    case DialogVariable.Timer:
-                        int secs = _game.CounterSeconds % 60,
-                            mins = _game.CounterSeconds / 60;
-                        if (mins > 99) mins = 99;
-                        string timeText = $"{mins:00}{((secs % 2) == 0 ? ':' : ';')}{secs:00}";
-                        _ui.DrawText("clock", timeText, w.X + w.VariableX, w.Y + w.VariableY, tz, Color.White);
-                        //TODO adjust Y in case of variable and text
-                        break;
-
-                    default:
-                        throw new NotSupportedException();
-                }
-
-                foreach (string line in w.Text[w.ScreenProgress].Split('\r')) {
-                    string s = count < line.Length ? line.Substring(0, count) : line;
-
-                    //TODO - smooth scrolling, maybe scissor clip out the text within the box...
-                    if (y > (w.Y + w.Height - 25)) {
-                        w.LineScroll += 25;
-                        count = 0;
-                        break;
-                    }
-                    if (y > w.Y)
-                        _ui.DrawText("main", s, w.X + 10, y, tz, Color.White);
-
-                    if (w.ReadyForChoice) {
-                        if (w.ChoiceLines[0] == lineCount)
-                            count = 99999;
-                        if (lineCount == w.ChoiceLines[w.Choice])
-                            _ui.DrawImage("pointer", w.X + 10, y, NextZ(), UI.Alignment.Right);
-                    }
-
-                    if ((s.Length > 0) && (s.Last() == '\xE030')) {
-                        //pause opcode
-                        w.TextPause = 10;
-                    }
-
-                    count -= s.Length;
-                    if (count <= 0)
-                        break;
-                    y += 25;
-                    lineCount++;
-                }
-            }
 
             foreach (var window in _windows.Reverse<Window>()) { //lower ID windows should appear on top of higher IDs {
-                float alpha = window.Options.HasFlag(DialogOptions.Transparent) ? 0.5f : 1f;
-                bool box = !window.Options.HasFlag(DialogOptions.NoBorder);
-                switch (window.State) {
-                    case WindowState.Expanding:
-                        float rW = MIN_SIZE + (window.Width - MIN_SIZE) * 1f * window.FrameProgress / EXPAND_HIDE_FRAMES,
-                            rH = MIN_SIZE + (window.Height - MIN_SIZE) * 1f * window.FrameProgress / EXPAND_HIDE_FRAMES;
-                        if (box)
-                            _ui.DrawBox(new Rectangle(window.X, window.Y, (int)rW, (int)rH), NextZ(), alpha);
-                        break;
-                    case WindowState.Hiding:
-                        rW = MIN_SIZE + (window.Width - MIN_SIZE) * (1f - 1f * window.FrameProgress / EXPAND_HIDE_FRAMES);
-                        rH = MIN_SIZE + (window.Height - MIN_SIZE) * (1f - 1f * window.FrameProgress / EXPAND_HIDE_FRAMES);
-                        if (box)
-                            _ui.DrawBox(new Rectangle(window.X, window.Y, (int)rW, (int)rH), NextZ(), alpha);
-                        break;
-                    case WindowState.Displaying:
-                        if (box)
-                            _ui.DrawBox(new Rectangle(window.X, window.Y, window.Width, window.Height), NextZ(), alpha);
-                        int chars = window.FrameProgress / 4;
-                        DrawText(window, ref chars);
-                        if (chars > 0)
-                            window.State = WindowState.Wait;
-                        break;
-                    case WindowState.Wait:
-                        if (box)
-                            _ui.DrawBox(new Rectangle(window.X, window.Y, window.Width, window.Height), NextZ(), alpha);
-                        int i = 99999;
-                        DrawText(window, ref i);
-                        break;
-                }
+                window.Render(_game, _ui, NextZ);
             }
         }
 
