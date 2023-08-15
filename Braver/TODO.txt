@@ -4,8 +4,10 @@
 		Braver sfx cache is going to make FFNx sequential/shuffle irrelevant!
 	Tolk:
 		Faster, configurable tracking speed/frequency
-		AD on movies
 		AD on field entry
+		Pan sound indicating whether can move left/right or not (up/down as well?)
+
+	Plugin to respond to keypress on certain screens and pop up extra info. e.g. weapon info in equip screen.
 
 WM:
 	Gradient background for sky on world map

@@ -4,12 +4,14 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Battle;
 using Braver.Plugins;
 using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using RazorEngineCore;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -19,7 +21,7 @@ using System.Xml.Serialization;
 namespace Braver.UI.Layout {
     [XmlInclude(typeof(Box)), XmlInclude(typeof(Label)), XmlInclude(typeof(Gauge))]
     [XmlInclude(typeof(Group)), XmlInclude(typeof(Image)), XmlInclude(typeof(List))]
-    public abstract class Component {
+    public abstract class Component : IComponent {
 
         private static Dictionary<string, Color> _colors = new Dictionary<string, Color>(StringComparer.InvariantCultureIgnoreCase);
 
@@ -72,6 +74,9 @@ namespace Braver.UI.Layout {
             }
         }
 
+        [XmlIgnore]
+        IContainer IComponent.Parent => Parent;
+
         public Point GetAbsolutePosition() {
             int x = X, y = Y;
             Container c = Parent;
@@ -86,7 +91,7 @@ namespace Braver.UI.Layout {
         public abstract void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ);
     }
 
-    public abstract class SizedComponent : Component {
+    public abstract class SizedComponent : Component, ISizedComponent {
         [XmlAttribute]
         public int W { get; set; }
         [XmlAttribute]
@@ -100,12 +105,67 @@ namespace Braver.UI.Layout {
         public int Y { get; set; }
     }
 
-    public abstract class Container : SizedComponent {
+    public abstract class Container : SizedComponent, IContainer {
         [XmlElement("Component")]
         public List<Component> Children { get; set; } = new();
 
         [XmlAttribute]
         public bool InputPassthrough { get; set; }
+
+        private class ChildInterfaceList : IList<IComponent> {
+            public IComponent this[int index] { 
+                get => UnderlyingList[index]; 
+                set => UnderlyingList[index] = value as Component; 
+            }
+
+            public List<Component> UnderlyingList { get; set; }
+
+            public int Count => UnderlyingList.Count;
+
+            public bool IsReadOnly => false;
+
+            public void Add(IComponent item) {
+                UnderlyingList.Add(item as Component);
+            }
+
+            public void Clear() {
+                UnderlyingList.Clear();
+            }
+
+            public bool Contains(IComponent item) => UnderlyingList.Contains(item);
+
+            public void CopyTo(IComponent[] array, int arrayIndex) {
+                throw new NotImplementedException();
+            }
+
+            public IEnumerator<IComponent> GetEnumerator() {
+                throw new NotImplementedException();
+            }
+
+            public int IndexOf(IComponent item) => UnderlyingList.IndexOf(item as Component);
+
+            public void Insert(int index, IComponent item) {
+                UnderlyingList.Insert(index, item as Component);
+            }
+
+            public bool Remove(IComponent item) => UnderlyingList.Remove(item as Component);
+
+            public void RemoveAt(int index) {
+                UnderlyingList.RemoveAt(index);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => UnderlyingList.GetEnumerator();
+        }
+
+
+        private ChildInterfaceList _ciList;
+        [XmlIgnore]
+        IList<IComponent> IContainer.Children {
+            get {
+                _ciList ??= new ChildInterfaceList { UnderlyingList = Children };
+                return _ciList;
+            }
+        }
 
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
             foreach (var child in Children.Where(c => c.Visible))
@@ -261,7 +321,8 @@ namespace Braver.UI.Layout {
         }
 
         public override void Draw(LayoutModel model, UIBatch ui, int offsetX, int offsetY, Func<float> getZ) {
-            ui.DrawImage(ImageName, offsetX + X, offsetY + Y, getZ(), Alignment.Left, Scale, Color);
+            if (!string.IsNullOrWhiteSpace(ImageName))
+                ui.DrawImage(ImageName, offsetX + X, offsetY + Y, getZ(), Alignment.Left, Scale, Color);
         }
     }
 
@@ -510,7 +571,7 @@ namespace Braver.UI.Layout {
         }
     }
 
-    public class LayoutScreen : Screen {
+    public class LayoutScreen : Screen, ILayoutScreen {
         private Layout _layout;
         private LayoutModel _model;
         private UIBatch _ui;
@@ -527,6 +588,12 @@ namespace Braver.UI.Layout {
         public override string Description => _model.Description ?? _layout.Description ?? "No description";
 
         public PluginInstances<IUI> Plugins { get; private set; }
+
+        IComponent ILayoutScreen.Root => _layout.Root;
+        IContainer ILayoutScreen.FocusGroup => _model.FocusGroup;
+        IComponent ILayoutScreen.Focus => _model.Focus;
+        dynamic ILayoutScreen.Model => _model;
+
 
         public LayoutScreen(string layout, LayoutModel model = null, object parm = null) {
             _layoutFile = layout;
@@ -548,12 +615,14 @@ namespace Braver.UI.Layout {
             _model.Init(_layout);
             _ui = new UIBatch(graphics, g);
             g.Net.Send(new Net.ScreenReadyMessage());
+            Plugins.Call(ui => ui.Init(this));
         }
 
         public void Reload(bool forceReload = false) {
             _model.Created(Game, this);
             _layout = Game.Singleton(() => new RazorLayoutCache(Game)).Apply(_layoutFile, forceReload, _model.IsRazorModel ? _model : null);
             _model.Init(_layout);
+            Plugins.Call(ui => ui.Reloaded());
         }
 
         protected override void DoRender() {
@@ -634,6 +703,10 @@ namespace Braver.UI.Layout {
 
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
+
+            if (Plugins.CallAll(ui => ui.PreInput(input)).Any(b => b))
+                return;
+
             if (!_model.InputEnabled)
                 return;
             if (_model.ProcessInput(input))
@@ -672,5 +745,19 @@ namespace Braver.UI.Layout {
             }
 
         }
+
+        IComponent ILayoutScreen.Load(string templateName, object? model) {
+            var cache = Game.Singleton(() => new RazorLayoutCache(Game));
+            string xml = cache.ApplyPartial(templateName, false, model ?? _model);
+            return Serialisation.Deserialise<Component>(xml);
+        }
+
+        void ILayoutScreen.PushFocus(IContainer group, IComponent focus) {
+            _model.PushFocus(group as Container, focus as Component);
+        }
+
+        void ILayoutScreen.PopFocus() => _model.PopFocus();
+
+        void ILayoutScreen.ChangeFocus(IComponent focus) => _model.ChangeFocus(focus as Component);
     }
 }

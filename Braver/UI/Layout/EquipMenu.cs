@@ -31,6 +31,14 @@ namespace Braver.UI.Layout {
         public Armour Armour => Character.GetArmour(_game);
         public Accessory Accessory => Character.GetAccessory(_game);
 
+        private Weapon _focusedWeapon;
+        private Armour _focusedArmour;
+        private Accessory _focusedAccessory;
+
+        public Weapon FocusedWeapon => FocusGroup == lbWeapons ? _focusedWeapon : null;
+        public Armour FocusedArmour => FocusGroup == lbArmour ? _focusedArmour : null;
+        public Accessory FocusedAccessory => FocusGroup == lbAccessories ? _focusedAccessory : null;
+
         public List<Weapon> AvailableWeapons { get; } = new();
         public List<Armour> AvailableArmour { get; } = new();
         public List<Accessory> AvailableAccessories { get; } = new();
@@ -147,25 +155,26 @@ namespace Braver.UI.Layout {
         }
 
         public void WeaponFocussed() {
-            var selected = AvailableWeapons[lbWeapons.GetSelectedIndex(this)];
-            lDescription.Text = selected.Description;
+            _focusedWeapon = AvailableWeapons[lbWeapons.GetSelectedIndex(this)];
+            lDescription.Text = _focusedWeapon.Description;
             ResetAllLabels();
-            SetLabels(Character.Strength + Weapon.AttackStrength, Character.Strength + selected.AttackStrength, lAttackFrom, lAttackTo);
-            SetLabels(Weapon.HitChance, selected.HitChance, lAttackPCFrom, lAttackPCTo);
+            SetLabels(Character.Strength + Weapon.AttackStrength, Character.Strength + _focusedWeapon.AttackStrength, lAttackFrom, lAttackTo);
+            SetLabels(Weapon.HitChance, _focusedWeapon.HitChance, lAttackPCFrom, lAttackPCTo);
         }
 
         public void ArmourFocussed() {
-            var selected = AvailableArmour[lbArmour.GetSelectedIndex(this)];
-            lDescription.Text = selected.Description;
+            _focusedArmour = AvailableArmour[lbArmour.GetSelectedIndex(this)];
+            lDescription.Text = _focusedArmour.Description;
             ResetAllLabels();
-            SetLabels(Character.Vitality + Armour.Defense, Character.Vitality + selected.Defense, lDefenseFrom, lDefenseTo);
-            SetLabels(Character.Dexterity / 4 + Armour.DefensePercent, Character.Dexterity / 4 + selected.DefensePercent, lDefensePCFrom, lDefensePCTo);
-            SetLabels(Character.Spirit + Armour.MDefense, Character.Spirit + selected.MDefense, lMDefFrom, lMDefTo);
+            SetLabels(Character.Vitality + Armour.Defense, Character.Vitality + _focusedArmour.Defense, lDefenseFrom, lDefenseTo);
+            SetLabels(Character.Dexterity / 4 + Armour.DefensePercent, Character.Dexterity / 4 + _focusedArmour.DefensePercent, lDefensePCFrom, lDefensePCTo);
+            SetLabels(Character.Spirit + Armour.MDefense, Character.Spirit + _focusedArmour.MDefense, lMDefFrom, lMDefTo);
         }
 
         public void AccessoryFocussed() {
+            _focusedAccessory = AvailableAccessories[lbAccessories.GetSelectedIndex(this)];
             //TODO - Str/Vit/Spr bonuses would affect things!
-            lDescription.Text = AvailableAccessories[lbAccessories.GetSelectedIndex(this)].Description;
+            lDescription.Text = _focusedAccessory.Description;
             ResetAllLabels();
         }
 

@@ -4,12 +4,10 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
-using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver {
     public enum InputKey {
@@ -44,7 +42,7 @@ namespace Braver {
 
         public Dictionary<InputKey, int> DownFor { get; } = new();
 
-        public Vector2 Stick1 { get; set; }
+        //public Vector2 Stick1 { get; set; }
 
         public bool IsDown(InputKey k) => DownFor[k] > 0;
         public bool IsJustDown(InputKey k) => DownFor[k] == 1;

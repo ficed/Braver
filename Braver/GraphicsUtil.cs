@@ -130,10 +130,6 @@ namespace Braver {
             return new Vector3(v.X, v.Y, v.Z);
         }
 
-        public static Vector3 ToX(this Ficedula.FF7.Field.FieldVertex v) {
-            return new Vector3(v.X, v.Y, v.Z);
-        }
-
         public static Color WithAlpha(this Color c, byte alpha) {
             c.A = alpha;
             return c;

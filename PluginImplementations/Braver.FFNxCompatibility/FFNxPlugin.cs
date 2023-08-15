@@ -193,15 +193,15 @@ namespace Braver.FFNxCompatibility {
             //
         }
 
-        public void Init(int fieldID, string fieldFile) {
-            var file = GetAudioEntry(_ambients, $"field_{fieldID}");
+        public void Init(IField field) {
+            var file = GetAudioEntry(_ambients, $"field_{field.FieldID}");
 
             if (file != null) {
                 _audio = _game.Audio.LoadStream("Ambient", file + ".ogg");
             } 
         }
 
-        public void Step(IField field) {
+        public void Step() {
             if (_audio == null) return;
 
             if (!_audio.IsPlaying) {

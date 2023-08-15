@@ -185,7 +185,7 @@ namespace Braver.Field {
             _bgPlugins = GetPlugins<IBackground>(_file);
             _moviePlugins = GetPlugins<IMovie>(_file);
 
-            _fieldPlugins.Call(f => f.Init(_destination.DestinationFieldID, _file));
+            _fieldPlugins.Call(f => f.Init(this));
 
             Background = new Background(g, _bgPlugins, graphics, field.GetBackground());
             Movie = new Movie(g, graphics, _moviePlugins);
@@ -508,7 +508,7 @@ namespace Braver.Field {
                         entity.Model?.FrameStep();
                 }
             }
-            _fieldPlugins.Call(loc => loc.Step(this));
+            _fieldPlugins.Call(loc => loc.Step());
             _frame++;
         }
 
@@ -1416,18 +1416,18 @@ namespace Braver.Field {
         }
 
         private FocusState _currentFocusState;
+
+        int IField.FieldID => _fieldID;
+        string IField.FieldFile => _file;
+        IReadOnlyList<WalkmeshTriangle> IField.Walkmesh => _walkmesh.AsReadOnly();
         Vector3 IField.PlayerPosition => Player?.Model?.Translation ?? Vector3.Zero;
+        Vector2 IField.Transform(Vector3 position) => _view3D.ProjectTo2D(position).XY();
         FocusState IField.GetFocusState() {
             if ((_currentFocus != null) && (_currentFocusState == null) && (Player != null) && (_currentFocus.Source != Player)) {
 
-                Vector2 GetScreenPos(WalkmeshTriangle tri) {
-                    var middle = (tri.V0.ToX() + tri.V1.ToX() + tri.V2.ToX()) / 3;
-                    return _view3D.ProjectTo2D(middle).XY();
-                }
-
-                Dictionary<WalkmeshTriangle, (int distance, Vector2 screenPos)> calculated = new();
+                Dictionary<WalkmeshTriangle, int> calculated = new();
                 var playerTri = _walkmesh[Player.WalkmeshTri];
-                calculated[playerTri] = (0, GetScreenPos(playerTri));
+                calculated[playerTri] = 0;
                 Queue<WalkmeshTriangle> toConsider = new Queue<WalkmeshTriangle>();
                 toConsider.Enqueue(_walkmesh[Player.WalkmeshTri]);
 
@@ -1436,7 +1436,7 @@ namespace Braver.Field {
                     foreach(var adjacent in tri.AdjacentTris()) {
                         var adj = _walkmesh[adjacent];
                         if (!calculated.ContainsKey(adj)) {
-                            calculated[adj] = (calculated[tri].distance + 1, GetScreenPos(adj));
+                            calculated[adj] = calculated[tri] + 1;
                             toConsider.Enqueue(adj);
                         }
                     }
@@ -1445,19 +1445,15 @@ namespace Braver.Field {
                 _currentFocusState = new FocusState {
                     TargetName = _currentFocus.Name,
                     TargetPosition = _currentFocus.Position(),
-                    WalkmeshDistance = calculated[_walkmesh[_currentFocus.WalkmeshTri()]].distance,
-                    Points = new List<FocusPoint>()
+                    WalkmeshDistance = calculated[_walkmesh[_currentFocus.WalkmeshTri()]],
+                    WalkmeshTriPoints = new List<int>(),
                 };
                 var last = _currentFocus.WalkmeshTri();
-                System.Diagnostics.Debug.WriteLine($"Focus target {calculated[_walkmesh[last]].screenPos}");
                 foreach (int d in Enumerable.Range(0, _currentFocusState.WalkmeshDistance).Reverse()) {
                     var current = _walkmesh[last];
-                    _currentFocusState.Points.Add(new FocusPoint {
-                        WalkmeshTri = last,
-                        WalkmeshCenterScreenPos = calculated[current].screenPos,
-                    });
+                    _currentFocusState.WalkmeshTriPoints.Add(last);
                     var next = current.AdjacentTris()
-                        .Where(t => calculated[_walkmesh[t]].distance == d)
+                        .Where(t => calculated[_walkmesh[t]] == d)
                         .First();
                     last = next;
                 }

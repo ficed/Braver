@@ -11,7 +11,6 @@ using Braver.Plugins.Field;
 using Braver.Plugins.UI;
 using Microsoft.Xna.Framework;
 using System;
-using System.Windows.Forms;
 
 namespace Braver.Tolk {
 
@@ -63,6 +62,7 @@ namespace Braver.Tolk {
         public override void Init(BGame game) {
             _game = game;
 
+            //TODO - this should probably go once MovieAD is split out
             string root = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "data");
             if (Directory.Exists(root)) {
                 foreach(string folder in Directory.GetDirectories(root)) {
@@ -168,6 +168,18 @@ namespace Braver.Tolk {
         public void ChoiceMade(int window, int choice) {
             //
         }
+
+        public void Init(ILayoutScreen screen) {
+            //
+        }
+
+        public void Reloaded() {
+            //
+        }
+
+        public bool PreInput(InputState input) {
+            return false;
+        }
     }
 
     public class FootstepFocusPlugin : IFieldLocation, IDisposable {
@@ -177,6 +189,7 @@ namespace Braver.Tolk {
         private Queue<Vector3> _positions = new();
         private Vector3 _lastPosition;
         private string _lastFocusName;
+        private IField _field;
 
         public FootstepFocusPlugin(BGame game, bool footsteps, bool focus) {
             if (footsteps) {
@@ -189,6 +202,10 @@ namespace Braver.Tolk {
             }
         }
 
+        public void Init(IField field) {
+            _field = field;
+        }
+
         public void EntityMoved(IFieldEntity entity, bool isRunning, Vector3 from, Vector3 to) {
             if (entity.IsPlayer) {
                 _lastPosition = to;
@@ -198,7 +215,7 @@ namespace Braver.Tolk {
 
         private const int FOCUS_EVERY_X_FRAMES = 60;
         private int _focusCountdown = FOCUS_EVERY_X_FRAMES;
-        public void Step(IField field) {
+        public void Step() {
 
             if (_footsteps != null) {
                 while (_positions.Count > 5)
@@ -217,15 +234,23 @@ namespace Braver.Tolk {
             }
 
             if ((_focusSound != null) && (--_focusCountdown == 0)) {
-                var focusState = field.GetFocusState();
+                var focusState = _field.GetFocusState();
                 if (focusState != null) {
                     System.Diagnostics.Debug.WriteLine($"Focus at walkmesh distance {focusState.WalkmeshDistance}");
-                    if (field.Options.HasFlag(FieldOptions.PlayerControls)) {
+                    if (_field.Options.HasFlag(FieldOptions.PlayerControls)) {
                         float pan = 0f;
-                        if (focusState.Points.Count > 1) {
-                            var direction = focusState.Points[focusState.Points.Count - 2].WalkmeshCenterScreenPos - focusState.Points[focusState.Points.Count - 1].WalkmeshCenterScreenPos;
+                        if (focusState.WalkmeshTriPoints.Count > 1) {
+                            var prev = _field.Walkmesh[focusState.WalkmeshTriPoints[focusState.WalkmeshTriPoints.Count - 2]].GetMiddlePoint();
+                            //var last = _field.Walkmesh[focusState.WalkmeshTriPoints[focusState.WalkmeshTriPoints.Count - 1]].GetMiddlePoint();
+                            var last = _field.PlayerPosition;
+                            var direction = _field.Transform(prev) - _field.Transform(last);
+                            
+                            System.Diagnostics.Debug.WriteLine(string.Join(", ", focusState.WalkmeshTriPoints));
+                            System.Diagnostics.Debug.WriteLine(_field.Transform(prev));
+                            System.Diagnostics.Debug.WriteLine(_field.Transform(last));
+
                             float sx = direction.X / 640f, sy = direction.Y / 360f;
-                            pan = Math.Clamp(sx / sy, -1f, +1f);
+                            pan = Math.Clamp(sx / Math.Abs(sy), -1f, +1f);
                         }
                         _focusSound.Play(1f, pan, false, 0.5f + (float)Math.Pow(0.9, focusState.WalkmeshDistance));
                     }
@@ -251,10 +276,6 @@ namespace Braver.Tolk {
                 _footsteps.Pause(); 
                 _playing = false;
             }
-        }
-
-        public void Init(int fieldID, string fieldFile) {
-            //
         }
     }
 }

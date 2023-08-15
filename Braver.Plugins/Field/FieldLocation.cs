@@ -5,25 +5,30 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Field;
+using Ficedula.FF7.Field;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.Field {
 
-    public struct FocusPoint {
-        public int WalkmeshTri { get; set; }
-        public Vector2 WalkmeshCenterScreenPos { get; set; }
+    public static class FieldUtil {
+        public static Vector3 ToX(this FieldVertex v) {
+            return new Vector3(v.X, v.Y, v.Z);
+        }
+
+        public static Vector3 GetMiddlePoint(this WalkmeshTriangle tri) {
+            return (tri.V0.ToX() + tri.V1.ToX() + tri.V2.ToX()) / 3;
+        }
     }
 
     public class FocusState {
         public string TargetName { get; set; }
         public Vector3 TargetPosition { get; set; }
         public int WalkmeshDistance { get; set; }
-        public List<FocusPoint> Points { get; set; }
+        public List<int> WalkmeshTriPoints { get; set; }
     }
 
     [Flags]
@@ -48,14 +53,18 @@ namespace Braver.Field {
 
 namespace Braver.Plugins.Field {
     public interface IField {
-        Vector3 PlayerPosition { get; }
-        FocusState GetFocusState();
+        int FieldID { get; }
+        string FieldFile { get; }
         public FieldOptions Options { get; }
+        Vector3 PlayerPosition { get; }
+        IReadOnlyList<WalkmeshTriangle> Walkmesh { get; }
+        FocusState GetFocusState();
+        Vector2 Transform(Vector3 position);
     }
 
     public interface IFieldLocation : IPluginInstance {
-        void Init(int fieldID, string fieldFile);
-        void Step(IField field);
+        void Init(IField field);
+        void Step();
         void Suspended();
         void EntityMoved(IFieldEntity entity, bool isRunning, Vector3 from, Vector3 to);
         void FocusChanged();
