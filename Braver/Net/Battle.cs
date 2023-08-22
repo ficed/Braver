@@ -8,17 +8,33 @@ using LiteNetLib.Utils;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Braver.Net {
+
+    public class SwirlMessage : ChangeScreenMessage {
+        public override Screen GetScreen() {
+            return new Battle.Swirl();
+        }
+
+        public override void Load(NetDataReader reader) {
+            //
+        }
+
+        public override void Save(NetDataWriter writer) {
+            //
+        }
+    }
+
     public class BattleScreenMessage : ChangeScreenMessage {
 
         public int BattleID { get; set; }
 
         public override Screen GetScreen() {
-            return new Battle.RealBattleScreen(BattleID, Battle.BattleFlags.None);
+            return new Battle.ClientBattleScreen(BattleID);
         }
 
         public override void Load(NetDataReader reader) {
@@ -27,6 +43,21 @@ namespace Braver.Net {
 
         public override void Save(NetDataWriter writer) {
             writer.Put(BattleID);
+        }
+    }
+
+    public class SetBattleCameraMessage : ServerMessage {
+        public Ficedula.FF7.Battle.BattleCamera Camera { get; set; }
+
+        public override void Load(NetDataReader reader) {
+            var ms = new MemoryStream(reader.GetBytesWithLength());
+            Camera = new Ficedula.FF7.Battle.BattleCamera(ms);
+        }
+
+        public override void Save(NetDataWriter writer) {
+            var ms = new MemoryStream();
+            Camera.Save(ms);
+            writer.PutBytesWithLength(ms.ToArray());
         }
     }
 

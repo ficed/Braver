@@ -594,17 +594,19 @@ namespace Braver.UI.Layout {
         IComponent ILayoutScreen.Focus => _model.Focus;
         dynamic ILayoutScreen.Model => _model;
 
+        private bool _isEmbedded;
 
-        public LayoutScreen(string layout, LayoutModel model = null, object parm = null) {
+        public LayoutScreen(string layout, LayoutModel model = null, object parm = null, bool isEmbedded = false) {
             _layoutFile = layout;
             Param = parm;
             _model = model ?? Activator.CreateInstance(Type.GetType("Braver.UI.Layout." + layout)) as LayoutModel;
+            _isEmbedded = isEmbedded;   
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
             Plugins = GetPlugins<IUI>(_layoutFile);
-            g.Net.Send(new Net.UIScreenMessage());
+            if (!_isEmbedded) g.Net.Send(new Net.UIScreenMessage());
             _model.Created(Game, this);
 
             if (_backgroundLoad != null) {
@@ -614,7 +616,7 @@ namespace Braver.UI.Layout {
             _layout = g.Singleton(() => new RazorLayoutCache(g)).Apply(_layoutFile, false, _model.IsRazorModel ? _model : null);
             _model.Init(_layout);
             _ui = new UIBatch(graphics, g);
-            g.Net.Send(new Net.ScreenReadyMessage());
+            if (!_isEmbedded) g.Net.Send(new Net.ScreenReadyMessage());
             Plugins.Call(ui => ui.Init(this));
         }
 

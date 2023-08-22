@@ -31,6 +31,8 @@ namespace Braver.Battle {
             _graphics = graphics;
             _spriteBatch = new SpriteBatch(graphics);
             g.Singleton(() => new CompositeImages(graphics, g)).Find("white", out _whiteTex, out _whiteRect, out _);
+            g.Net.Send(new Net.SwirlMessage());
+            g.Net.Send(new Net.ScreenReadyMessage());
         }
 
         protected override void DoRender() {

@@ -100,27 +100,8 @@ namespace Braver.Battle {
             }
         }
 
-
-        private BackgroundKind _backgroundKind;
-
-        private class BackgroundChunk {
-            public BasicEffect Effect;
-            public int IndexOffset;
-            public int VertOffset;
-            public int TriCount;
-        }
-
-        private List<BackgroundChunk> _backgroundChunks = new();
-        private VertexBuffer _vertexBuffer;
-        private IndexBuffer _indexBuffer;
-
-        private Dictionary<ICombatant, Model> _models = new();
         private BattleScene _scene;
 
-        private PerspView3D _view;
-
-        private UI.Layout.LayoutScreen _ui;
-        private UIHandler _uiHandler;
         private UI.UIBatch _menuUI;
         private Menu _activeMenu;
 
@@ -142,6 +123,9 @@ namespace Braver.Battle {
         private BattleDebug _debug;
         private PluginInstances<IBattleUI> _plugins;
 
+        private BattleRenderer<ICombatant> _renderer;
+        private UIHandler _uiHandler;
+
         private bool _debugCamera = false;
 
         private void TargetsChanged() {
@@ -155,8 +139,9 @@ namespace Braver.Battle {
             _plugins.Call(ui => ui.BattleTargetHighlighted(current));
         }
 
-        public IReadOnlyDictionary<ICombatant, Model> Models => _models;
-        public PerspView3D View3D => _view;
+        public IReadOnlyDictionary<ICombatant, Model> Models => _renderer.Models;
+        public PerspView3D View3D => _renderer.View3D;
+
         public override string Description {
             get {
                 var enemies = _engine.ActiveCombatants.OfType<EnemyCombatant>();
@@ -171,7 +156,7 @@ namespace Braver.Battle {
             if (position.Z < 0)
                 model.Rotation = new Vector3(0, 180, 0);
             //Defaults to animation 0 so no PlayAnimation required
-            _models.Add(combatant, model);
+            _renderer.Models.Add(combatant, model);
             Game.Net.Send(new AddBattleModelMessage {
                 Code = code,
                 Position = position,
@@ -180,7 +165,7 @@ namespace Braver.Battle {
         }
 
         public void UpdateVisualState(ICombatant combatant) {
-            var model = _models[combatant];
+            var model = _renderer.Models[combatant];
             switch(combatant) {
                 case CharacterCombatant chr:
                     if (chr.HP <= 0)
@@ -235,74 +220,6 @@ namespace Braver.Battle {
             return true;
         }
 
-        private void LoadBackground() {
-            string prefix = SceneDecoder.LocationIDToFileName(_scene.LocationID);
-
-            string NumToFile(int num) {
-                char c1 = (char)('a' + (num / 26)),
-                    c2 = (char)('a' + (num % 26));
-                return $"{prefix}{c1}{c2}";
-            }
-
-            List<Texture2D> texs = new();
-
-            int num = 2; //start with ac for texs
-            while (true) {
-                using (var stex = Game.TryOpen("battle", NumToFile(num++))) {
-                    if (stex == null)
-                        break;
-                    texs.Add(Graphics.LoadTex(new Ficedula.FF7.TexFile(stex), 0));
-                }
-            }
-
-            List<VertexPositionColorTexture> verts = new();
-            List<int> indices = new();
-
-            List<Ficedula.FF7.PFile> pfiles = new();
-            num = 12;
-            while (true) {
-                using (var sp = Game.TryOpen("battle", NumToFile(num++))) {
-                    if (sp == null)
-                        break;
-                    pfiles.Add(new Ficedula.FF7.PFile(sp));
-                }
-            }
-
-            foreach (var group in pfiles.SelectMany(p => p.Chunks).GroupBy(c => c.Texture)) {
-                var bchunk = new BackgroundChunk {
-                    Effect = new BasicEffect(Graphics) {
-                        VertexColorEnabled = true,
-                        LightingEnabled = false,
-                        TextureEnabled = group.Key.HasValue,
-                        Texture = texs.ElementAtOrDefault(group.Key.GetValueOrDefault(99999)),
-                        World = Matrix.Identity,
-                    },
-                    IndexOffset = indices.Count,
-                    VertOffset = verts.Count,
-                    TriCount = group.Sum(c => c.Indices.Count) / 3,
-                };
-                int vcount = 0;
-                foreach (var pchunk in group) {
-                    indices.AddRange(pchunk.Indices.Select(i => i + vcount));
-                    vcount += pchunk.Verts.Count;
-                    verts.AddRange(
-                        pchunk.Verts
-                        .Select(v => new VertexPositionColorTexture {
-                            Position = v.Position.ToX(),
-                            Color = new Color(v.Colour),
-                            TextureCoordinate = v.TexCoord.ToX(),
-                        })
-                    );
-                }
-                _backgroundChunks.Add(bchunk);
-            }
-
-            _vertexBuffer = new VertexBuffer(Graphics, typeof(VertexPositionColorTexture), verts.Count, BufferUsage.WriteOnly);
-            _vertexBuffer.SetData(verts.ToArray());
-            _indexBuffer = new IndexBuffer(Graphics, typeof(int), indices.Count, BufferUsage.WriteOnly);
-            _indexBuffer.SetData(indices.ToArray());
-        }
-
         private static Vector3[] _playerPositions = new[] {
             new Vector3(-7 * 256, 0, 6 * 256),
             new Vector3(0 * 256, 0, 6 * 256),
@@ -325,19 +242,16 @@ namespace Braver.Battle {
 
             g.Net.Send(new Net.BattleScreenMessage { BattleID = _formationID });
 
-            LoadBackground();
-
-            var cam = _scene.Cameras[0];
-            _view = new PerspView3D {
-                CameraPosition = new Vector3(cam.X, cam.Y, cam.Z),
-                CameraForwards = new Vector3(cam.LookAtX - cam.X, cam.LookAtY - cam.Y, cam.LookAtZ - cam.Z),
-                CameraUp = -Vector3.UnitY, //TODO!!
-                ZNear = 100,
-                ZFar = 100000,
-                FOV = 51f, //Seems maybe vaguely correct, more or less what Proud Clod uses for its preview...
-            };
-
             InitEngine();
+
+            _uiHandler = new UIHandler(_engine.Combatants.OfType<CharacterCombatant>());
+            var ui = new UI.Layout.LayoutScreen("battle", _uiHandler, isEmbedded: true);
+            ui.Init(Game, Graphics);
+
+            _renderer = new BattleRenderer<ICombatant>(g, graphics, ui);
+            _renderer.LoadBackground(_scene.LocationID);
+            var cam = _scene.Cameras[0];
+            _renderer.SetCamera(cam);
 
             foreach (var enemy in _scene.Enemies) {
                 AddModel(
@@ -352,16 +266,13 @@ namespace Braver.Battle {
                 AddModel(_charBattleModels[player.First.CharIndex], player.Second, comb);
             }
 
-            _uiHandler = new UIHandler(_engine.Combatants.OfType<CharacterCombatant>());
-            _ui = new UI.Layout.LayoutScreen("battle", _uiHandler);
-            _ui.Init(Game, Graphics);
-
             if (_flags.HasFlag(BattleFlags.BraverDebug))
                 _debug = new BattleDebug(Graphics, Game, _engine, this);
 
             _menuUI = new UI.UIBatch(Graphics, Game);
             _plugins = GetPlugins<IBattleUI>(_formationID.ToString());
 
+            g.Net.Send(new Net.ScreenReadyMessage());
             g.Audio.PlayMusic("bat", true); //TODO!
         }
 
@@ -466,9 +377,9 @@ namespace Braver.Battle {
         }
 
         private Vector2 GetModelScreenPos(ICombatant combatant) {
-            var model = _models[combatant];
+            var model = _renderer.Models[combatant];
             var middle = (model.MaxBounds + model.MinBounds) * 0.5f;
-            var screenPos = _view.ProjectTo2D(model.Translation + middle);
+            var screenPos = _renderer.View3D.ProjectTo2D(model.Translation + middle);
             return screenPos.XY();
         }
 
@@ -485,7 +396,6 @@ namespace Braver.Battle {
                 _activeMenu = null;
 
             _uiHandler.Update(_activeMenu?.Combatant);
-            _ui.Step(elapsed);
 
             _menuUI.Reset();
 
@@ -531,7 +441,7 @@ namespace Braver.Battle {
  * -Or, Check for battle end, and if not, execute any other queued action
                   */
 
-                var pendingDeadEnemies = _models
+                var pendingDeadEnemies = _renderer.Models
                     .Where(kv => !kv.Key.IsPlayer && !kv.Key.IsAlive())
                     .Where(kv => kv.Value.Visible);
 
@@ -551,15 +461,13 @@ namespace Braver.Battle {
         }
 
         protected override void DoStep(GameTime elapsed) {
-            foreach (var model in _models.Values) {
-                model.FrameStep();
-            }
 
             if (_debug != null) {
                 _debug.Step();
             } else {
                 EngineTick(elapsed);
             }
+            _renderer.Step(elapsed);
         }
 
         private void DoExecuteNextQueuedAction() {
@@ -624,30 +532,7 @@ namespace Braver.Battle {
         }
 
         protected override void DoRender() {
-
-            Graphics.DepthStencilState = DepthStencilState.Default;
-            Graphics.RasterizerState = RasterizerState.CullClockwise;
-            Graphics.SamplerStates[0] = SamplerState.LinearWrap;
-
-            Graphics.Indices = _indexBuffer;
-            Graphics.SetVertexBuffer(_vertexBuffer);
-
-            foreach(var chunk in _backgroundChunks) {
-                chunk.Effect.View = _view.View;
-                chunk.Effect.Projection = _view.Projection;
-                foreach (var pass in chunk.Effect.CurrentTechnique.Passes) {
-                    pass.Apply();
-                    Graphics.DrawIndexedPrimitives(
-                        PrimitiveType.TriangleList, chunk.VertOffset, chunk.IndexOffset, chunk.TriCount
-                    );
-                }
-            }
-
-            foreach (var model in _models.Values)
-                if (model.Visible)
-                    model.Render(_view);
-
-            _ui.Render();
+            _renderer.Render();
             _menuUI.Render();
             _debug?.Render();
         }
@@ -664,13 +549,13 @@ namespace Braver.Battle {
 
             if (_debugCamera) {
                 if (input.IsDown(InputKey.Up))
-                    _view.CameraPosition += new Vector3(0, 0, -100);
+                    _renderer.View3D.CameraPosition += new Vector3(0, 0, -100);
                 if (input.IsDown(InputKey.Down))
-                    _view.CameraPosition += new Vector3(0, 0, 100);
+                    _renderer.View3D.CameraPosition += new Vector3(0, 0, 100);
                 if (input.IsDown(InputKey.Left))
-                    _view.CameraPosition += new Vector3(100, 0, 0);
+                    _renderer.View3D.CameraPosition += new Vector3(100, 0, 0);
                 if (input.IsDown(InputKey.Right))
-                    _view.CameraPosition += new Vector3(-100, 0, 0);
+                    _renderer.View3D.CameraPosition += new Vector3(-100, 0, 0);
             } else if (input.IsJustDown(InputKey.Menu)) {
                 var ready = ReadyToAct.ToList();
                 int index = ready.IndexOf(_activeMenu?.Combatant);

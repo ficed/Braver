@@ -9,6 +9,8 @@
 
 	Plugin to respond to keypress on certain screens and pop up extra info. e.g. weapon info in equip screen.
 
+Audio overhaul has 96kHz sound effects - Mono won't load them? 
+
 WM:
 	Gradient background for sky on world map
 	Track steps

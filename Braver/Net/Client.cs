@@ -7,10 +7,7 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.Net {
     public class Client : Net {
@@ -35,6 +32,10 @@ namespace Braver.Net {
             var message = GetMessage(type);
             message.Load(reader);
             Dispatch(message);
+
+            if (message is ChangeScreenMessage changeScreen)
+                _game.PushScreen(changeScreen.GetScreen());
+
             reader.Recycle();
         }
 
@@ -56,24 +57,13 @@ namespace Braver.Net {
         }
     }
 
-    public class ClientScreens : IListen<FieldScreenMessage>, IListen<UIScreenMessage>, 
-        IListen<PopScreenMessage>, IListen<TransitionMessage> {
+    public class ClientScreens : IListen<PopScreenMessage>, IListen<TransitionMessage> {
         private FGame _game;
 
         public ClientScreens(FGame game, Net net) {
             _game = game;
-            net.Listen<FieldScreenMessage>(this);
-            net.Listen<UIScreenMessage>(this);
             net.Listen<PopScreenMessage>(this);
             net.Listen<TransitionMessage>(this);
-        }
-
-        public void Received(FieldScreenMessage message) {
-            _game.PushScreen(new Field.FieldScreen(message.Destination));
-        }
-
-        public void Received(UIScreenMessage message) {
-            _game.PushScreen(new UI.Layout.ClientScreen());
         }
 
         public void Received(PopScreenMessage message) {
@@ -93,6 +83,7 @@ namespace Braver.Net {
                     throw new NotImplementedException();
             }
         }
+
     }
 
 

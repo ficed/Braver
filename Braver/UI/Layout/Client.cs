@@ -17,6 +17,7 @@ namespace Braver.UI.Layout {
         private string _description;
         public override Color ClearColor => _clearColor;
         public override string Description => _description;
+        public bool UpdateInBackground { get; set; }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
@@ -25,7 +26,7 @@ namespace Braver.UI.Layout {
         }
 
         public void Received(Net.UIStateMessage message) {
-            if (Game.Screen == this) { //TODO - this will work for now but is a bit hacky?
+            if (UpdateInBackground || (Game.Screen == this)) { //TODO - this will work for now but is a bit hacky?
                 _clearColor = new Color(message.ClearColour);
                 _ui.LoadState(message.State);
                 _description = message.Description;

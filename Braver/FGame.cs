@@ -255,6 +255,7 @@ namespace Braver {
                 Screen.Suspended();
             _screens.Push(s);
             s.Init(this, _graphics);
+            Trace.WriteLine($"PushScreen: active screen now {s}");
             _systemPlugins.Call(sys => sys.ActiveScreenChanged(s));
         }
 
@@ -264,6 +265,7 @@ namespace Braver {
             current.Dispose();
             Net.Send(new Net.PopScreenMessage());
             Screen.Reactivated();
+            Trace.WriteLine($"PopScreen: Popped {current}, active screen now {Screen}");
             _systemPlugins.Call(sys => sys.ActiveScreenChanged(Screen));
         }
 

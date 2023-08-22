@@ -237,6 +237,15 @@ namespace Ficedula.FF7.Battle {
             LookAtY = s.ReadI16();
             LookAtZ = s.ReadI16();
         }
+
+        public void Save(Stream s) {
+            s.WriteI16(X);
+            s.WriteI16(Y);
+            s.WriteI16(Z);
+            s.WriteI16(LookAtX);
+            s.WriteI16(LookAtY);
+            s.WriteI16(LookAtZ);
+        }
     }
 
     public static class SceneDecoder {

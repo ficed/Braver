@@ -31,6 +31,9 @@ namespace Braver.Net {
 
         BattleScreen = 300,
         AddBattleModel = 301,
+        SetBattleCamera = 302,
+
+        SwirlScreen = 390,
 
         SfxMessage = 9001,
         MusicMessage = 9002,
@@ -68,6 +71,8 @@ namespace Braver.Net {
 
             Register<BattleScreenMessage>(MessageType.BattleScreen);
             Register<AddBattleModelMessage>(MessageType.AddBattleModel);
+            Register<SetBattleCameraMessage>(MessageType.SetBattleCamera);
+            Register<SwirlMessage>(MessageType.SwirlScreen);
 
             Register<SfxMessage>(MessageType.SfxMessage);
             Register<MusicMessage>(MessageType.MusicMessage);
@@ -102,7 +107,7 @@ namespace Braver.Net {
         }
 
         protected void Dispatch(NetMessage message) {
-            //System.Diagnostics.Trace.WriteLine($"Dispatching message {message.GetType()}");
+            System.Diagnostics.Trace.WriteLine($"Dispatching message {message.GetType()}");
             if (_listeners.TryGetValue(message.GetType(), out var list)) {
                 foreach(var listener in list.ToArray())
                     listener.dispatch(message);
