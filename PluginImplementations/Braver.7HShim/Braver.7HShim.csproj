@@ -5,7 +5,6 @@
     <RootNamespace>Braver._7HShim</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <BaseOutputPath>C:\Users\ficed\Projects\F7\PluginImplementations\output</BaseOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
