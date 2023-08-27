@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>warnings</Nullable>
     <RootNamespace>Braver</RootNamespace>
@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="&quot;$(ProjectDir)\..\BraverBuild\bin\debug\net7.0\BraverBuild.exe&quot; SAVEMAP &quot;$(ProjectDir)\SaveMap.txt&quot; &quot;$(ProjectDir)\SaveMap.cs&quot;" />
+    <Exec Command="&quot;$(ProjectDir)/../BraverBuild/bin/$(Configuration)/$(TargetFramework)/BraverBuild.exe&quot; SAVEMAP &quot;$(ProjectDir)\SaveMap.txt&quot; &quot;$(ProjectDir)\SaveMap.cs&quot;" />
   </Target>
 
 </Project>
