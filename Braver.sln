@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ficedula.FF7", "Ficedula.FF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "F7Cmd", "F7Cmd\F7Cmd.csproj", "{F2533F12-3A9C-471C-82BC-428F1A32C2E4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ficedula.FF7.Exporters", "..\Ficedula.FF7.Exporters\Ficedula.FF7.Exporters.csproj", "{C83E0777-8288-4121-840A-6C9AC95F7A3D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ficedula.FF7.Exporters", "Ficedula.FF7.Exporters\Ficedula.FF7.Exporters.csproj", "{C83E0777-8288-4121-840A-6C9AC95F7A3D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BraverBuild", "BraverBuild\BraverBuild.csproj", "{81DD3ECD-8E53-465A-B8B1-05590EB9BB6D}"
 EndProject
