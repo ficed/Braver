@@ -15,32 +15,33 @@
 			<Component xsi:type="Label" Click="MenuSelected" Y="30" X="50" ID="lItem">Item</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Magic)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="70" X="50" ID="lMagic">Magic</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="65" X="50" ID="lMagic">Magic</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Materia)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="110" X="50" ID="lMateria">Materia</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="100" X="50" ID="lMateria">Materia</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Equip)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="150" X="50" ID="lEquip">Equip</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="135" X="50" ID="lEquip">Equip</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Status)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="190" X="50" ID="lStatus">Status</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="170" X="50" ID="lStatus">Status</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Order)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="230" X="50" ID="lOrder">Order</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="205" X="50" ID="lOrder">Order</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Limit)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="270" X="50" ID="lLimit">Limit</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="240" X="50" ID="lLimit">Limit</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Config)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="310" X="50" ID="lConfig">Config</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="275" X="50" ID="lConfig">Config</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.PHS)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="350" X="50" ID="lPHS" Enabled="@Bool(!Model.SaveMap.MenuLocked.HasFlag(Braver.MenuMask.PHS))">PHS</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="310" X="50" ID="lPHS" Enabled="@Bool(!Model.SaveMap.MenuLocked.HasFlag(Braver.MenuMask.PHS))">PHS</Component>
 			}
 			@if(Model.SaveMap.MenuVisible.HasFlag(Braver.MenuMask.Save)) {
-				<Component xsi:type="Label" Click="MenuSelected" Y="390" X="50" ID="lSave" Enabled="@Bool(!Model.SaveMap.MenuLocked.HasFlag(Braver.MenuMask.Save))">Save</Component>
+				<Component xsi:type="Label" Click="MenuSelected" Y="345" X="50" ID="lSave" Enabled="@Bool(!Model.SaveMap.MenuLocked.HasFlag(Braver.MenuMask.Save))">Save</Component>
 			}
+			<Component xsi:type="Label" Click="MenuSelected" Y="380" X="50" ID="lNetwork">Network Config</Component>
 			<Component xsi:type="Label" Click="MenuSelected" Y="430" X="50" ID="lQuit">Quit</Component>
 		</Component>
 

@@ -18,7 +18,7 @@ namespace Braver.UI.Layout {
         public Group Char0, Char1, Char2;
 
         public Label lItem, lMagic, lMateria, lEquip, lStatus, lOrder, lLimit,
-            lConfig, lPHS, lSave, lQuit;
+            lConfig, lPHS, lSave, lNetwork, lQuit;
 
         public Label lTimeHrs, lTimeC1, lTimeMins, lTimeC2, lTimeSecs;
 
@@ -58,6 +58,8 @@ namespace Braver.UI.Layout {
                 _game.PushScreen(new LayoutScreen("MateriaMenu", parm: 0));
             } else if (selected == lSave) {
                 _game.PushScreen(new LayoutScreen("SaveMenu"));
+            } else if (selected == lNetwork) {
+                _game.PushScreen(new LayoutScreen("NetworkConfig"));
             } else if (selected == lQuit) {
                 _game.PushScreen(new LayoutScreen("Quit"));
             }

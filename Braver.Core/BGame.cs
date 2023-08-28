@@ -175,39 +175,46 @@ namespace Braver {
             }
         }
 
+        protected virtual void DoSave(List<(string ext, byte[] data)> dataFiles) {
+            var sav = new MemoryStream();
+            Serialisation.Serialise(SaveData, sav);
+            var mem = new MemoryStream();
+            Memory.Save(mem);
+
+            dataFiles.Add(("sav", sav.ToArray()));
+            dataFiles.Add(("mem", mem.ToArray()));
+        }
+
         public void Save(string path, bool packed) {
             Directory.CreateDirectory(Path.GetDirectoryName(path + ".sav"));
 
+            var data = new List<(string ext, byte[] data)>();
+            DoSave(data);
+
             if (packed) {
-                var sav = new MemoryStream();
-                Serialisation.Serialise(SaveData, sav);
-                var mem = new MemoryStream();
-                Memory.Save(mem);
                 using (var fs = File.Create(path + ".sav"))
-                    Pack.Create(fs,
-                        ("SaveData", sav.ToArray()),
-                        ("Memory", mem.ToArray())
-                    );
+                    Pack.Create(fs, data.ToArray());
             } else {
-                using (var fs = File.Create(path + ".sav"))
-                    Serialisation.Serialise(SaveData, fs);
-                using (var fs = File.Create(path + ".mem"))
-                    Memory.Save(fs);
+                foreach(var entry in data)
+                using (var fs = File.Create(path + "." + entry.ext))
+                    fs.Write(entry.data, 0, entry.data.Length); 
             }
+        }
+
+        protected virtual void DoLoad(Func<string, Stream> getData) {
+            using (var data = getData("sav"))
+                SaveData = Serialisation.Deserialise<SaveData>(data);
+            using (var data = getData("mem"))
+                Memory.Load(data);
         }
 
         public virtual void Load(string path) {
             using (var fs = File.OpenRead(path + ".sav")) {
                 if (Pack.IsPack(fs)) {
                     var pack = new Pack(fs);
-                    using (var data = pack.Read("SaveData"))
-                        SaveData = Serialisation.Deserialise<SaveData>(data);
-                    using (var data = pack.Read("Memory"))
-                        Memory.Load(data);
+                    DoLoad(s => pack.Read(s));
                 } else {
-                    SaveData = Serialisation.Deserialise<SaveData>(fs);
-                    using (var memfs = File.OpenRead(path + ".mem"))
-                        Memory.Load(memfs);
+                    DoLoad(s => File.OpenRead(path + "." + s));
                 }
             }
             SaveData.CleanUp();
@@ -230,7 +237,6 @@ namespace Braver {
                 return t;
             }
         }
-
 
         public void NewGame() {
             SaveData = new SaveData();

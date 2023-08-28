@@ -32,7 +32,7 @@ namespace Braver.Battle {
         public Statuses ToggleStatus { get; set; }
         public int StatusChance { get; set; }
 
-        public HashSet<Element> Elements { get; set; }
+        public Elements Elements { get; set; }
 
         public int Power { get; set; }
         public AttackFormula Formula { get; set; }
@@ -49,6 +49,14 @@ namespace Braver.Battle {
         public bool DamageMP { get; set; }
         public int MPTurboLevel { get; set; }
         public bool IsRestore { get; set; }
+
+        public bool HasElement(Element e) {
+            if (e == Element.None)
+                return false;
+           
+            Elements mask = (Elements)(1 << ((int)e - 1));
+            return (Elements & mask) != 0;
+        }
     }
 
     public static class AbilityExtensions {
@@ -152,7 +160,7 @@ namespace Braver.Battle {
                 RemoveStatus = cure,
                 ToggleStatus = toggle,
                 StatusChance = attack.StatusChance,
-                Elements = new HashSet<Element>(attack.Elements.Split()),
+                Elements = attack.Elements,
                 IsQuadraMagic = false,
                 MPTurboLevel = 0,
                 MAtPercent = attack.AttackPC,

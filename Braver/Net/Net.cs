@@ -32,8 +32,16 @@ namespace Braver.Net {
         BattleScreen = 300,
         AddBattleModel = 301,
         SetBattleCamera = 302,
+        BattleCharacterReady = 303,
+        TargetOptions = 304,
+
+        CycleBattleMenu = 350,
+        GetTargetOptions = 351,
+        QueueAction = 352,
 
         SwirlScreen = 390,
+
+        ConnectedMessage = 8000,
 
         SfxMessage = 9001,
         MusicMessage = 9002,
@@ -41,8 +49,12 @@ namespace Braver.Net {
         SfxChannelMessage = 9004,
     }
 
-    public interface IListen<T> where T : NetMessage {
+    public interface IListen<T> where T : ServerMessage {
         void Received(T message);
+    }
+
+    public interface IClientListen<T> where T : ClientMessage {
+        void Received(T message, Guid playerID);
     }
 
     public abstract class Net {
@@ -60,6 +72,8 @@ namespace Braver.Net {
             Register<PopScreenMessage>(MessageType.PopScreen);
             Register<TransitionMessage>(MessageType.Transition);
 
+            Register<ConnectedMessage>(MessageType.ConnectedMessage);
+
             Register<FieldScreenMessage>(MessageType.FieldScreen);
             Register<FieldModelMessage>(MessageType.FieldModel);
             Register<FieldBGMessage>(MessageType.FieldBG);
@@ -72,7 +86,13 @@ namespace Braver.Net {
             Register<BattleScreenMessage>(MessageType.BattleScreen);
             Register<AddBattleModelMessage>(MessageType.AddBattleModel);
             Register<SetBattleCameraMessage>(MessageType.SetBattleCamera);
+            Register<CharacterReadyMessage>(MessageType.BattleCharacterReady);
             Register<SwirlMessage>(MessageType.SwirlScreen);
+            Register<TargetOptionsMessage>(MessageType.TargetOptions);
+
+            Register<CycleBattleMenuMessage>(MessageType.CycleBattleMenu);
+            Register<GetTargetOptionsMessage>(MessageType.GetTargetOptions);
+            Register<QueueActionMessage>(MessageType.QueueAction);
 
             Register<SfxMessage>(MessageType.SfxMessage);
             Register<MusicMessage>(MessageType.MusicMessage);
@@ -86,31 +106,49 @@ namespace Braver.Net {
         public abstract string Status { get; }
 
         public abstract void Send(NetMessage message);
+        public abstract void SendTo(NetMessage message, Guid playerID);
         public abstract void Update();
         public abstract void Shutdown();
 
 
 
-        private Dictionary<Type, List<(object obj, Action<NetMessage> dispatch)>> _listeners = new();
+        private Dictionary<Type, List<(object obj, Action<ServerMessage> dispatch)>> _listeners = new();
+        private Dictionary<Type, List<(object obj, Action<ClientMessage, Guid> dispatch)>> _clientListeners = new();
 
-        public void Listen<T>(IListen<T> listener) where T : NetMessage {
+        public void Listen<T>(IListen<T> listener) where T : ServerMessage {
             if (!_listeners.TryGetValue(typeof(T), out var list)) {
-                _listeners[typeof(T)] = list = new List<(object obj, Action<NetMessage> dispatch)>();
+                _listeners[typeof(T)] = list = new List<(object obj, Action<ServerMessage> dispatch)>();
             }
-            Action<NetMessage> dispatch = msg => listener.Received(msg as T);
+            Action<ServerMessage> dispatch = msg => listener.Received(msg as T);
+            list.Add((listener, dispatch));
+        }
+        public void Listen<T>(IClientListen<T> listener) where T : ClientMessage {
+            if (!_clientListeners.TryGetValue(typeof(T), out var list)) {
+                _clientListeners[typeof(T)] = list = new List<(object obj, Action<ClientMessage, Guid> dispatch)>();
+            }
+            Action<ClientMessage, Guid> dispatch = (msg, id) => listener.Received(msg as T, id);
             list.Add((listener, dispatch));
         }
 
         public void Unlisten(object listener) {
             foreach (var list in _listeners.Values)
                 list.RemoveAll(a => a.obj == listener);
+            foreach (var list in _clientListeners.Values)
+                list.RemoveAll(a => a.obj == listener);
         }
 
-        protected void Dispatch(NetMessage message) {
+        protected void Dispatch(ServerMessage message) {
             System.Diagnostics.Trace.WriteLine($"Dispatching message {message.GetType()}");
             if (_listeners.TryGetValue(message.GetType(), out var list)) {
                 foreach(var listener in list.ToArray())
                     listener.dispatch(message);
+            }
+        }
+        protected void Dispatch(ClientMessage message, Guid playerID) {
+            System.Diagnostics.Trace.WriteLine($"Dispatching message {message.GetType()}");
+            if (_clientListeners.TryGetValue(message.GetType(), out var list)) {
+                foreach (var listener in list.ToArray())
+                    listener.dispatch(message, playerID);
             }
         }
     }
@@ -124,6 +162,14 @@ namespace Braver.Net {
 
         public static Vector3 GetVec3(this LiteNetLib.Utils.NetDataReader reader) {
             return new Vector3(reader.GetFloat(), reader.GetFloat(), reader.GetFloat());
+        }
+
+        public static void Put(this LiteNetLib.Utils.NetDataWriter writer, Guid guid) {
+            writer.PutBytesWithLength(guid.ToByteArray());
+        }
+
+        public static Guid GetGuid(this LiteNetLib.Utils.NetDataReader reader) {
+            return new Guid(reader.GetBytesWithLength());
         }
     }
 
@@ -188,6 +234,18 @@ namespace Braver.Net {
 
         public override void Save(NetDataWriter writer) {
             writer.Put((int)Kind);
+        }
+    }
+
+    public class ConnectedMessage : ServerMessage {
+        public Guid PlayerID { get; set; }
+
+        public override void Load(NetDataReader reader) {
+            PlayerID = reader.GetGuid();
+        }
+
+        public override void Save(NetDataWriter writer) {
+            writer.Put(PlayerID);
         }
     }
 }

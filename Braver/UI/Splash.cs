@@ -44,8 +44,10 @@ namespace Braver.UI {
             if (_host != null) {
                 g.Net = new Net.Client(g, _host, _port, _key);
             } else {
-                g.Net = new Net.Server();
+                g.LoadDefaultNetworkConfig();
+                g.Net = new Net.Server(g.NetConfig);
             }
+
             base.Init(g, graphics);
             _plugins = GetPlugins<IUI>("_Splash");
             _ui = new UIBatch(graphics, g);

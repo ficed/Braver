@@ -40,7 +40,8 @@ namespace Braver.Battle {
         NormalAgain = 5,
     }
 
-    public class RealBattleScreen : BattleScreen {
+    public class RealBattleScreen : BattleScreen, Net.IClientListen<GetTargetOptionsMessage>,
+        Net.IClientListen<QueueActionMessage> {
 
         private class Callbacks : AICallbacks {
             public Callbacks(VMM vmm) {
@@ -103,7 +104,8 @@ namespace Braver.Battle {
         private BattleScene _scene;
 
         private UI.UIBatch _menuUI;
-        private Menu _activeMenu;
+        private Menu<CharacterCombatant> _activeMenu;
+        private Dictionary<CharacterCombatant, Guid> _menuDisplaying = new();
 
         private TargetGroup _targets;
         private TargetGroup Targets {
@@ -149,6 +151,13 @@ namespace Braver.Battle {
             }
         }
 
+        private int? GetCombatantID(ICombatant combatant) {
+            if (combatant == null)
+                return null;
+            else
+                return _engine.Combatants.IndexOf(combatant);
+        }
+
         private void AddModel(string code, Vector3 position, ICombatant combatant) {
             var model = Model.LoadBattleModel(Graphics, Game, code);
             model.Translation = position;
@@ -160,7 +169,7 @@ namespace Braver.Battle {
             Game.Net.Send(new AddBattleModelMessage {
                 Code = code,
                 Position = position,
-                ID = _engine.Combatants.IndexOf(combatant),
+                ID = GetCombatantID(combatant).Value,
             });
         }
 
@@ -240,6 +249,8 @@ namespace Braver.Battle {
             base.Init(g, graphics);
             _scene = g.Singleton(() => new BattleSceneCache(g)).Scenes[_formationID];
 
+            g.Net.Listen<GetTargetOptionsMessage>(this);
+            g.Net.Listen<QueueActionMessage>(this);
             g.Net.Send(new Net.BattleScreenMessage { BattleID = _formationID });
 
             InitEngine();
@@ -383,17 +394,42 @@ namespace Braver.Battle {
             return screenPos.XY();
         }
 
+        private void NextMenu() {
+            var ready = ReadyToActForPlayer(Guid.Empty).ToList();
+            int index = ready.IndexOf(_activeMenu?.Combatant);
+            if (ready.Any()) {
+                var menuFor = ready[(index + 1) % ready.Count];
+                _plugins.Call(ui => ui.BattleCharacterReady(menuFor));
+                _activeMenu = new Menu<CharacterCombatant>(Game, _menuUI, menuFor, _plugins);
+                Targets = null;
+            } else {
+                _activeMenu = null;
+            }
+        }
+
+        private void CheckClientMenus() {
+            foreach(var combatant in _uiHandler.Combatants) {
+                Guid playerID = ControllingPlayer(combatant);
+                if (combatant.ReadyForAction) {
+                    if (!_menuDisplaying.ContainsKey(combatant) && (playerID != Guid.Empty)) {
+                        _menuDisplaying[combatant] = playerID;
+                        Game.Net.SendTo(new CharacterReadyMessage {
+                            CharIndex = combatant.Character.CharIndex,
+                            Actions = combatant.Actions.Select(a => new ClientMenuItem(a)).ToList(),
+                        }, playerID);
+                    }
+                } else {
+                    _menuDisplaying.Remove(combatant);
+                }
+            }
+        }
+
         private void EngineTick(GameTime elapsed) {
             _engine.Tick();
 
-            if (_activeMenu == null) {
-                var chr = ReadyToAct.FirstOrDefault();
-                if (chr != null) {
-                    _plugins.Call(ui => ui.BattleCharacterReady(chr));
-                    _activeMenu = new Menu(Game, _menuUI, chr, _plugins);
-                }
-            } else if (!_activeMenu.Combatant.ReadyForAction)
-                _activeMenu = null;
+            if (_activeMenu == null)
+                NextMenu();
+            CheckClientMenus();
 
             _uiHandler.Update(_activeMenu?.Combatant);
 
@@ -537,7 +573,18 @@ namespace Braver.Battle {
             _debug?.Render();
         }
 
-        private IEnumerable<CharacterCombatant> ReadyToAct => _uiHandler.Combatants.Where(c => c.ReadyForAction);
+        private Guid ControllingPlayer(CharacterCombatant combatant) {
+            var map = Game.NetConfig
+                .CharacterMap
+                .SingleOrDefault(m => m.CharIndex == combatant.Character.CharIndex);
+            return map?.PlayerID ?? Guid.Empty;
+        }
+
+        private IEnumerable<CharacterCombatant> ReadyToActForPlayer(Guid playerID) {
+            return _uiHandler.Combatants
+                .Where(c => c.ReadyForAction)
+                .Where(c => ControllingPlayer(c) == playerID);
+        }
 
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
@@ -557,14 +604,7 @@ namespace Braver.Battle {
                 if (input.IsDown(InputKey.Right))
                     _renderer.View3D.CameraPosition += new Vector3(-100, 0, 0);
             } else if (input.IsJustDown(InputKey.Menu)) {
-                var ready = ReadyToAct.ToList();
-                int index = ready.IndexOf(_activeMenu?.Combatant);
-                if (ready.Any()) {
-                    var menuFor = ready[(index + 1) % ready.Count];
-                    _plugins.Call(ui => ui.BattleCharacterReady(menuFor));
-                    _activeMenu = new Menu(Game, _menuUI, menuFor, _plugins);
-                    Targets = null;
-                }
+                NextMenu();
             } else if (Targets != null) {
                 bool blip = false;
                 if (!Targets.MustTargetWholeGroup) {
@@ -629,6 +669,41 @@ namespace Braver.Battle {
                 _activeMenu?.ProcessInput(input);
         }
 
+        public void Received(GetTargetOptionsMessage message, Guid playerID) {
+            var source = _uiHandler.Combatants
+                .Single(c => c.Character.CharIndex == message.SourceCharIndex);
+            if (source.ReadyForAction) {
+                Game.Net.SendTo(new TargetOptionsMessage {
+                    Ability = message.Ability,
+                    Options = GetTargetOptions(source, message.TargettingFlags)
+                        .Select(group => new TargetOption {
+                            IsDefault = group.IsDefault,
+                            MustTargetWholeGroup = group.MustTargetWholeGroup,
+                            TargetIDs = group.Targets.Select(c => GetCombatantID(c).Value).ToList(),
+                            SingleTarget = GetCombatantID(group.SingleTarget),
+                            DefaultSingleTarget = GetCombatantID(group.Targets.OrderBy(c => c.IsAlive() ? 0 : 1).FirstOrDefault())
+                        })
+                        .ToList()
+                }, playerID);                
+            }
+        }
+
+        public void Received(QueueActionMessage message, Guid playerID) {
+            var source = _uiHandler.Combatants
+                .Single(c => c.Character.CharIndex == message.SourceCharIndex);
+
+            var q = new QueuedAction(
+                source, message.Ability,
+                message.TargetIDs.Select(index => _engine.Combatants[index]).ToArray(),
+                ActionPriority.Normal, message.Name
+            );
+            //TODO limit priority
+            q.AfterAction = () => {
+                source.TTimer.Reset();
+            };
+            _engine.QueueAction(q);
+            source.ReadyForAction = false;
+        }
     }
 
     public abstract class BattleScreen : Screen {

@@ -14,18 +14,19 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Braver.Battle {
-    public class Menu {
+
+    public class Menu<T> where T: IMenuSource {
 
         private UIBatch _ui;
         private int _item, _subItem, _column, _subTop;
-        private CharacterAction _subMenu;
+        private IMenuSource _subMenu;
         private FGame _game;
         private PluginInstances<IBattleUI> _plugins;
 
         public ICharacterAction SelectedAction { get; private set; }
-        public CharacterCombatant Combatant { get; private set; }
+        public T Combatant { get; private set; }
 
-        public Menu(FGame game, UIBatch ui, CharacterCombatant combatant, PluginInstances<IBattleUI> plugins) {
+        public Menu(FGame game, UIBatch ui, T combatant, PluginInstances<IBattleUI> plugins) {
             _game = game;
             _ui = ui;
             Combatant = combatant;
@@ -35,8 +36,8 @@ namespace Braver.Battle {
         }
 
         public void Step() {
-            int y = 700 - Combatant.Actions.Count * 30;
-            _ui.DrawBox(new Rectangle(200, y, 150, Combatant.Actions.Count * 30 + 20), 0.6f);
+            int y = 700 - Combatant.Actions.Count() * 30;
+            _ui.DrawBox(new Rectangle(200, y, 150, Combatant.Actions.Count() * 30 + 20), 0.6f);
             y += 10;
             if (_subMenu == null) {
                 _ui.DrawImage("pointer", 210, y + 30 * _item, 0.67f, Alignment.Right);
@@ -55,9 +56,11 @@ namespace Braver.Battle {
 
                 y = 590;
                 _ui.DrawImage("pointer", 170, y + 30 * (_subItem - _subTop), 0.77f, Alignment.Right);
-                foreach (var action in _subMenu.SubMenu.Skip(_subTop).Take(4)) {
+                foreach (var action in _subMenu.Actions.Skip(_subTop).Take(4)) {
                     _ui.DrawText("main", action.Name, 170, y, 0.75f, Color.White);
-                    _ui.DrawText("main", action.Annotation().ToString(), 430, y, 0.75f, Color.White, Alignment.Right);
+                    int? annotation = action.Annotation;
+                    if (annotation != null)
+                        _ui.DrawText("main", annotation.Value.ToString(), 430, y, 0.75f, Color.White, Alignment.Right);
                     y += 30;
                 }
             }
@@ -74,7 +77,7 @@ namespace Braver.Battle {
         public bool ProcessInput(InputState input) {
             void AnnounceSub() {
                 _plugins.Call(ui => ui.Menu(
-                    _subMenu.SubMenu.Select(a => a.Name),
+                    _subMenu.Actions.Select(a => a.Name),
                     _subItem,
                     _subMenu
                 ));
@@ -93,7 +96,7 @@ namespace Braver.Battle {
                     _item = Math.Max(0, _item - 1);
                     AnnounceMain();
                 } else if (input.IsRepeating(InputKey.Down)) {
-                    _item = Math.Min(Combatant.Actions.Count - 1, _item + 1);
+                    _item = Math.Min(Combatant.Actions.Count() - 1, _item + 1);
                     AnnounceMain();
                 } else if (input.IsRepeating(InputKey.Left)) {
                     _column = Math.Max(-1, _column - 1);
@@ -102,12 +105,13 @@ namespace Braver.Battle {
                     _column = Math.Min(1, _column + 1);
                     AnnounceMain();
                 } else if (input.IsJustDown(InputKey.OK)) {
-                    if (Combatant.Actions[_item].SubMenu != null) {
-                        _subMenu = Combatant.Actions[_item];
+                    var action = Combatant.Actions.ElementAt(_item);
+                    if ((action is IMenuSource submenu) && submenu.Actions.Any()) {
+                        _subMenu = submenu;
                         _subTop = _subItem = 0;
                         AnnounceSub();
                     } else
-                        SelectedAction = Combatant.Actions[_item];
+                        SelectedAction = action;
                 } else
                     blip = false;
             } else {
@@ -115,10 +119,10 @@ namespace Braver.Battle {
                     _subItem = Math.Max(0, _subItem - 1);
                     AnnounceSub();
                 } else if (input.IsRepeating(InputKey.Down)) {
-                    _subItem = Math.Min(_subMenu.SubMenu.Count - 1, _subItem + 1);
+                    _subItem = Math.Min(_subMenu.Actions.Count() - 1, _subItem + 1);
                     AnnounceSub();
                 } else if (input.IsJustDown(InputKey.OK)) {
-                    SelectedAction = _subMenu.SubMenu[_subItem];
+                    SelectedAction = _subMenu.Actions.ElementAt(_subItem);
                 } else if (input.IsJustDown(InputKey.Cancel)) {
                     _subMenu = null;
                     _game.Audio.PlaySfx(Sfx.Cancel, 1f, 0f);

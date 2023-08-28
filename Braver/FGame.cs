@@ -24,6 +24,7 @@ namespace Braver {
         private Overlay _overlay;
 
         public Net.Net Net { get; set; }
+        public Net.NetConfig NetConfig { get; private set; }
 
         public Screen Screen => _screens.Peek();
         public PluginManager PluginManager { get; }
@@ -219,6 +220,38 @@ namespace Braver {
                     _writer.WriteLine(message);
                 }
             }
+        }
+
+        protected override void DoLoad(Func<string, Stream> getData) {
+            base.DoLoad(getData);
+            try {
+                using (var s = getData("net"))
+                    NetConfig = Serialisation.Deserialise<Braver.Net.NetConfig>(s);
+            } catch {
+
+            }
+        }
+
+        protected override void DoSave(List<(string ext, byte[] data)> dataFiles) {
+            base.DoSave(dataFiles);
+
+            var ms = new MemoryStream();
+            Serialisation.Serialise(NetConfig, ms);
+            dataFiles.Add(("net", ms.ToArray()));
+        }
+
+        public void SaveDefaultNetworkConfig() {
+            using (var fs = File.OpenWrite(Path.Combine(GetPath("save"), "default.net")))
+                Serialisation.Serialise(NetConfig, fs);
+        }
+
+        public void LoadDefaultNetworkConfig() {
+            string path = Path.Combine(GetPath("save"), "default.net");
+            if (File.Exists(path)) {
+                using (var fs = File.OpenRead(path))
+                    NetConfig = Serialisation.Deserialise<Braver.Net.NetConfig>(fs);
+            } else
+                NetConfig = new Net.NetConfig();
         }
 
         public void AutoSave() {

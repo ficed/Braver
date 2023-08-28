@@ -73,6 +73,11 @@ namespace Braver.Battle {
         Ability? Ability { get; }
         string Name { get; }
         TargettingFlags TargetFlags { get; }
+        int? Annotation { get; }
+    }
+
+    public interface IMenuSource {
+        IEnumerable<ICharacterAction> Actions { get; }
     }
 
     public class CharacterActionItem : ICharacterAction {
@@ -83,6 +88,8 @@ namespace Braver.Battle {
         public Func<int> Annotation { get; set; }
 
         Ability? ICharacterAction.Ability => this.Ability;
+
+        int? ICharacterAction.Annotation => Annotation?.Invoke();
     }
 
     public class CharacterAction : ICharacterAction {
@@ -90,9 +97,10 @@ namespace Braver.Battle {
         public TargettingFlags TargetFlags { get; set; }
         public string Name { get; set; }
         public List<CharacterActionItem> SubMenu { get; set; }
+        public int? Annotation => null;
     }
 
-    public class CharacterCombatant : ICombatant {
+    public class CharacterCombatant : ICombatant, IMenuSource {
 
         private Character _char;
         private CombatStats _stats;
@@ -128,7 +136,7 @@ namespace Braver.Battle {
                     PAtPercent = (byte)weapon.HitChance,
                     Power = (byte)(chr.Strength + weapon.AttackStrength),
                     IsPhysical = true,
-                    Elements = new HashSet<Element>(weapon.Elements.Split()),
+                    Elements = weapon.Elements,
                     LongRange = !weapon.TargettingFlags.HasFlag(TargettingFlags.ShortRange),
                     InflictStatus = weapon.Statuses,
                     Formula = AttackFormula.Physical, //TODO                    
@@ -175,7 +183,7 @@ namespace Braver.Battle {
                             ID = a.Item.ID,
                             Ability = new Ability {
                                 Power = a.Item.Power,
-                                Elements = new HashSet<Element>(a.Item.Elements.Split()),
+                                Elements = a.Item.Elements,
                                 StatusChance = a.Item.StatusChance,
                                 InflictStatus = a.Item.StatusType == AttackStatusType.Inflict ? a.Item.Statuses : Statuses.None,
                                 RemoveStatus = a.Item.StatusType == AttackStatusType.Cure ? a.Item.Statuses : Statuses.None,
@@ -228,6 +236,8 @@ namespace Braver.Battle {
 
         public Statuses Statuses { get; set; }
         public bool ReadyForAction { get; set; }
+
+        IEnumerable<ICharacterAction> IMenuSource.Actions => Actions;
 
         public override string ToString() => Name;
 

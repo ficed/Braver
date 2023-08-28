@@ -175,6 +175,7 @@ namespace Braver.Battle {
 
             HashSet<ElementResistance> resistances = new HashSet<ElementResistance>(
                 ability.Elements
+                .Split()
                 .Where(e => target.Elements.ContainsKey(e))
                 .Select(e => target.Elements[e])
                 .Distinct()
@@ -182,7 +183,7 @@ namespace Braver.Battle {
 
             bool deathWeakness = false, recovery = false;
 
-            if (ability.Elements.Any(e => target.Elements.TryGetValue(e, out var resist) && resist == ElementResistance.Absorb)) {
+            if (ability.Elements.Split().Any(e => target.Elements.TryGetValue(e, out var resist) && resist == ElementResistance.Absorb)) {
                 var temp = ability.InflictStatus;
                 ability.InflictStatus = ability.RemoveStatus;
                 ability.RemoveStatus = temp;

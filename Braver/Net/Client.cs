@@ -12,6 +12,7 @@ using System.Linq;
 namespace Braver.Net {
     public class Client : Net {
         public override string Status => (_client.FirstPeer?.ConnectionState ?? ConnectionState.Disconnected).ToString();
+        public Guid PlayerID { get; private set; }
 
         private NetManager _client;
         private FGame _game;
@@ -29,12 +30,18 @@ namespace Braver.Net {
 
         private void Listener_NetworkReceiveEvent(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
             var type = (MessageType)reader.GetInt();
-            var message = GetMessage(type);
+            var message = GetMessage(type) as ServerMessage;
             message.Load(reader);
             Dispatch(message);
 
-            if (message is ChangeScreenMessage changeScreen)
-                _game.PushScreen(changeScreen.GetScreen());
+            switch(message) {
+                case ChangeScreenMessage changeScreen:
+                    _game.PushScreen(changeScreen.GetScreen());
+                    break;
+                case ConnectedMessage connected:
+                    PlayerID = connected.PlayerID;
+                    break;
+            }
 
             reader.Recycle();
         }
@@ -46,6 +53,9 @@ namespace Braver.Net {
                 message.Save(writer);
                 _client.SendToAll(writer, DeliveryMethod.ReliableOrdered);
             }
+        }
+        public override void SendTo(NetMessage message, Guid playerID) {
+            //
         }
 
         public override void Shutdown() {
