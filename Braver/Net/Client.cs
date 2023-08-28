@@ -28,7 +28,7 @@ namespace Braver.Net {
             new ClientScreens(game, this);
         }
 
-        private void Listener_NetworkReceiveEvent(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
+        private void Listener_NetworkReceiveEvent(NetPeer peer, NetPacketReader reader, byte channel, DeliveryMethod deliveryMethod) {
             var type = (MessageType)reader.GetInt();
             var message = GetMessage(type) as ServerMessage;
             message.Load(reader);

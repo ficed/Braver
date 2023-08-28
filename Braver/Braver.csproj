@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
     <UseWindowsForms>true</UseWindowsForms>
@@ -26,14 +26,14 @@
     <TrimmerRootAssembly Include="Microsoft.Xna.Framework.Content.ContentTypeReader" Visible="false" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="LiteNetLib" Version="0.9.5.2" />
+    <PackageReference Include="LiteNetLib" Version="1.1.0" />
     <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.1.303" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.1.303" />
-    <PackageReference Include="NAudio" Version="2.1.0" />
+    <PackageReference Include="NAudio" Version="2.2.0" />
     <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
     <PackageReference Include="NVorbis" Version="0.10.5" />
     <PackageReference Include="RazorEngineCore" Version="2022.8.1" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="Content\Content.mgcb" />
@@ -42,6 +42,22 @@
     <ProjectReference Include="..\Braver.Core\Braver.Core.csproj" />
     <ProjectReference Include="..\Braver.Plugins\Braver.Plugins.csproj" />
     <ProjectReference Include="..\Ficedula.FF7\Ficedula.FF7.csproj" />
+    <ProjectReference Include="..\PluginImplementations\Braver.7HShim\Braver.7HShim.csproj">
+      <Private>False</Private>
+      <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+    </ProjectReference>
+    <ProjectReference Include="..\PluginImplementations\Braver.EquipMenuMod\Braver.EquipMenuMod.csproj">
+      <Private>False</Private>
+      <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+    </ProjectReference>
+    <ProjectReference Include="..\PluginImplementations\Braver.FFNxCompatibility\Braver.FFNxCompatibility.csproj">
+      <Private>False</Private>
+      <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+    </ProjectReference>
+    <ProjectReference Include="..\PluginImplementations\Braver.Tolk\Braver.Tolk.csproj">
+      <Private>False</Private>
+      <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
@@ -67,4 +83,16 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <PluginBin7HShim Include="../PluginImplementations/Braver.7HShim/bin/$(Configuration)/$(TargetFramework)/*.*" />
+    <PluginBinEquipMenuMod Include="../PluginImplementations/Braver.EquipMenuMod/bin/$(Configuration)/$(TargetFramework)/*.*" />
+    <PluginBinFFNxCompat Include="../PluginImplementations/Braver.FFNxCompatibility/bin/$(Configuration)/$(TargetFramework)/*.*" />
+    <PluginBinTolk Include="../PluginImplementations/Braver.Tolk/bin/$(Configuration)/$(TargetFramework)/*.*" />
+  </ItemGroup>
+  <Target Name="7thAfterBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="@(PluginBin7HShim)" DestinationFolder="$(OutputPath)/plugins/7HCompatibility" ContinueOnError="false" />
+    <Copy SourceFiles="@(PluginBinEquipMenuMod)" DestinationFolder="$(OutputPath)/plugins/EquipMenuMod" ContinueOnError="false" />
+    <Copy SourceFiles="@(PluginBinFFNxCompat)" DestinationFolder="$(OutputPath)/plugins/FFNxCompatibility" ContinueOnError="false" />
+    <Copy SourceFiles="@(PluginBinTolk)" DestinationFolder="$(OutputPath)/plugins/Tolk" ContinueOnError="false" />
+  </Target>
 </Project>
