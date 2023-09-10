@@ -49,9 +49,6 @@ namespace Braver.Field {
         private Dictionary<int, int> _parameters = new();
         private VertexPositionColor[] _blankingVerts;
 
-        public float AutoDetectZFrom { get; private set; }
-        public float AutoDetectZTo { get; private set; }
-
         private Dictionary<int, List<TexLayer>> _layersByPalette = new();
         private List<Ficedula.FF7.Field.BackgroundPalette> _palettes;
         private PluginInstances<IBackground> _plugins;
@@ -104,32 +101,19 @@ namespace Braver.Field {
             MinX = bg.AllSprites.Min(s => s.DestX);
             MinY = bg.AllSprites.Min(s => s.DestY);
 
-            var zCoords = bg.AllSprites
-                .Where(spr => spr.State == 0)
-                .Select(spr => spr.ID)
-                .Where(z => z > 1 && z < DEPTH_CUTOFF)
-                ;
-            if (zCoords.Any()) {
-                AutoDetectZFrom = zCoords.Min() * 0.75f;
-                AutoDetectZTo = zCoords.Max() * 1.25f;
-            } else {
-                AutoDetectZFrom = 1f;
-                AutoDetectZTo = 4095f;
-            }
-
+            int layerNum = 0;
             foreach (var layer in bg.Layers.Where(L => L.Any())) {
-
-                int DepthGroup(int id) {
-                    if (id >= DEPTH_CUTOFF)
-                        return 1;
-                    else if (id <= 2)
-                        return -1;
-                    else
-                        return 0;
+                layerNum++;
+/*
+                System.Diagnostics.Debug.WriteLine($"LAYER {layerNum} TILES");
+                int spriteNum = 0;
+                foreach(var sprite in layer) {
+                    System.Diagnostics.Debug.WriteLine($"Tile {spriteNum++} at {sprite.DestX}/{sprite.DestY}/{sprite.CalculatedZ(layerNum, 9999)}, image {sprite.SrcX}/{sprite.SrcY}, UV {sprite.UParam / 10000000f}/{sprite.VParam / 10000000f} flags {sprite.Flags}");
                 }
-
+*/
+                
                 var groups = layer
-                    .GroupBy(s => new { SortKey = s.SortKeyHigh, Depth = DepthGroup(s.ID) })
+                    .GroupBy(s => new { SortKey = s.SortKeyHigh })
                     .OrderByDescending(group => group.Key.SortKey);
 
                 foreach (var group in groups) {
@@ -149,13 +133,17 @@ namespace Braver.Field {
                     float zcoord;
                     bool isFixedZ;
                     bool hasBlend = (blend != Ficedula.FF7.BlendType.None0) && (blend != Ficedula.FF7.BlendType.None1);
+
+                    /*
                     if ((group.First().ID >= DEPTH_CUTOFF) || hasBlend) {
                         zcoord = 1f; isFixedZ = true;
                     } else if (group.First().ID <= 2) {
                         zcoord = 0f; isFixedZ = true;
                     } else {
                         zcoord = group.First().ID; isFixedZ = false;
-                    }
+                    }*/
+
+                    isFixedZ = true;
 
                     TexLayer tl = new TexLayer {
                         Tex = new Texture2D(graphics, texWidth, texHeight, false, SurfaceFormat.Color),
@@ -174,6 +162,7 @@ namespace Braver.Field {
                     List<VertexPositionTexture> verts = new();
 
                     foreach(var sprite in group) {
+                        zcoord = sprite.CalculatedZ(layerNum, 9999); //TODO
                         float destX = sprite.DestX + tl.OffsetX, destY = sprite.DestY + tl.OffsetY;
                         verts.Add(new VertexPositionTexture {
                             Position = new Vector3(sprite.DestX, -sprite.DestY, zcoord),
@@ -323,7 +312,7 @@ namespace Braver.Field {
         public void Step() {
         }
 
-        public void Render(Viewer viewer, float zFrom, float zTo, bool blendLayers) {
+        public void Render(Viewer viewer, bool blendLayers) {
 
             var depth = blendLayers ? DepthStencilState.None : DepthStencilState.Default;
 
@@ -359,9 +348,10 @@ namespace Braver.Field {
                             break;
                     }
 
-                    float zs = layer.FixedZ ? 1f : 1f / (zTo - zFrom);
+                    float zs = 1f; // layer.FixedZ ? 1f : 1f / (zTo - zFrom);
+                    float zOffset = 0; // layer.FixedZ ? 0 : -zFrom
 
-                    _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, layer.FixedZ ? 0 : -zFrom)
+                    _effect.World = Matrix.CreateTranslation(ScrollX, ScrollY, zOffset)
                         * Matrix.CreateScale(3f, 3f, zs);
                     _effect.Texture = layer.Tex;
 

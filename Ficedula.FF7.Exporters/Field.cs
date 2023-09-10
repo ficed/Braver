@@ -14,7 +14,7 @@
             foreach (var layer in new[] { background.Layer1, background.Layer2 }) {
                 foreach (var tiles in layer.GroupBy(s => s.Blending)) {
                     var bmp = new SkiaSharp.SKBitmap(background.Width, background.Height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul);
-                    foreach (var tile in tiles.OrderBy(t => t.ID)) {
+                    foreach (var tile in tiles.OrderBy(t => t.Flags)) {
                         int destX = tile.DestX + offsetX, destY = tile.DestY + offsetY;
                         var src = background.Pages[tile.TextureID].Data;
                         var pal = background.Palettes[tile.PaletteID].Colours;

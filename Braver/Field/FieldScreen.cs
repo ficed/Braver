@@ -48,7 +48,6 @@ namespace Braver.Field {
         private View2D _view2D;
         private FieldDebug _debug;
         private FieldInfo _info;
-        private float _bgZFrom = 1025f, _bgZTo = 1092f;
         private string _file;
 
         private bool _debugMode = false;
@@ -128,19 +127,25 @@ namespace Braver.Field {
             if (cam == null) return null;
 
             double fovy = (2 * Math.Atan(240.0 / (2.0 * cam.Zoom))) * 57.29577951;
+            //This produces a FOV that's about 7% higher than FF7 (PC at least) uses - but that's because
+            //FF7 PC doesn't use the full screen height, it has black bars that reduce the usable height
+            //by around 7% - so this gives correct results for the resolution we want to render at.
 
             var camPosition = cam.CameraPosition.ToX() * 4096f;
-
+            /*
             var camDistances = _walkmesh
                 .SelectMany(tri => new[] { tri.V0.ToX(), tri.V1.ToX(), tri.V2.ToX() })
                 .Select(v => (camPosition - v).Length());
 
             float nearest = camDistances.Min(), furthest = camDistances.Max();
+            */
+
+            //Seems like FF7 uses near/far clipping planes of 50/32000 on most (all?!?) field locations
 
             return new PerspView3D {
                 FOV = (float)fovy,
-                ZNear = nearest * 0.75f,
-                ZFar = furthest * 1.25f,
+                ZNear = 50, //nearest * 0.75f,
+                ZFar = 32000, //furthest,// * 1.25f,
                 CameraPosition = camPosition,
                 CameraForwards = cam.Forwards.ToX(),
                 CameraUp = cam.Up.ToX(),
@@ -342,14 +347,6 @@ namespace Braver.Field {
             System.Diagnostics.Trace.WriteLine($"Walkmesh Z varies from {minZ}-{maxZ} (recip {1f / minZ} to {1f / maxZ}");
             _debug = new FieldDebug(graphics, field);
 
-            if (_info.BGZFrom != 0) {
-                _bgZFrom = _info.BGZFrom;
-                _bgZTo = _info.BGZTo;
-            } else {
-                _bgZFrom = Background.AutoDetectZFrom;
-                _bgZTo = Background.AutoDetectZTo;
-            }
-
             Dialog = new Dialog(g, _dialogPlugins, graphics);
             FieldUI = new FieldUI(g, graphics);
 
@@ -429,7 +426,7 @@ namespace Braver.Field {
                 if (Movie.Active)
                     Movie.Render();
                 else
-                    Background.Render(view2D, _bgZFrom, _bgZTo, false);
+                    Background.Render(view2D, false);
             }
 
             if (_renderDebug)
@@ -446,7 +443,7 @@ namespace Braver.Field {
 
             //Now render blend layers over actual background + models
             if (_renderBG && !Movie.Active)
-                Background.Render(view2D, _bgZFrom, _bgZTo, true);
+                Background.Render(view2D, true);
 
             Overlay.Render();
 
@@ -687,6 +684,7 @@ namespace Braver.Field {
                 Game.PushScreen(new UI.Layout.LayoutScreen("FieldDebugger", parm: this));
 
             if (input.IsDown(InputKey.Debug4)) {
+                /*
                 if (input.IsDown(InputKey.Up))
                     _bgZFrom++;
                 else if (input.IsDown(InputKey.Down))
@@ -709,6 +707,7 @@ namespace Braver.Field {
 
                 System.Diagnostics.Trace.WriteLine($"BGZFrom {_bgZFrom} ZTo {_bgZTo}");
                 return;
+                */
             }
 
             if (_debugMode) {

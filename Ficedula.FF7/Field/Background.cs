@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.XPath;
 
 namespace Ficedula.FF7.Field {
     public class TileGroup {
@@ -23,15 +24,28 @@ namespace Ficedula.FF7.Field {
     public struct Sprite {
 
         public short DestX, DestY, ZZ2a, ZZ2b, SrcX, SrcY;
-        public short SrcX2, SrcY2, Width, Height, PaletteID, ID;
+        public short SrcX2, SrcY2, Width, Height, PaletteID, Flags;
         public byte Param, State, Blending, ZZ3, TypeTrans, ZZ4;
         public short TextureID, TextureID2, Depth;
-        public int IDBig;
-        public int ZZ5, ZZ6, ZZ7;
+        public int ZParam, UParam, VParam;
+        public int ZZ7;
 
-        public long SortKey => ((long)TypeTrans << 48) | ((long)Param << 40) | ((long)State << 32) | ID;
+        public long SortKey => ((long)TypeTrans << 48) | ((long)Param << 40) | ((long)State << 32) | Flags;
 
         public int SortKeyHigh => (TypeTrans << 16) | (Param << 8) | State;
+
+        public float CalculatedZ(int layer, int fieldID) {
+            switch (layer) {
+                case 1:
+                    return 0.9997f;
+                case 2: //Some special cases in original code?! e.g. FieldID 0x43, 0xcc, or 0x75
+                case 3: //No, extra logic
+                case 4: //No, extra logic
+                    return ZParam / 10000000f;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
 
         public Sprite(Stream source, int layer) {
             DestX = source.ReadI16();
@@ -45,7 +59,7 @@ namespace Ficedula.FF7.Field {
             Width = source.ReadI16();
             Height = source.ReadI16();
             PaletteID = source.ReadI16();
-            ID = source.ReadI16();
+            Flags = source.ReadI16();
             Param = (byte)source.ReadByte();
             State = (byte)source.ReadByte();
             Blending = (byte)source.ReadByte();
@@ -55,10 +69,10 @@ namespace Ficedula.FF7.Field {
             TextureID = source.ReadI16();
             TextureID2 = source.ReadI16();
             Depth = source.ReadI16();
-            IDBig = source.ReadI32();
+            ZParam = source.ReadI32();
 
-            ZZ5 = source.ReadI32();
-            ZZ6 = source.ReadI32();
+            UParam = source.ReadI32();
+            VParam = source.ReadI32();
             ZZ7 = source.ReadI32();
 
             FixUp(layer);

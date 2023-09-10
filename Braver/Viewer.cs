@@ -76,6 +76,85 @@ namespace Braver {
         }
     }
 
+    public class FieldView3D : View3D {
+        public float FOV { get; set; } = 90f;
+        public Vector2 ScreenOffset { get; set; }
+        public Vector2 ScreenSize { get; set; } = new Vector2(1280f, 720f);
+
+        public override Matrix Projection {
+            get {
+                Matrix m1 = Matrix.Identity, m2 = Matrix.Identity;
+
+                float left = 0 * (ScreenOffset.X * ScreenSize.X) - ScreenSize.X / 2;
+                float top = 0 * (ScreenOffset.Y * ScreenSize.Y) - ScreenSize.Y / 2;
+
+                m2[0] = 1f / AspectRatio;
+                m2[5] = -1f;
+                m2[10] = 1f;
+                m2[12] = left * 2f / ScreenSize.X;
+                m2[13] = -(top * AspectRatio) / ScreenSize.Y;
+
+                /*
+                    fVar2 = ConvertToRadians(fov);
+    fVar1 = FUN_007aff60((float10)fVar2 / (float10)2.0);
+    fVar2 = (float)(fVar1 * zNear);
+    local_94[10] = (float)((fVar1 * extraout_ST1 * (float10)z_far) /
+                          (((float10)z_far - (float10)z_near) * (float10)z_near));
+    local_94[0xb] = fVar2 / z_near;
+    local_94[0xe] = (-fVar2 * z_far) / (z_far - z_near);
+    local_94[0xf] = 0.0;
+*/
+                float fovRadians = (FOV * (float)Math.PI / 180) / 2f;
+                float fovNear = fovRadians * ZNear;
+                m1[10] = (fovNear * ZFar) / ((ZFar - ZNear) * ZNear);
+                m1[11] = fovRadians;
+                m1[14] = (-fovNear * ZFar) / (ZFar - ZNear);
+                m1[15] = 0f;
+
+                return m1 * m2;
+            }
+        }
+
+        public FieldView3D Clone() {
+            return new FieldView3D {
+                AspectRatio = AspectRatio,
+                ZNear = ZNear,
+                ZFar = ZFar,
+                CameraPosition = CameraPosition,
+                CameraUp = CameraUp,
+                CameraForwards = CameraForwards,
+                FOV = FOV,
+                ScreenOffset = ScreenOffset,
+                ScreenSize = ScreenSize,
+            };
+        }
+
+        public FieldView3D Blend(FieldView3D other, float factor) {
+            return new FieldView3D {
+                AspectRatio = other.AspectRatio, //not going to change anyway...?
+                ZNear = ZNear * (1 - factor) + other.ZNear * factor,
+                ZFar = ZFar * (1 - factor) + other.ZFar * factor,
+                CameraPosition = CameraPosition * (1 - factor) + other.CameraPosition * factor,
+                CameraUp = CameraUp * (1 - factor) + other.CameraUp * factor,
+                CameraForwards = CameraForwards * (1 - factor) + other.CameraForwards * factor,
+            };
+        }
+
+        public Vector3 ProjectTo2D(Vector3 pos3D) {
+            var pos = Vector4.Transform(pos3D, View * Projection);
+            pos /= pos.W;
+            return new Vector3(
+                (pos.X + 1) * 1280f / 2f,
+                720f - (pos.Y + 1) * 720f / 2f,
+                pos.Z
+            );
+        }
+
+        public override string ToString() {
+            return $"Persp Z-range {ZNear}:{ZFar} Pos {CameraPosition} Fwd {CameraForwards} Up {CameraUp}";
+        }
+    }
+
     public class PerspView3D : View3D {
 
         public float FOV { get; set; } = 90f;

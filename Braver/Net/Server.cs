@@ -73,7 +73,7 @@ namespace Braver.Net {
             }
         }
 
-        private void Listener_NetworkReceiveEvent(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
+        private void Listener_NetworkReceiveEvent(NetPeer peer, NetPacketReader reader, byte channel, DeliveryMethod deliveryMethod) {
             var id = _connectedPlayers
                 .SingleOrDefault(kv => kv.Value == peer)
                 .Key;
