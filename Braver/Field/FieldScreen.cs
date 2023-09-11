@@ -1352,6 +1352,10 @@ namespace Braver.Field {
 
         public void SetPlayer(int whichEntity) {
             Player = Entities[whichEntity]; //TODO: also center screen etc.
+
+            if (Player.CollideDistance == Entity.DEFAULT_COLLIDE_DISTANCE)
+                Player.CollideDistance = Entity.DEFAULT_PLAYER_COLLIDE_DISTANCE;
+
             CheckPendingPlayerSetup();
             WhenPlayerSet?.Invoke();
         }

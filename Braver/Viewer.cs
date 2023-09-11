@@ -94,16 +94,6 @@ namespace Braver {
                 m2[12] = left * 2f / ScreenSize.X;
                 m2[13] = -(top * AspectRatio) / ScreenSize.Y;
 
-                /*
-                    fVar2 = ConvertToRadians(fov);
-    fVar1 = FUN_007aff60((float10)fVar2 / (float10)2.0);
-    fVar2 = (float)(fVar1 * zNear);
-    local_94[10] = (float)((fVar1 * extraout_ST1 * (float10)z_far) /
-                          (((float10)z_far - (float10)z_near) * (float10)z_near));
-    local_94[0xb] = fVar2 / z_near;
-    local_94[0xe] = (-fVar2 * z_far) / (z_far - z_near);
-    local_94[0xf] = 0.0;
-*/
                 float fovRadians = (FOV * (float)Math.PI / 180) / 2f;
                 float fovNear = fovRadians * ZNear;
                 m1[10] = (fovNear * ZFar) / ((ZFar - ZNear) * ZNear);

@@ -92,12 +92,14 @@ namespace Braver.Battle {
         int? ICharacterAction.Annotation => Annotation?.Invoke();
     }
 
-    public class CharacterAction : ICharacterAction {
+    public class CharacterAction : ICharacterAction, IMenuSource {
         public Ability? Ability { get; set; }
         public TargettingFlags TargetFlags { get; set; }
         public string Name { get; set; }
         public List<CharacterActionItem> SubMenu { get; set; }
         public int? Annotation => null;
+
+        public IEnumerable<ICharacterAction> Actions => SubMenu ?? Enumerable.Empty<ICharacterAction>();
     }
 
     public class CharacterCombatant : ICombatant, IMenuSource {

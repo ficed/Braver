@@ -22,6 +22,11 @@ namespace Braver.Field {
     }
 
     public class Entity : IFieldEntity {
+        public const float DEFAULT_COLLIDE_DISTANCE = 30f;
+        public const float DEFAULT_PLAYER_COLLIDE_DISTANCE = 34f;
+        public const float DEFAULT_TALK_DISTANCE = 80f;
+        //Seems like the default collide distance in FF7 is 30, and default talk distance is 80
+        //...except that the player gets a default collide distance of 34 instead.
 
         public static bool DEBUG_OUT = true;
 
@@ -34,8 +39,8 @@ namespace Braver.Field {
         public FieldLine Line { get; set; }
         public Character Character { get; set; }
         public EntityFlags Flags { get; set; }
-        public float TalkDistance { get; set; } = 20f; //Same as below...?
-        public float CollideDistance { get; set; } = 20f; //TODO - is this reasonable...? Probably?!
+        public float TalkDistance { get; set; } = DEFAULT_TALK_DISTANCE;
+        public float CollideDistance { get; set; } = DEFAULT_COLLIDE_DISTANCE; 
         public float MoveSpeed { get; set; }
         public int WalkmeshTri { get; set; }
         public Dictionary<string, object> OtherState { get; } = new();
