@@ -119,7 +119,7 @@ namespace Braver.Net {
                             Animation = reader.GetInt(),
                             AnimationLoop = reader.GetBool(),
                             AnimationSpeed = reader.GetFloat(),
-                            EndFrame = reader.GetInt(),
+                            EndFrame = Utils.MapToNull(reader.GetInt(), -1),
                             Frame = reader.GetInt(),
                             StartFrame = reader.GetInt(),
                         };
@@ -161,7 +161,7 @@ namespace Braver.Net {
                 writer.Put(AnimationState.Animation);
                 writer.Put(AnimationState.AnimationLoop);
                 writer.Put(AnimationState.AnimationSpeed);
-                writer.Put(AnimationState.EndFrame);
+                writer.Put(AnimationState.EndFrame ?? -1);
                 writer.Put(AnimationState.Frame);
                 writer.Put(AnimationState.StartFrame);
             }

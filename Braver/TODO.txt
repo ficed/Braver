@@ -42,6 +42,8 @@ Field - model lighting looks a bit too bright
 	  - mds7_pb1 - Marlene's ladder command treats her as a player incorrectly
 	  - Tutorials don't actually display
 	  - mds7_w2 has multiple KAWAI opcodes to implement!
+	  - nmkin_3 - animations when leaving ladder at top are sequenced wrong?
+	  - nmkin_1 - background Z still not perfect
 
 Music looping works but still a noticeable break at the loop point
 

@@ -25,6 +25,10 @@ namespace Braver {
             t1 = t2;
             t2 = t;
         }
+
+        public static T? MapToNull<T>(T value, T nullPlaceholder) where T : struct {
+            return value.Equals(nullPlaceholder) ? null : value;
+        }
     }
 
     public class F7Exception : Exception {

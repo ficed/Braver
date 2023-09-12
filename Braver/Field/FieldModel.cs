@@ -4,14 +4,12 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
-using Braver.Plugins;
 using Ficedula.FF7;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Braver.Field {
 
@@ -21,7 +19,7 @@ namespace Braver.Field {
         public int Frame { get; set; }
         public bool AnimationLoop { get; set; }
         public int StartFrame { get; set; }
-        public int EndFrame { get; set; }
+        public int? EndFrame { get; set; }
         public int CompletionCount { get; set; }
     }
 
@@ -423,7 +421,8 @@ namespace Braver.Field {
             _shineRotation++;
             if (_animCountdown <= 0) {
                 _animCountdown = 1;
-                if (AnimationState.Frame == AnimationState.EndFrame) {
+                int actualEnd = AnimationState.EndFrame ?? _animations[AnimationState.Animation].Frames.Count - 1;
+                if (AnimationState.Frame == actualEnd) {
                     if (AnimationState.AnimationLoop) {
                         AnimationState.Frame = AnimationState.StartFrame;
                         AnimationState.CompletionCount++;
@@ -435,8 +434,8 @@ namespace Braver.Field {
             }
         }
 
-        public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int endFrame = -1) {
-            if (endFrame >= _animations[animation].Frames.Count) {
+        public void PlayAnimation(int animation, bool loop, float speed, int startFrame = 0, int? endFrame = null) {
+            if ((endFrame ?? 0) >= _animations[animation].Frames.Count) {
                 System.Diagnostics.Trace.WriteLine($"Clamping out of range animation frames {endFrame}->{_animations[animation].Frames.Count - 1}");
                 endFrame = _animations[animation].Frames.Count - 1;
             }
@@ -446,7 +445,7 @@ namespace Braver.Field {
                 AnimationSpeed = speed,
                 StartFrame = startFrame,
                 Frame = startFrame,
-                EndFrame = endFrame < 0 ? _animations[animation].Frames.Count - 1 : endFrame,
+                EndFrame = endFrame,
             }; 
             _animCountdown = 1;
         }

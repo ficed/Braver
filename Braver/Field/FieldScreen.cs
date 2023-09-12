@@ -574,15 +574,15 @@ namespace Braver.Field {
                 var highPosOnBG = ModelToBGPosition(Player.Model.Translation + new Vector3(0, 0, playerHeight));
                 var scroll = GetBGScroll();
                 var newScroll = scroll;
-                if (posOnBG.X > (scroll.x + 100))
-                    newScroll.x = (int)posOnBG.X - 100;
-                else if (posOnBG.X < (scroll.x - 100))
-                    newScroll.x = (int)posOnBG.X + 100;
+                if (posOnBG.X > (scroll.x + 50))
+                    newScroll.x = (int)posOnBG.X - 50;
+                else if (posOnBG.X < (scroll.x - 50))
+                    newScroll.x = (int)posOnBG.X + 50;
 
-                if (highPosOnBG.Y > (scroll.y + 85))
-                    newScroll.y = (int)highPosOnBG.Y - 85;
-                else if (posOnBG.Y < (scroll.y - 85))
-                    newScroll.y = (int)posOnBG.Y + 85;
+                if (highPosOnBG.Y > (scroll.y + 45))
+                    newScroll.y = (int)highPosOnBG.Y - 45;
+                else if (posOnBG.Y < (scroll.y - 45))
+                    newScroll.y = (int)posOnBG.Y + 45;
 
                 newScroll = ClampBGScrollToViewport(newScroll.x, newScroll.y);
 
@@ -1178,11 +1178,18 @@ namespace Braver.Field {
                 //Now check if, for any of the models we're colliding with, we're not moving 
                 //clearly further away. If so, don't allow the move.
                 foreach(var other in eMove.CollidingWith) {
-                    double currentAngle = Math.Atan2(eMove.Model.Translation.Y - other.Model.Translation.Y, eMove.Model.Translation.X - other.Model.Translation.X),
-                        moveAngle = Math.Atan2(newPosition.Y - other.Model.Translation.Y, newPosition.X - other.Model.Translation.X);
+                    //Use law of cosines to work out the angle between our current position to the other 
+                    //object, and our current position to the new position. If the angle is less than 90,
+                    //then we're heading towards the new object while colliding with it, so disallow the move.
+                    //We don't just compare distances and allow any movement that ends up further away from
+                    //the colliding object, because then we can potentially teleport through a small enough
+                    //object!
+                    float a = (other.Model.Translation - eMove.Model.Translation).Length(),
+                        b = (newPosition - eMove.Model.Translation).Length(),
+                        c = (other.Model.Translation - newPosition).Length();
+                    double C = Math.Acos((a * a + b * b - c * c) / (2 * a * b));
 
-                    double diff = ((currentAngle - moveAngle) + (Math.PI * 2)) % (2 * Math.PI);
-                    if (diff >= Math.PI)
+                    if (C < (Math.PI / 2))
                         return false;
                 }
             }

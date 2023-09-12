@@ -1228,17 +1228,16 @@ namespace Braver.Field {
         }
 
         private static OpResult DoAnim(Fiber f, Entity e, int anim, bool loop, float speed, int? startFrame, int? endFrame, bool restoreState) {
-            int start = startFrame ?? 0,
-                end = endFrame ?? -1;
+            int start = startFrame ?? 0;
             var model = e.Model;
 
             if ((model.AnimationState == null) || (model.AnimationState.Animation != anim) ||
                 (model.AnimationState.AnimationLoop != loop) || (model.AnimationState.StartFrame != start) ||
-                ((model.AnimationState.EndFrame != end) && (end != -1)) ||
+                (model.AnimationState.EndFrame != endFrame) ||
                 (model.AnimationState.AnimationSpeed != speed)) {
                 e.OtherState["AnimPlaying"] = true;
                 f.OtherState["AnimResume"] = model.AnimationState;
-                model.PlayAnimation(anim, loop, speed, start, end);
+                model.PlayAnimation(anim, loop, speed, start, endFrame);
             } else {
                 if (model.AnimationState.CompletionCount > 0) {
                     e.OtherState["AnimPlaying"] = false;
