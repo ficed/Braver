@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="SharpGLTF.Toolkit" Version="1.0.0-alpha0030" />
     <PackageReference Include="SkiaSharp" Version="2.88.5" />
   </ItemGroup>
 
