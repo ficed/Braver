@@ -34,7 +34,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Braver.FFNxCompatibility", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IrosArchive", "IrosArchive\IrosArchive.csproj", "{803429DC-A6B4-43C2-9F73-D6EA51EA6B99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Braver.EquipMenuMod", "PluginImplementations\Braver.EquipMenuMod\Braver.EquipMenuMod.csproj", "{A6C5FE20-7D00-4FD9-AE27-65176B098FC7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Braver.EquipMenuMod", "PluginImplementations\Braver.EquipMenuMod\Braver.EquipMenuMod.csproj", "{A6C5FE20-7D00-4FD9-AE27-65176B098FC7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrossSlash", "CrossSlash\CrossSlash.csproj", "{9A97BA9B-CC8B-4A13-BBB7-5249A6234FD6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -98,6 +100,10 @@ Global
 		{A6C5FE20-7D00-4FD9-AE27-65176B098FC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6C5FE20-7D00-4FD9-AE27-65176B098FC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6C5FE20-7D00-4FD9-AE27-65176B098FC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A97BA9B-CC8B-4A13-BBB7-5249A6234FD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A97BA9B-CC8B-4A13-BBB7-5249A6234FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A97BA9B-CC8B-4A13-BBB7-5249A6234FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A97BA9B-CC8B-4A13-BBB7-5249A6234FD6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
