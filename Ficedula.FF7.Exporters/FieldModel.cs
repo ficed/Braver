@@ -99,7 +99,7 @@ namespace Ficedula.FF7.Exporters {
 
             MaterialBuilder defMaterial = new MaterialBuilder("Def")
                 .WithDoubleSide(false)
-                .WithAlpha(SharpGLTF.Materials.AlphaMode.BLEND)
+                .WithAlpha(SharpGLTF.Materials.AlphaMode.OPAQUE)
                 .WithBaseColor(Vector4.One)
                 //.WithBaseColor(new System.Numerics.Vector4(1, 1, 1, 0.5f))
                 .WithUnlitShader();
@@ -160,11 +160,11 @@ namespace Ficedula.FF7.Exporters {
                         Quaternion rotation;
 
                         if (node.VisualRoot == node) {
-                            trans[c / 15f] = new Vector3(frame.Translation.X, -frame.Translation.Y, frame.Translation.Z);
+                            trans[c / 15f] = new Vector3(frame.Translation.X, frame.Translation.Y, frame.Translation.Z);
                             rotation = Quaternion.CreateFromYawPitchRoll(
                                 frame.Rotation.Y * (float)Math.PI / 180,
                                 frame.Rotation.X * (float)Math.PI / 180,
-                                frame.Rotation.Z * (float)Math.PI / 180
+                                (180 + frame.Rotation.Z) * (float)Math.PI / 180
                             );
                         } else {
                             rotation = Quaternion.CreateFromYawPitchRoll(
