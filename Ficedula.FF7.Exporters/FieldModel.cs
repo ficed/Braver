@@ -32,36 +32,60 @@ namespace Ficedula.FF7.Exporters {
             );
         }
 
-        private IEnumerable<IMeshBuilder<MaterialBuilder>> BuildMeshes(PFile poly, IEnumerable<MaterialBuilder> materials, MaterialBuilder defMaterial) {
+        private IEnumerable<IMeshBuilder<MaterialBuilder>> BuildMeshes(PFile poly, IEnumerable<MaterialBuilder> materials, MaterialBuilder defMaterial, int boneIndex) {
             foreach (var group in poly.Chunks) {
                 if (group.Texture != null) {
-                    var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexEmpty>();
+                    var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>();
                     for (int i = 0; i < group.Indices.Count; i += 3) {
                         var v0 = group.Verts[group.Indices[i]];
                         var v1 = group.Verts[group.Indices[i + 1]];
                         var v2 = group.Verts[group.Indices[i + 2]];
 
+                        var vb0 = new VertexBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(
+                            new VertexPositionNormal(v0.Position, v0.Normal), 
+                            new VertexColor1Texture1(UnpackColour(v0.Colour), v0.TexCoord),
+                            new VertexJoints4(boneIndex)
+                        );
+                        var vb1 = new VertexBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(
+                            new VertexPositionNormal(v1.Position, v1.Normal),
+                            new VertexColor1Texture1(UnpackColour(v1.Colour), v1.TexCoord),
+                            new VertexJoints4(boneIndex)
+                        );
+                        var vb2 = new VertexBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(
+                            new VertexPositionNormal(v2.Position, v2.Normal),
+                            new VertexColor1Texture1(UnpackColour(v2.Colour), v2.TexCoord),
+                            new VertexJoints4(boneIndex)
+                        );
+
                         mesh.UsePrimitive(materials.ElementAt(group.Texture.Value))
-                            .AddTriangle(
-                                (new VertexPositionNormal(v0.Position, v0.Normal), new VertexColor1Texture1(UnpackColour(v0.Colour), v0.TexCoord)),
-                                (new VertexPositionNormal(v1.Position, v1.Normal), new VertexColor1Texture1(UnpackColour(v1.Colour), v1.TexCoord)),
-                                (new VertexPositionNormal(v2.Position, v2.Normal), new VertexColor1Texture1(UnpackColour(v2.Colour), v2.TexCoord))
-                            );
+                            .AddTriangle(vb0, vb1, vb2);
                     }
                     yield return mesh;
                 } else {
-                    var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1, VertexEmpty>();
+                    var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>();
                     for (int i = 0; i < group.Indices.Count; i += 3) {
                         var v0 = group.Verts[group.Indices[i]];
                         var v1 = group.Verts[group.Indices[i + 1]];
                         var v2 = group.Verts[group.Indices[i + 2]];
 
+                        var vb0 = new VertexBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(
+                            new VertexPositionNormal(v0.Position, v0.Normal), 
+                            new VertexColor1(UnpackColour(v0.Colour)),
+                            new VertexJoints4(boneIndex)
+                        );
+                        var vb1 = new VertexBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(
+                            new VertexPositionNormal(v1.Position, v1.Normal),
+                            new VertexColor1(UnpackColour(v1.Colour)),
+                            new VertexJoints4(boneIndex)
+                        );
+                        var vb2 = new VertexBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(
+                            new VertexPositionNormal(v2.Position, v2.Normal),
+                            new VertexColor1(UnpackColour(v2.Colour)),
+                            new VertexJoints4(boneIndex)
+                        );
+
                         mesh.UsePrimitive(defMaterial)
-                            .AddTriangle(
-                                (new VertexPositionNormal(v0.Position, v0.Normal), new VertexColor1(UnpackColour(v0.Colour))),
-                                (new VertexPositionNormal(v1.Position, v1.Normal), new VertexColor1(UnpackColour(v1.Colour))),
-                                (new VertexPositionNormal(v2.Position, v2.Normal), new VertexColor1(UnpackColour(v2.Colour)))
-                            );
+                            .AddTriangle(vb0, vb1, vb2);
                     }
                     yield return mesh;
                 }
@@ -108,7 +132,7 @@ namespace Ficedula.FF7.Exporters {
 
             var firstFrame = animations[0].Anim.Frames[0];
 
-            bool done = false;
+            var allNodes = new Dictionary<int, NodeBuilder>();
 
             void Descend(SceneBuilder scene, HRCModel.Bone bone, NodeBuilder node, Vector3 translation, Vector3? scale) {
                 maxBone = Math.Max(maxBone, bone.Index);
@@ -123,19 +147,31 @@ namespace Ficedula.FF7.Exporters {
                     null, scale ?? Vector3.One, rotation, translation
                 );
 
-                foreach (var poly in bone.Polygons) {
-                    foreach (var mesh in BuildMeshes(poly.PFile, poly.Textures.Select(tex => materials[tex]), defMaterial))
-                        scene.AddRigidMesh(mesh, node);
-                }
                 foreach (var child in bone.Children) {
-                    if (done) return;
                     var c = node.CreateNode(child.Index.ToString());
+                    allNodes[child.Index] = c;
                     Descend(scene, child, c, new Vector3(0, 0, -bone.Length), null);
+                }
+            }
+
+            void DescendMesh(SceneBuilder scene, HRCModel.Bone bone, NodeBuilder node, Matrix4x4 transform, NodeBuilder[] joints) {
+                foreach (var poly in bone.Polygons) {
+                    foreach (var mesh in BuildMeshes(poly.PFile, poly.Textures.Select(tex => materials[tex]), defMaterial, bone.Index))
+                        scene.AddSkinnedMesh(mesh, transform, joints);
+                }
+                foreach(var child in bone.Children) {
+                    var childNode = allNodes[child.Index];
+                    var childTransform = childNode.LocalMatrix * transform;
+                    DescendMesh(scene, child, childNode, childTransform, joints);
                 }
             }
 
             var root = new NodeBuilder("-1");
             Descend(scene, model.Root, root, Vector3.Zero, null);
+            DescendMesh(
+                scene, model.Root, root, root.LocalMatrix, 
+                allNodes.Where(kv => kv.Key >= 0).Select(kv => kv.Value).ToArray()
+            );
             scene.AddNode(root);
 
             var settings = SceneBuilderSchema2Settings.Default;

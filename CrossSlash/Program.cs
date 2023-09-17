@@ -7,6 +7,11 @@
 using CrossSlash;
 using Terminal.Gui;
 
+System.Globalization.CultureInfo.CurrentCulture =
+    System.Globalization.CultureInfo.CurrentUICulture =
+    System.Globalization.CultureInfo.DefaultThreadCurrentCulture =
+    System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
 Console.WriteLine("CrossSlash");
 
 switch (args.Length) {
