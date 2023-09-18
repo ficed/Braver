@@ -23,6 +23,17 @@ namespace Braver.Field {
         public int CompletionCount { get; set; }
     }
 
+    public abstract class FieldModelRenderer {
+        public abstract Vector3 MinBounds { get; }
+        public abstract Vector3 MaxBounds { get; }
+
+        public abstract void Init(FGame game, GraphicsDevice graphics, string hrc, IEnumerable<string> animations);
+        public abstract int GetFrameCount(int anim);
+        public abstract void Render(int animation, float frame, Matrix transform, bool eyeBlink);
+        public abstract void ConfigureLighting(Vector3 ambient, bool shineEffect);
+
+    }
+
     public class FieldModel {
 
         private const int EYE_BLINK_PERIOD = 93;

@@ -19,17 +19,36 @@ namespace Ficedula.FF7.Exporters {
     public class FieldModel {
         private LGPFile _lgp;
 
+        public bool ConvertSRGBToLinear { get; set; }
+
         public FieldModel(LGPFile lgp) {
             _lgp = lgp;
         }
 
+        private static double SRGBToLinear(double value) {
+            const double a = 0.055;
+            if (value <= 0.04045)
+                return value / 12.92;
+            else
+                return Math.Pow((value + a) / (1 + a), 2.4);
+        }
+
         private Vector4 UnpackColour(uint colour) {
-            return new Vector4(
+            var c = new Vector4(
                 (colour & 0xff) / 255f,
                 ((colour >> 8) & 0xff) / 255f,
                 ((colour >> 16) & 0xff) / 255f,
                 ((colour >> 24) & 0xff) / 255f
             );
+            if (ConvertSRGBToLinear) {
+                c = new Vector4(
+                    (float)SRGBToLinear(c.X),
+                    (float)SRGBToLinear(c.Y),
+                    (float)SRGBToLinear(c.Z),
+                    (float)SRGBToLinear(c.W)
+                );
+            }
+            return c;
         }
 
         private IEnumerable<IMeshBuilder<MaterialBuilder>> BuildMeshes(PFile poly, IEnumerable<MaterialBuilder> materials, MaterialBuilder defMaterial, int boneIndex) {
@@ -112,12 +131,10 @@ namespace Ficedula.FF7.Exporters {
                     .ToArray();
                 var mat = new MaterialBuilder("Mat" + materials.Count)
                     .WithDoubleSide(false)
-                    .WithMetallicRoughnessShader()
-                //.WithSpecularGlossinessShader()
+                    .WithUnlitShader()
                     .WithAlpha(SharpGLTF.Materials.AlphaMode.BLEND)
                     .WithChannelImage(KnownChannel.BaseColor, new SharpGLTF.Memory.MemoryImage(data));
                 //.WithChannelImage(KnownChannel.Diffuse, new SharpGLTF.Memory.MemoryImage(tex));
-
                 materials[texture] = mat;
             }
 

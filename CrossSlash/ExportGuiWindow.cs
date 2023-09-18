@@ -18,6 +18,7 @@ namespace CrossSlash {
         private ListView _lvHRCs;
         private TextView _txtAnims;
         private List<string> _hrcFiles;
+        private CheckBox _chkSRGB;
 
         private string _lgpFile, _glbFile;
 
@@ -61,10 +62,16 @@ namespace CrossSlash {
                 Height = 8,
             };
 
+            _chkSRGB = new CheckBox {
+                Checked = true,
+                Text = "Convert colours from SRGB->Linear",
+                Y = Pos.Bottom(_txtAnims) + 1,
+            };
+
             var btnGLB = new Button {
                 Text = "Save GLB As",
                 Width = Dim.Percent(25),
-                Y = Pos.Bottom(_txtAnims) + 1,
+                Y = Pos.Bottom(_chkSRGB) + 1,
             };
             btnGLB.Clicked += BtnGLB_Clicked;
 
@@ -81,7 +88,7 @@ namespace CrossSlash {
             };
             btnExport.Clicked += BtnExport_Clicked;
 
-            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, btnGLB, _lblGLB, btnExport);
+            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, _chkSRGB, btnGLB, _lblGLB, btnExport);
         }
 
         private void BtnExport_Clicked() {
@@ -101,7 +108,9 @@ namespace CrossSlash {
                     throw new Exception("No animations specified");
 
                 using (var lgp = new Ficedula.FF7.LGPFile(_lgpFile)) {
-                    var exporter = new Ficedula.FF7.Exporters.FieldModel(lgp);
+                    var exporter = new Ficedula.FF7.Exporters.FieldModel(lgp) {
+                        ConvertSRGBToLinear = _chkSRGB.Checked,
+                    };
                     var model = exporter.BuildScene(_hrcFiles[_lvHRCs.SelectedItem], anims);
                     model.SaveGLB(_glbFile);
                 }
