@@ -2,7 +2,7 @@
   "profiles": {
     "CrossSlash": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\temp\\test.glb C:\\games\\FF7\\data\\field\\char.lgp AAGB.HRC ABCE.a ABCF.a DIDF.a APGB.a BZAC.a ACGA.a DIEA.a CDGF.a ACGB.a"
+      "commandLineArgs": "C:\\temp\\b_aeris.glb C:\\games\\FF7\\data\\battle\\battle.lgp RV /Scale:0.1 /ConvertSRGB"
     }
   }
 }

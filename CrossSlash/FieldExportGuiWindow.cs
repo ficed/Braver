@@ -12,17 +12,17 @@ using System.Threading.Tasks;
 using Terminal.Gui;
 
 namespace CrossSlash {
-    public class ExportGuiWindow : Window {
+    public class FieldExportGuiWindow : Window {
 
         private Label _lblLGP, _lblGLB;
         private ListView _lvHRCs;
         private TextView _txtAnims;
         private List<string> _hrcFiles;
-        private CheckBox _chkSRGB;
+        private CheckBox _chkSRGB, _chkSwapWinding;
 
         private string _lgpFile, _glbFile;
 
-        public ExportGuiWindow() {
+        public FieldExportGuiWindow() {
             Title = "CrossSlash Exporter (Ctrl-Q to Quit)";
 
             var btnLGP = new Button {
@@ -67,11 +67,16 @@ namespace CrossSlash {
                 Text = "Convert colours from SRGB->Linear",
                 Y = Pos.Bottom(_txtAnims) + 1,
             };
+            _chkSwapWinding = new CheckBox {
+                Checked = false,
+                Text = "Swap triangle winding",
+                Y = Pos.Bottom(_chkSRGB) + 1,
+            };
 
             var btnGLB = new Button {
                 Text = "Save GLB As",
                 Width = Dim.Percent(25),
-                Y = Pos.Bottom(_chkSRGB) + 1,
+                Y = Pos.Bottom(_chkSwapWinding) + 1,
             };
             btnGLB.Clicked += BtnGLB_Clicked;
 
@@ -88,7 +93,7 @@ namespace CrossSlash {
             };
             btnExport.Clicked += BtnExport_Clicked;
 
-            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, _chkSRGB, btnGLB, _lblGLB, btnExport);
+            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, _chkSRGB, _chkSwapWinding, btnGLB, _lblGLB, btnExport);
         }
 
         private void BtnExport_Clicked() {
@@ -110,6 +115,7 @@ namespace CrossSlash {
                 using (var lgp = new Ficedula.FF7.LGPFile(_lgpFile)) {
                     var exporter = new Ficedula.FF7.Exporters.FieldModel(lgp) {
                         ConvertSRGBToLinear = _chkSRGB.Checked,
+                        SwapWinding = _chkSwapWinding.Checked,
                     };
                     var model = exporter.BuildScene(_hrcFiles[_lvHRCs.SelectedItem], anims);
                     model.SaveGLB(_glbFile);

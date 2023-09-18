@@ -75,6 +75,8 @@ namespace Ficedula.FF7 {
                 .ToDictionary(e => e.FullPath, e => e, StringComparer.InvariantCultureIgnoreCase);
         }
 
+        public bool Exists(string name) => _entries.ContainsKey(name);
+
         public Stream? TryOpen(string name) {
             if (_entries.TryGetValue(name, out Entry? e)) {
                 _source.Position = e.Offset + 20;
