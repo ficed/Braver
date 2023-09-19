@@ -34,10 +34,12 @@ namespace Ficedula.FF7.Field {
             public float Length { get; }
             public List<BonePolygon> Polygons { get; } = new();
             public int Index { get; }
+            public string Name { get; }
 
-            public Bone(float length, int index) {
+            public Bone(float length, int index, string name) {
                 Length = length;
                 Index = index;
+                Name = name;
             }
         }
 
@@ -52,11 +54,11 @@ namespace Ficedula.FF7.Field {
                 if (numBones == 0) //special case, bah
                     numBones++;
 
-                Root = new Bone(0, -1);
+                Root = new Bone(0, -1, "root");
                 bones.Add("root", Root);
 
                 foreach (int b in Enumerable.Range(0, numBones)) {
-                    Bone bone = new Bone(float.Parse(lines[6 + 5 * b]), b);
+                    Bone bone = new Bone(float.Parse(lines[6 + 5 * b]), b, lines[4 + 5 * b]);
                     foreach (string rsd in lines[7 + 5 * b].Split(null).Skip(1)) {
                         if (string.IsNullOrWhiteSpace(rsd)) continue;
                         var rsdLines = dataProvider(rsd + ".RSD").ReadAllLines().ToArray();

@@ -39,9 +39,11 @@ namespace Ficedula.FF7.Exporters {
             MaterialBuilder defMaterial = GetUntexturedMaterial();
 
             var firstFrame = animations[0].Anim.Frames[0];
-            var allNodes = new Dictionary<int, NodeBuilder>();
+            var allNodes = new Dictionary<string, NodeBuilder>();
+            var sourceNodes = new Dictionary<string, HRCModel.Bone>();
 
             void Descend(SceneBuilder scene, HRCModel.Bone bone, NodeBuilder node, Vector3 translation, Vector3? scale) {
+                sourceNodes[bone.Name] = bone;
                 var rotation = Quaternion.CreateFromYawPitchRoll(
                     firstFrame.Rotation.Y * (float)Math.PI / 180,
                     firstFrame.Rotation.X * (float)Math.PI / 180,
@@ -53,8 +55,8 @@ namespace Ficedula.FF7.Exporters {
                 );
 
                 foreach (var child in bone.Children) {
-                    var c = node.CreateNode(child.Index.ToString());
-                    allNodes[child.Index] = c;
+                    var c = node.CreateNode(child.Name);
+                    allNodes[child.Name] = c;
                     Descend(scene, child, c, new Vector3(0, 0, -bone.Length), null);
                 }
             }
@@ -65,17 +67,21 @@ namespace Ficedula.FF7.Exporters {
                         scene.AddSkinnedMesh(mesh, transform, joints);
                 }
                 foreach(var child in bone.Children) {
-                    var childNode = allNodes[child.Index];
+                    var childNode = allNodes[child.Name];
                     var childTransform = childNode.LocalMatrix * transform;
                     DescendMesh(scene, child, childNode, childTransform, joints);
                 }
             }
 
-            var root = new NodeBuilder("-1");
+            var root = new NodeBuilder("root");
             Descend(scene, model.Root, root, Vector3.Zero, null);
             DescendMesh(
                 scene, model.Root, root, root.LocalMatrix, 
-                allNodes.Where(kv => kv.Key >= 0).OrderBy(kv => kv.Key).Select(kv => kv.Value).ToArray()
+                sourceNodes.Values
+                .Where(bone => bone.Index >= 0)
+                .OrderBy(bone => bone.Index)
+                .Select(bone => allNodes[bone.Name])
+                .ToArray()
             );
             scene.AddNode(root);
 
@@ -91,7 +97,10 @@ namespace Ficedula.FF7.Exporters {
 
                 foreach (var node in output.LogicalNodes) {
                     int c = 0;
-                    if (!int.TryParse(node.Name, out int boneIndex))
+                    int boneIndex;
+                    if (sourceNodes.TryGetValue(node.Name ?? "", out var bone))
+                        boneIndex = bone.Index;
+                    else
                         continue;
 
                     var rots = new Dictionary<float, Quaternion>();
