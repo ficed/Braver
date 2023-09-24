@@ -18,7 +18,7 @@ namespace CrossSlash {
         private ListView _lvHRCs;
         private TextView _txtAnims;
         private List<string> _hrcFiles;
-        private CheckBox _chkSRGB, _chkSwapWinding;
+        private CheckBox _chkSRGB, _chkSwapWinding, _chkBakeColours;
 
         private string _lgpFile, _glbFile;
 
@@ -70,13 +70,18 @@ namespace CrossSlash {
             _chkSwapWinding = new CheckBox {
                 Checked = false,
                 Text = "Swap triangle winding",
-                Y = Pos.Bottom(_chkSRGB) + 1,
+                Y = Pos.Bottom(_chkSRGB),
+            };
+            _chkBakeColours = new CheckBox {
+                Checked = false,
+                Text = "Bake Vertex Colours to texture",
+                Y = Pos.Bottom(_chkSwapWinding),
             };
 
             var btnGLB = new Button {
                 Text = "Save GLB As",
                 Width = Dim.Percent(25),
-                Y = Pos.Bottom(_chkSwapWinding) + 1,
+                Y = Pos.Bottom(_chkBakeColours) + 1,
             };
             btnGLB.Clicked += BtnGLB_Clicked;
 
@@ -93,7 +98,9 @@ namespace CrossSlash {
             };
             btnExport.Clicked += BtnExport_Clicked;
 
-            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, _chkSRGB, _chkSwapWinding, btnGLB, _lblGLB, btnExport);
+            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, 
+                _chkSRGB, _chkSwapWinding, _chkBakeColours,
+                btnGLB, _lblGLB, btnExport);
         }
 
         private void BtnExport_Clicked() {
@@ -116,6 +123,7 @@ namespace CrossSlash {
                     var exporter = new Ficedula.FF7.Exporters.FieldModel(lgp) {
                         ConvertSRGBToLinear = _chkSRGB.Checked,
                         SwapWinding = _chkSwapWinding.Checked,
+                        BakeVertexColours = _chkBakeColours.Checked,
                     };
                     var model = exporter.BuildScene(_hrcFiles[_lvHRCs.SelectedItem], anims);
                     model.SaveGLB(_glbFile);

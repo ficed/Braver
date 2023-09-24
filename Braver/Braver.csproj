@@ -54,6 +54,10 @@
       <Private>False</Private>
       <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
     </ProjectReference>
+	  <ProjectReference Include="..\PluginImplementations\Braver.GltfLoader\Braver.GltfLoader.csproj">
+		  <Private>False</Private>
+		  <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+	  </ProjectReference>
     <ProjectReference Include="..\PluginImplementations\Braver.Tolk\Braver.Tolk.csproj">
       <Private>False</Private>
       <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
@@ -88,11 +92,13 @@
     <PluginBinEquipMenuMod Include="../PluginImplementations/Braver.EquipMenuMod/bin/$(Configuration)/$(TargetFramework)/*.*" />
     <PluginBinFFNxCompat Include="../PluginImplementations/Braver.FFNxCompatibility/bin/$(Configuration)/$(TargetFramework)/*.*" />
     <PluginBinTolk Include="../PluginImplementations/Braver.Tolk/bin/$(Configuration)/$(TargetFramework)/*.*" />
+    <PluginBinGltf Include="../PluginImplementations/Braver.GltfLoader/bin/$(Configuration)/$(TargetFramework)/*.*" />
   </ItemGroup>
   <Target Name="7thAfterBuild" AfterTargets="AfterBuild">
     <Copy SourceFiles="@(PluginBin7HShim)" DestinationFolder="$(OutputPath)/plugins/7HCompatibility" ContinueOnError="false" />
     <Copy SourceFiles="@(PluginBinEquipMenuMod)" DestinationFolder="$(OutputPath)/plugins/EquipMenuMod" ContinueOnError="false" />
     <Copy SourceFiles="@(PluginBinFFNxCompat)" DestinationFolder="$(OutputPath)/plugins/FFNxCompatibility" ContinueOnError="false" />
     <Copy SourceFiles="@(PluginBinTolk)" DestinationFolder="$(OutputPath)/plugins/Tolk" ContinueOnError="false" />
+    <Copy SourceFiles="@(PluginBinGltf)" DestinationFolder="$(OutputPath)/plugins/Gltf" ContinueOnError="false" />
   </Target>
 </Project>

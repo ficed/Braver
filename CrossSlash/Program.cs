@@ -22,13 +22,14 @@ switch (args.Length) {
     case 1:
     case 2:
     case 3:
-        Console.WriteLine("USAGE: CrossSlash [OutputGLBFile] [LGPFile] [HRCFile] {/ConvertSRGB} {/SwapWinding} [Anim] [Anim] [Anim]...");
+        Console.WriteLine("USAGE: CrossSlash [OutputGLBFile] [LGPFile] [HRCFile] {/ConvertSRGB} {/SwapWinding} {/BakeColours} [Anim] [Anim] [Anim]...");
         Console.WriteLine(@"e.g. CrossSlash C:\temp\tifa.glb C:\games\FF7\data\field\char.lgp AAGB.HRC ABCD.a ABCE.a");
         Console.WriteLine(@"or:");
         Console.WriteLine(@"CrossSlash [OutputGLBFile] [LGPFile] [BattleModelCode] {/ConvertSRGB} {/SwapWinding} {/Scale:1}");
         Console.WriteLine("");
         Console.WriteLine("Specify /ConvertSRGB to convert vertex colours from SRGB to linear when exporting");
         Console.WriteLine("Specify /SwapWinding to swap triangle winding order");
+        Console.WriteLine("Specify /BakeColours to bake vertex colours into a texture");
         break;
     default:
         Console.WriteLine($"Opening LGP {args[1]}...");
@@ -37,6 +38,7 @@ switch (args.Length) {
             void Configure(Ficedula.FF7.Exporters.ModelBase exporter) {
                 exporter.ConvertSRGBToLinear = args.Any(s => s.Equals("/ConvertSRGB", StringComparison.InvariantCultureIgnoreCase));
                 exporter.SwapWinding = args.Any(s => s.Equals("/SwapWinding", StringComparison.InvariantCultureIgnoreCase));
+                exporter.BakeVertexColours = args.Any(s => s.Equals("/BakeColours", StringComparison.InvariantCultureIgnoreCase));
             }
 
             if (args[2].EndsWith(".HRC", StringComparison.InvariantCultureIgnoreCase)) {
@@ -58,7 +60,7 @@ switch (args.Length) {
                     ?? exporter.Scale.ToString()
                 );
                 Console.WriteLine($"Exporting model {args[2]}...");
-                var bmodel = exporter.BuildSceneFromModel(args[2]);
+                var bmodel = exporter.BuildSceneAuto(args[2]);
                 Console.WriteLine($"Saving output to {args[0]}...");
                 bmodel.SaveGLB(args[0]);
             } else

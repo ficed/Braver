@@ -10,7 +10,6 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static System.Windows.Forms.Design.AxImporter;
 
 namespace Braver.Field {
     public class FieldUI {

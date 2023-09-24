@@ -1,8 +1,7 @@
 {
   "profiles": {
     "CrossSlash": {
-      "commandName": "Project",
-      "commandLineArgs": "C:\\temp\\test.glb C:\\games\\FF7\\data\\field\\char.lgp AAGB.HRC /ConvertSRGB ABCE.a ABCF.a DIDF.a APGB.a BZAC.a ACGA.a DIEA.a CDGF.a ACGB.a"
+      "commandName": "Project"
     }
   }
 }

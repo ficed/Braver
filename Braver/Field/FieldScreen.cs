@@ -189,6 +189,7 @@ namespace Braver.Field {
             _dialogPlugins = GetPlugins<IDialog>(_file);
             _bgPlugins = GetPlugins<IBackground>(_file);
             _moviePlugins = GetPlugins<IMovie>(_file);
+            var modelPlugins = GetPlugins<IModelLoader>(_file);
 
             _fieldPlugins.Call(f => f.Init(this));
 
@@ -209,6 +210,7 @@ namespace Braver.Field {
                     var model = new FieldModel(
                         graphics, g, index, m.HRC,
                         m.Animations.Select(s => System.IO.Path.ChangeExtension(s, ".a")),
+                        modelPlugins,
                         globalLightColour: m.GlobalLightColor,
                         light1Colour: m.Light1Color, light1Pos: m.Light1Pos.ToX(),
                         light2Colour: m.Light2Color, light2Pos: m.Light2Pos.ToX(),

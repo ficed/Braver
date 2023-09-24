@@ -103,6 +103,8 @@ namespace Ficedula.FF7.Exporters {
             );
             scene.AddNode(root);
 
+            FinishBaking();
+
             var settings = SceneBuilderSchema2Settings.Default;
             settings.UseStridedBuffers = false;
             var model = scene.ToGltf2(settings);
@@ -149,6 +151,32 @@ namespace Ficedula.FF7.Exporters {
             }
 
             return model;
+        }
+
+        public SharpGLTF.Schema2.ModelRoot BuildSceneAuto(string name) {
+            if (_lgp.Exists(name + ".a00"))
+                return BuildSceneFromSummon(name);
+            else if (_lgp.Exists(name + "DA"))
+                return BuildSceneFromModel(name);
+            else
+                throw new Exception($"Can't detect battle model type");
+        }
+
+        public SharpGLTF.Schema2.ModelRoot BuildSceneFromSummon(string summonName) {
+            //TODO - very similar to code in main Braver project - move into Ficedula.FF7
+            var texs = Enumerable.Range(0, 99).Select(i => $"{summonName}.t{i:00}");
+            int part = 0;
+            Func<string?> NextData = () => {
+                string data;
+                do {
+                    if (part >= 99)
+                        return null;
+                    data = $"{summonName}.p{part:00}";
+                    part++;
+                } while (!_lgp.Exists(data));
+                return data;
+            };
+            return BuildScene(summonName + ".d", summonName + ".a00", texs, NextData);
         }
 
         public SharpGLTF.Schema2.ModelRoot BuildSceneFromModel(string modelCode) {

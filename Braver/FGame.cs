@@ -129,16 +129,14 @@ namespace Braver {
                 Trace.WriteLine($"  Config: {setting.Key} = {setting.Value}");
 
             PluginManager = new PluginManager();
+            var config = new PluginConfigs();
+            var plugins = new List<Plugin> {
+                new BuiltIn()
+            };
             if (_paths.ContainsKey("PLUGINS") && !string.IsNullOrWhiteSpace(_paths["PLUGINS"])) {
-
-                List<Plugin> plugins = new();
                 foreach(var folder in Directory.GetDirectories(_paths["PLUGINS"])) {
                     var foundInstances = Directory.GetFiles(folder, "*.dll")
-                        .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
-                        .SelectMany(asm => asm.GetTypes())
-                        .Where(t => t.IsAssignableTo(typeof(Plugin)))
-                        .Select(t => Activator.CreateInstance(t))
-                        .OfType<Plugin>();
+                        .SelectMany(dll => PluginManager.GetPluginsFromAssembly(dll));
                     foreach(var instance in foundInstances) {
                         plugins.Add(instance);
                         _data[instance.GetType().FullName] = new List<DataSource> {
@@ -150,19 +148,14 @@ namespace Braver {
                     }
                 }
 
-                if (plugins.Any()) {
-                    PluginConfigs config;
-
-                    string pluginConfig = Path.Combine(_paths["PLUGINS"], "config.xml");
-                    if (File.Exists(pluginConfig)) {
-                        using (var fs = new FileStream(pluginConfig, FileMode.Open, FileAccess.Read))
-                            config = Serialisation.Deserialise<PluginConfigs>(fs);
-                    } else
-                        config = new PluginConfigs();
-
-                    PluginManager.Init(this, plugins, config);
-                }
+                string pluginConfig = Path.Combine(_paths["PLUGINS"], "config.xml");
+                if (File.Exists(pluginConfig)) {
+                    using (var fs = new FileStream(pluginConfig, FileMode.Open, FileAccess.Read))
+                        config = Serialisation.Deserialise<PluginConfigs>(fs);
+                } 
             }
+
+            PluginManager.Init(this, plugins, config);
 
             _systemPlugins = PluginManager.GetInstances<ISystem>("");
 

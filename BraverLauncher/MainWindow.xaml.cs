@@ -68,11 +68,7 @@ namespace BraverLauncher {
             if (Directory.Exists(pluginPath)) {
                 foreach (var folder in Directory.GetDirectories(pluginPath)) {
                     var plugins = Directory.GetFiles(folder, "*.dll")
-                            .Select(fn => System.Reflection.Assembly.LoadFrom(fn))
-                            .SelectMany(asm => asm.GetTypes())
-                            .Where(t => t.IsAssignableTo(typeof(Plugin)))
-                            .Select(t => Activator.CreateInstance(t))
-                            .OfType<Plugin>();
+                            .SelectMany(dll => PluginManager.GetPluginsFromAssembly(dll));
 
                     foreach (var plugin in plugins) {
                         lbPlugins.Items.Add(new LoadedPlugin { Plugin = plugin });

@@ -85,6 +85,8 @@ namespace Ficedula.FF7.Exporters {
             );
             scene.AddNode(root);
 
+            FinishBaking();
+
             var settings = SceneBuilderSchema2Settings.Default;
             settings.UseStridedBuffers = false;
             var output = scene.ToGltf2(settings);

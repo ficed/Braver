@@ -4,6 +4,8 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins;
+using Braver.Plugins.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -192,6 +194,8 @@ namespace Braver.WorldMap {
         private bool _wasMoving, _isDebug, _panMode;
         private SkyBox _skybox;
 
+        private PluginInstances<IModelLoader> _modelPlugins;
+
         private UI.UIBatch _ui;
 
         private Channel<(int x, int y)> _load = Channel.CreateUnbounded<(int x, int y)>();
@@ -299,12 +303,15 @@ namespace Braver.WorldMap {
                 ReferenceAlpha = 4,
             };
 
+            _modelPlugins = g.PluginManager.GetInstances<IModelLoader>("_wm");
+
             using (var s = g.Open("wm", g.SaveData.WorldMapAvatar + ".xml"))
                 _avatar = Serialisation.Deserialise<Avatar>(s);
 
             _avatarModel = new Field.FieldModel(
                 graphics, g, 0, _avatar.HRC + ".hrc", 
                 _avatar.Animations.Select(a => a.File),
+                _modelPlugins,
                 "wm"
             );
             _avatarModel.ZUp = false;

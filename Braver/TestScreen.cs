@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Plugins.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -29,7 +30,11 @@ namespace Braver {
 
             graphics.BlendState = BlendState.AlphaBlend;
 
-            _model = new Field.FieldModel(graphics, g, 0, "AXDC.hrc", _anims, "field");
+            _model = new Field.FieldModel(
+                graphics, g, 0, "AXDC.hrc", _anims, 
+                g.PluginManager.GetInstances<IModelLoader>(""),
+                "field"
+            );
             _model.PlayAnimation(_anim, true, 1f);
             _model.Scale = 1f;
             _model.Rotation2 = new Vector3(0, 0, 180);

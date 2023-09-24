@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0030" />
+    <PackageReference Include="SharpGLTF.Runtime" Version="1.0.0-alpha0030" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Braver.Core\Braver.Core.csproj" />
+    <ProjectReference Include="..\..\Braver.Plugins\Braver.Plugins.csproj" />
+  </ItemGroup>
+
+<PropertyGroup>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+</PropertyGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="del $(OutDir)\Braver.Core.*&#xD;&#xA;del $(OutDir)\Ficedula.FF7.*&#xD;&#xA;del $(OutDir)\Braver.Plugins.*&#xD;&#xA;del $(OutDir)\Microsoft.*&#xD;&#xA;del $(OutDir)\SharpDX.*&#xD;&#xA;del $(OutDir)\MonoGame.*&#xD;&#xA;rd /s /q $(OutDir)\runtimes" />
+	</Target>
+
+</Project>

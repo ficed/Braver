@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Braver.Plugins {
-    public class DataOnlyPlugin : Plugin {
+    public class DataOnlyPlugin : AutoEnabledPlugin {
 
         private string _root;
 

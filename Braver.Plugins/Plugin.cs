@@ -4,6 +4,8 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using System.Reflection;
+using System.Runtime.Loader;
 using System.Xml.Serialization;
 
 namespace Braver.Plugins {
@@ -16,6 +18,8 @@ namespace Braver.Plugins {
 
         public abstract void Init(BGame game);
     }
+
+    public abstract class AutoEnabledPlugin : Plugin { }
 
     public interface IPluginInstance {
     }
@@ -40,6 +44,14 @@ namespace Braver.Plugins {
     }
 
     public class PluginManager {
+
+        public static IEnumerable<Plugin> GetPluginsFromAssembly(string dllFile) {
+            var assembly = Assembly.LoadFrom(dllFile);
+            return assembly.GetTypes()
+                .Where(t => t.IsAssignableTo(typeof(Plugin)))
+                .Select(t => Activator.CreateInstance(t))
+                .OfType<Plugin>();
+        }
 
         private Dictionary<Type, List<Plugin>> _types = new();
 
@@ -93,7 +105,7 @@ namespace Braver.Plugins {
                     Plugin = pl,
                     Config = configs.Configs.FirstOrDefault(cfg => cfg.PluginClass == pl.GetType().FullName) ?? new PluginConfig(),
                 })
-                .Where(pl => pl.Config.Enabled || (pl.Plugin is DataOnlyPlugin))
+                .Where(pl => pl.Config.Enabled || (pl.Plugin is AutoEnabledPlugin))
                 .OrderBy(pl => pl.Config.Priority);
 
             foreach(var p in configuredPlugins) {

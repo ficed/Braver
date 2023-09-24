@@ -15,7 +15,7 @@ namespace CrossSlash {
     public class BattleExportGuiWindow : Window {
         private Label _lblLGP, _lblGLB;
         private string _lgpFile, _glbFile;
-        private CheckBox _chkSRGB, _chkSwapWinding;
+        private CheckBox _chkSRGB, _chkSwapWinding, _chkBakeColours;
         private TextField _txtModel, _txtScale;
 
         public BattleExportGuiWindow() {
@@ -63,13 +63,18 @@ namespace CrossSlash {
             _chkSwapWinding = new CheckBox {
                 Checked = false,
                 Text = "Swap triangle winding",
-                Y = Pos.Bottom(_chkSRGB) + 1,
+                Y = Pos.Bottom(_chkSRGB),
+            };
+            _chkBakeColours = new CheckBox {
+                Checked = false,
+                Text = "Bake Vertex Colours to texture",
+                Y = Pos.Bottom(_chkSwapWinding),
             };
 
             var btnGLB = new Button {
                 Text = "Save GLB As",
                 Width = Dim.Percent(25),
-                Y = Pos.Bottom(_chkSwapWinding) + 1,
+                Y = Pos.Bottom(_chkBakeColours) + 1,
             };
             btnGLB.Clicked += BtnGLB_Clicked;
 
@@ -86,7 +91,9 @@ namespace CrossSlash {
             };
             btnExport.Clicked += BtnExport_Clicked;
 
-            Add(btnLGP, _lblLGP, lblModel, _txtModel, lblScale, _txtScale, _chkSRGB, _chkSwapWinding, btnGLB, _lblGLB, btnExport);
+            Add(btnLGP, _lblLGP, lblModel, _txtModel, lblScale, _txtScale, 
+                _chkSRGB, _chkSwapWinding, _chkBakeColours,
+                btnGLB, _lblGLB, btnExport);
         }
 
         private void BtnGLB_Clicked() {
@@ -128,7 +135,7 @@ namespace CrossSlash {
                         SwapWinding = _chkSwapWinding.Checked,
                         Scale = scale,
                     };
-                    var model = exporter.BuildSceneFromModel(_txtModel.Text.ToString());
+                    var model = exporter.BuildSceneAuto(_txtModel.Text.ToString());
                     model.SaveGLB(_glbFile);
                 }
                 MessageBox.Query("Success", "Export Succeeded", "OK");
