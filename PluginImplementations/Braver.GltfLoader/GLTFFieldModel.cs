@@ -40,18 +40,30 @@ namespace Braver.Field {
         }
     }
 
-    public class GltfModelLoader : IModelLoader {
+    public class GltfModelLoader : IModelLoader, IDisposable {
+
+        private List<GLTFFieldModel> _models = new();
+
+        public void Dispose() {
+            foreach (var model in _models)
+                model.Dispose();
+            _models.Clear();
+        }
+
         public Plugins.Field.FieldModelRenderer Load(BGame game, string category, string hrc) {
             using (var s = game.TryOpen(category, Path.ChangeExtension(hrc, ".glb"))) {
-                if (s != null)
-                    return new GLTFFieldModel();
+                if (s != null) {
+                    var model = new GLTFFieldModel();
+                    _models.Add(model);
+                    return model;
+                }
             }
             return null;
         }
 
     }
 
-    internal class GLTFFieldModel : Plugins.Field.FieldModelRenderer {
+    internal class GLTFFieldModel : Plugins.Field.FieldModelRenderer, IDisposable {
 
         private SharpGLTF.Runtime.MonoGameDeviceContent<SharpGLTF.Runtime.MonoGameModelTemplate> _content;
         private SharpGLTF.Runtime.MonoGameModelInstance _model;
@@ -159,6 +171,10 @@ namespace Braver.Field {
             transform = Matrix.CreateRotationZ((float)Math.PI) * transform;
             //_model.Template._Meshes[0].Effects.First().
             _model.Draw(projection, view, transform);
+        }
+
+        public void Dispose() {
+            _content.Dispose();
         }
     }
 }

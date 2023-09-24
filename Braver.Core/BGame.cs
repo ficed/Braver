@@ -88,11 +88,17 @@ namespace Braver {
         public override string ToString() => $"File source {_root}";
     }
 
+    public enum FieldAutoSaveType {
+        None,
+        MostRecent3,
+        AllByLocationAndPPV,
+    }
+
     public class GameOptions {
         public bool NoFieldScripts { get; set; }
         public bool NoRandomBattles { get; set; }
         public bool SkipBattleMenu { get; set; }
-        public bool AutoSaveOnFieldEntry { get; set; }
+        public FieldAutoSaveType AutoSaveOnFieldEntry { get; set; }
         public bool SeparateSaveFiles { get; set; }
         public float MusicVolume { get; set; } = 1f;
         public int BattleSpeed { get; set; } = 128;
@@ -106,6 +112,8 @@ namespace Braver {
                         prop.SetValue(this, float.Parse(value));
                     else if (prop.PropertyType == typeof(int))
                         prop.SetValue(this, int.Parse(value));
+                    else if (prop.PropertyType.IsEnum)
+                        prop.SetValue(this, Enum.Parse(prop.PropertyType, value));
                     else
                         throw new NotImplementedException();
                 }

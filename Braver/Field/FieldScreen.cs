@@ -157,11 +157,6 @@ namespace Braver.Field {
         public override void Init(FGame g, GraphicsDevice graphics) {
             base.Init(g, graphics);
 
-            UpdateSaveLocation();
-            if (g.GameOptions.AutoSaveOnFieldEntry && !_isFirstLoad)
-                Game.AutoSave();
-            _isFirstLoad = false;
-
             g.Net.Listen<Net.FieldModelMessage>(this);
             g.Net.Listen<Net.FieldBGMessage>(this);
             g.Net.Listen<Net.FieldEntityModelMessage>(this);
@@ -177,6 +172,12 @@ namespace Braver.Field {
 
             var mapList = g.Singleton(() => new MapList(g.Open("field", "maplist")));
             _file = mapList.Items[_destination.DestinationFieldID];
+
+            UpdateSaveLocation();
+            if (!_isFirstLoad)
+                Game.AutoSave(_file);
+            _isFirstLoad = false;
+
             var cached = g.Singleton(() => new CachedField());
             if (cached.FieldID == _destination.DestinationFieldID)
                 field = cached.FieldFile;

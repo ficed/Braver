@@ -33,8 +33,9 @@ namespace Braver.UI.Layout {
             DoLabel(lNoFieldScripts, Game.GameOptions.NoFieldScripts);
             DoLabel(lNoRandomBattles, Game.GameOptions.NoRandomBattles);
             DoLabel(lSkipBattleMenu, Game.GameOptions.SkipBattleMenu);
-            DoLabel(lAutoSaveOnFieldEntry, Game.GameOptions.AutoSaveOnFieldEntry);
             DoLabel(lSeparateSaveFiles, Game.GameOptions.SeparateSaveFiles);
+
+            lAutoSaveOnFieldEntry.Text = $"Auto Save on Field Entry: {Game.GameOptions.AutoSaveOnFieldEntry}";
         }
 
         public void LabelClick(Label L) {
@@ -44,9 +45,12 @@ namespace Braver.UI.Layout {
                 Game.GameOptions.NoRandomBattles = !Game.GameOptions.NoRandomBattles;
             else if (L == lSkipBattleMenu)
                 Game.GameOptions.SkipBattleMenu = !Game.GameOptions.SkipBattleMenu;
-            else if (L == lAutoSaveOnFieldEntry)
-                Game.GameOptions.AutoSaveOnFieldEntry = !Game.GameOptions.AutoSaveOnFieldEntry;
-            else if (L == lSeparateSaveFiles)
+            else if (L == lAutoSaveOnFieldEntry) {
+                int maxValue = Enum.GetValues<FieldAutoSaveType>()
+                    .Select(e => (int)e)
+                    .Max();
+                Game.GameOptions.AutoSaveOnFieldEntry = (FieldAutoSaveType)(((int)Game.GameOptions.AutoSaveOnFieldEntry + 1) % (maxValue + 1));
+            } else if (L == lSeparateSaveFiles)
                 Game.GameOptions.SeparateSaveFiles = !Game.GameOptions.SeparateSaveFiles;
 
             Update();

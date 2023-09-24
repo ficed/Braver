@@ -110,9 +110,12 @@ namespace Braver.UI {
                             break;
 
                         case 1:
-                            string autoPath = System.IO.Path.Combine(Game.GetPath("save"), "auto");
-                            if (System.IO.File.Exists(autoPath + ".sav"))
-                                Game.Load(autoPath);
+                            var mostRecent = System.IO.Directory.GetFiles(Game.GetPath("save"), "*.sav")
+                                .Select(fn => new System.IO.FileInfo(fn))
+                                .OrderByDescending(info => info.LastWriteTime)
+                                .FirstOrDefault();
+                            if (mostRecent != null)
+                                Game.Load(System.IO.Path.ChangeExtension(mostRecent.FullName, "").TrimEnd('.'));
                             else
                                 Game.Audio.PlaySfx(Sfx.Invalid, 1f, 0f);
                             break;

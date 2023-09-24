@@ -247,13 +247,21 @@ namespace Braver {
                 NetConfig = new Net.NetConfig();
         }
 
-        public void AutoSave() {
+        public void AutoSave(string location) {
             string path = GetPath("save");
-            foreach (string file1 in Directory.GetFiles(path, "auto1.*"))
-                File.Move(file1, Path.Combine(path, "auto2" + Path.GetExtension(file1)), true);
-            foreach (string file0 in Directory.GetFiles(path, "auto.*"))
-                File.Move(file0, Path.Combine(path, "auto1" + Path.GetExtension(file0)), true);
-            Save(Path.Combine(path, "auto"), !GameOptions.SeparateSaveFiles);
+
+            switch (GameOptions.AutoSaveOnFieldEntry) {
+                case FieldAutoSaveType.MostRecent3:
+                    foreach (string file1 in Directory.GetFiles(path, "auto1.*"))
+                        File.Move(file1, Path.Combine(path, "auto2" + Path.GetExtension(file1)), true);
+                    foreach (string file0 in Directory.GetFiles(path, "auto.*"))
+                        File.Move(file0, Path.Combine(path, "auto1" + Path.GetExtension(file0)), true);
+                    Save(Path.Combine(path, "auto"), !GameOptions.SeparateSaveFiles);
+                    break;
+                case FieldAutoSaveType.AllByLocationAndPPV:
+                    Save(Path.Combine(path, $"auto_{location}_{SaveMap.PPV}"), !GameOptions.SeparateSaveFiles);
+                    break;
+            }
         }
 
         public Stream WriteDebugBData(string category, string file) {
