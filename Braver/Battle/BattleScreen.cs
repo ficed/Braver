@@ -121,6 +121,7 @@ namespace Braver.Battle {
         private ActionInProgress _actionInProgress;
         private Action _actionComplete;
 
+        private SpriteRenderer _sprites;
         private Engine _engine;
         private BattleDebug _debug;
         private PluginInstances<IBattleUI> _plugins;
@@ -264,6 +265,8 @@ namespace Braver.Battle {
             var cam = _scene.Cameras[0];
             _renderer.SetCamera(cam);
 
+            _sprites = new SpriteRenderer(graphics);
+
             foreach (var enemy in _scene.Enemies) {
                 AddModel(
                     SceneDecoder.ModelIDToFileName(enemy.Enemy.ID),
@@ -387,11 +390,11 @@ namespace Braver.Battle {
             }
         }
 
-        private Vector2 GetModelScreenPos(ICombatant combatant) {
+        public Vector3 GetModelScreenPos(ICombatant combatant) {
             var model = _renderer.Models[combatant];
             var middle = (model.MaxBounds + model.MinBounds) * 0.5f;
             var screenPos = _renderer.View3D.ProjectTo2D(model.Translation + middle);
-            return screenPos.XY();
+            return screenPos;
         }
 
         private void NextMenu() {
@@ -541,7 +544,7 @@ namespace Braver.Battle {
                         if (result.HPDamage != 0) {
                             _actionInProgress.Add(phase, new BattleResultText(
                                 _menuUI, Math.Abs(result.HPDamage).ToString(), result.HPDamage < 0 ? Color.White : Color.Green,
-                                () => GetModelScreenPos(result.Target), new Vector2(0, -1),
+                                () => GetModelScreenPos(result.Target).XY(), new Vector2(0, -1),
                                 60,
                                 $"{result.Target.Name} {Math.Abs(result.HPDamage)} {(result.HPDamage >= 0 ? "healing" : "damage")}"
                             ));
@@ -549,7 +552,7 @@ namespace Braver.Battle {
                         if (result.MPDamage != 0) {
                             _actionInProgress.Add(phase, new BattleResultText(
                                 _menuUI, $"{Math.Abs(result.MPDamage)} {Font.BATTLE_MP}", result.MPDamage < 0 ? Color.White : Color.Green,
-                                () => GetModelScreenPos(result.Target), new Vector2(0, -1),
+                                () => GetModelScreenPos(result.Target).XY(), new Vector2(0, -1),
                                 60,
                                 $"{result.Target.Name} {Math.Abs(result.HPDamage)} MP {(result.HPDamage >= 0 ? "healing" : "damage")}"
                             ));
@@ -558,7 +561,7 @@ namespace Braver.Battle {
                     } else {
                         _actionInProgress.Add(phase, new BattleResultText(
                             _menuUI, Font.BATTLE_MISS.ToString(), Color.White,
-                            () => GetModelScreenPos(result.Target), new Vector2(0, -1),
+                            () => GetModelScreenPos(result.Target).XY(), new Vector2(0, -1),
                             60,
                             $"{result.Target.Name} missed"
                         ));

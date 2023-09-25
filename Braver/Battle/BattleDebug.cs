@@ -22,11 +22,17 @@ namespace Braver.Battle {
         private int _cMenu, _anim, _script;
         private RealBattleScreen _screen;
         private AnimScriptExecutor _exec;
+        private SpriteRenderer _sprites;
+        private FGame _game;
+        private GraphicsDevice _graphics;
 
         public BattleDebug(GraphicsDevice graphics, FGame g, Engine engine, RealBattleScreen screen) {
             _ui = new UI.UIBatch(graphics, g);
+            _game = g;
+            _graphics = graphics;
             _engine = engine;
             _screen = screen;
+            _sprites = new SpriteRenderer(graphics);
         }
 
         public void Step() {
@@ -47,6 +53,8 @@ namespace Braver.Battle {
                 if (_exec.IsComplete)
                     _exec = null;
             }
+
+            _sprites.FrameStep();
         }
 
         public void ProcessInput(InputState input) {
@@ -83,11 +91,17 @@ namespace Braver.Battle {
                 );
             }
 
+            if (input.IsJustDown(InputKey.Start)) {
+                var sprite = new LoadedSprite(_game, _graphics, "fi_a01.s", new[] { "fire00.tex", "fire01.tex" });
+                _sprites.Add(sprite, () => _screen.GetModelScreenPos(_engine.ActiveCombatants.ElementAt(_cMenu)));
+            }
+
         }
 
         public void Render() {
             _ui.Render();
             _exec?.Render();
+            _sprites.Render();
         }
     }
 }
