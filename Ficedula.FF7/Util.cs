@@ -15,21 +15,4 @@ namespace Ficedula.FF7 {
         public FFException(string msg) : base(msg) { }
     }
 
-    public static class Util {
-        public static T? ValueOrNull<T>(T value, T nullValue) where T : struct {
-            return value.Equals(nullValue) ? null : value;
-        }
-
-        public static uint BSwap(uint i) {
-            return (i & 0xff00ff00) | ((i & 0xff) << 16) | ((i >> 16) & 0xff);
-        }
-
-        public static int IndexOf<T>(this IReadOnlyList<T> list, T value) where T : class {
-            foreach (int i in Enumerable.Range(0, list.Count))
-                if (list[i] == value)
-                    return i;
-            return -1;
-        }
-
-    }
 }

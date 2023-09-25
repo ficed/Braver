@@ -35,7 +35,7 @@ namespace Ficedula.FF7 {
                 source.Position = 0xEC + colours * 4 * p;
                 Palettes.Add(
                     Enumerable.Range(0, colours)
-                    .Select(_ => Util.BSwap(source.ReadU32()))
+                    .Select(_ => Utils.BSwap(source.ReadU32()))
                     .ToArray()
                 );
             }

@@ -14,4 +14,8 @@
     <EmbeddedResource Include="Field\Opcodes.txt" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ficedula.Core\Ficedula.Core.csproj" />
+  </ItemGroup>
+
 </Project>

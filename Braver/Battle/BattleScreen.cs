@@ -9,6 +9,7 @@ using Braver.Plugins;
 using Braver.Plugins.UI;
 using Braver.UI;
 using Braver.UI.Layout;
+using Ficedula;
 using Ficedula.FF7;
 using Ficedula.FF7.Battle;
 using Ficedula.FF7.Field;

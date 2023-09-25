@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula;
 using Ficedula.FF7;
 using Ficedula.FF7.Battle;
 

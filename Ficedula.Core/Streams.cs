@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ficedula.FF7 {
+namespace Ficedula {
     public static class Streams {
 
         public static long ReadI64(this Stream s) {

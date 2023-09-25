@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ficedula.Core\Ficedula.Core.csproj" />
     <ProjectReference Include="..\Ficedula.FF7\Ficedula.FF7.csproj" />
   </ItemGroup>
 

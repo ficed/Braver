@@ -6,6 +6,7 @@
 
 using Braver;
 using Braver.Battle;
+using Ficedula;
 using Ficedula.FF7.Battle;
 
 Console.WriteLine("Braver Battle Sim");

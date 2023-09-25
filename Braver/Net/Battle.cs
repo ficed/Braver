@@ -5,6 +5,7 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using Braver.Battle;
+using Ficedula;
 using Ficedula.FF7;
 using LiteNetLib.Utils;
 using Microsoft.Xna.Framework;
@@ -12,8 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Braver.Net {
 

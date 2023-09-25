@@ -210,7 +210,7 @@ namespace Ficedula.FF7.Battle {
             s.ReadI16();
             MP = s.ReadI16();
             AP = s.ReadI16();
-            MorphIntoItemID = Util.ValueOrNull(s.ReadI16(), (short)-1);
+            MorphIntoItemID = Utils.ValueOrNull(s.ReadI16(), (short)-1);
             BackDamageMultiplier = s.ReadByte() / 8f;
             s.ReadByte();
             HP = s.ReadI32();

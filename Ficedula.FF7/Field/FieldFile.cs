@@ -124,10 +124,10 @@ namespace Ficedula.FF7.Field {
             CameraFocus = s.ReadI16();
             CameraRange = new FieldBounds(s);
             s.ReadI32();
-            BG3AnimWidth = Util.ValueOrNull(s.ReadI16(), (short)1024);
-            BG3AnimHeight = Util.ValueOrNull(s.ReadI16(), (short)1024);
-            BG4AnimWidth = Util.ValueOrNull(s.ReadI16(), (short)1024);
-            BG4AnimHeight = Util.ValueOrNull(s.ReadI16(), (short)1024);
+            BG3AnimWidth = Utils.ValueOrNull(s.ReadI16(), (short)1024);
+            BG3AnimHeight = Utils.ValueOrNull(s.ReadI16(), (short)1024);
+            BG4AnimWidth = Utils.ValueOrNull(s.ReadI16(), (short)1024);
+            BG4AnimHeight = Utils.ValueOrNull(s.ReadI16(), (short)1024);
             s.Seek(24, SeekOrigin.Current); //....
             Gateways = Enumerable.Range(0, 12)
                 .Select(_ => new Gateway(s))
@@ -253,9 +253,9 @@ namespace Ficedula.FF7.Field {
                 .ToList();
 
             foreach(int i in Enumerable.Range(0, count)) {
-                Triangles[i].V01Tri = Util.ValueOrNull(source.ReadI16(), (short)-1);
-                Triangles[i].V12Tri = Util.ValueOrNull(source.ReadI16(), (short)-1);
-                Triangles[i].V20Tri = Util.ValueOrNull(source.ReadI16(), (short)-1);
+                Triangles[i].V01Tri = Utils.ValueOrNull(source.ReadI16(), (short)-1);
+                Triangles[i].V12Tri = Utils.ValueOrNull(source.ReadI16(), (short)-1);
+                Triangles[i].V20Tri = Utils.ValueOrNull(source.ReadI16(), (short)-1);
             }
         }
     }

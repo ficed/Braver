@@ -198,7 +198,7 @@ namespace Ficedula.FF7 {
                 .ToArray();
 
             uint[] pVertColours = Enumerable.Range(0, numVertexColours)
-                .Select(_ => Util.BSwap(s.ReadU32()))
+                .Select(_ => Utils.BSwap(s.ReadU32()))
                 .ToArray();
 
             uint[] pPolyColours = Enumerable.Range(0, numPolys)

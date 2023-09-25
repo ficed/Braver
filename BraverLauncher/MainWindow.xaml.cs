@@ -6,6 +6,7 @@
 
 using Braver;
 using Braver.Plugins;
+using Ficedula;
 using Ficedula.FF7;
 using System;
 using System.Collections.Generic;
