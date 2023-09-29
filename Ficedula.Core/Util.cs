@@ -57,6 +57,42 @@ namespace Ficedula {
         public static T Deserialise<T>(string s) {
             return (T)(new System.Xml.Serialization.XmlSerializer(typeof(T)).Deserialize(new StringReader(s)));
         }
+
+
+        public static void SetProperties(object obj, Dictionary<string, string> config, string prefix = "") {
+
+            void DoConfigure(object o, string prefix) {
+                if (o == null)
+                    return;
+
+                foreach (var prop in o.GetType().GetProperties()) {
+
+                    if (prop.PropertyType.IsClass && prop.PropertyType != typeof(string)) {
+                        DoConfigure(prop.GetValue(o), prefix + prop.Name + ".");
+                    } else {
+                        if (config.TryGetValue(prefix + prop.Name, out string value)) {
+                            if (prop.PropertyType == typeof(string))
+                                prop.SetValue(o, value);
+                            else if (prop.PropertyType == typeof(bool))
+                                prop.SetValue(o, bool.Parse(value));
+                            else if (prop.PropertyType == typeof(int))
+                                prop.SetValue(o, int.Parse(value));
+                            else if (prop.PropertyType == typeof(float))
+                                prop.SetValue(o, float.Parse(value));
+                            else if (prop.PropertyType == typeof(double))
+                                prop.SetValue(o, double.Parse(value));
+                            else if (prop.PropertyType.IsEnum)
+                                prop.SetValue(o, Enum.Parse(prop.PropertyType, value));
+                            else
+                                throw new NotImplementedException();
+                        }
+                    }
+                }
+            }
+
+            DoConfigure(obj, prefix);
+        }
+
     }
 
 }

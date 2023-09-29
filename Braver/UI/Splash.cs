@@ -129,7 +129,7 @@ namespace Braver.UI {
                             //Game.PushScreen(new TestScreen());
                             //Game.ChangeScreen(this, new TestScreen());
                             //Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
-                            Battle.BattleScreen.Launch(Game, 324, Battle.BattleFlags.None);
+                            Battle.BattleScreen.Launch(Game, 324, Battle.BattleFlags.BraverDebug);
                             /*
                             Game.ChangeScreen(this, new Field.FieldScreen(
                                 new Ficedula.FF7.Field.FieldDestination {

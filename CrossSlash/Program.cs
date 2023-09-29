@@ -5,6 +5,8 @@
 //  SPDX-License-Identifier: EPL-2.0
 
 using CrossSlash;
+using Ficedula;
+using Ficedula.FF7.Exporters;
 using Terminal.Gui;
 
 System.Globalization.CultureInfo.CurrentCulture =
@@ -12,7 +14,7 @@ System.Globalization.CultureInfo.CurrentCulture =
     System.Globalization.CultureInfo.DefaultThreadCurrentCulture =
     System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
 
-Console.WriteLine("CrossSlash"); 
+Console.WriteLine("CrossSlash");
 
 switch (args.Length) {
     case 0:
@@ -21,52 +23,32 @@ switch (args.Length) {
         break;  
     case 1:
     case 2:
-    case 3:
-        Console.WriteLine("USAGE: CrossSlash [OutputGLBFile] [LGPFile] [HRCFile] {/ConvertSRGB} {/SwapWinding} {/BakeColours} [Anim] [Anim] [Anim]...");
-        Console.WriteLine(@"e.g. CrossSlash C:\temp\tifa.glb C:\games\FF7\data\field\char.lgp AAGB.HRC ABCD.a ABCE.a");
-        Console.WriteLine(@"or:");
-        Console.WriteLine(@"CrossSlash [OutputGLBFile] [LGPFile] [BattleModelCode] {/ConvertSRGB} {/SwapWinding} {/Scale:1}");
-        Console.WriteLine("");
-        Console.WriteLine("Specify /ConvertSRGB to convert vertex colours from SRGB to linear when exporting");
-        Console.WriteLine("Specify /SwapWinding to swap triangle winding order");
-        Console.WriteLine("Specify /BakeColours to bake vertex colours into a texture");
-        break;
-    default:
-        Console.WriteLine($"Opening LGP {args[1]}...");
-        using (var lgp = new Ficedula.FF7.LGPFile(args[1])) {
-
-            void Configure(Ficedula.FF7.Exporters.ModelBase exporter) {
-                exporter.ConvertSRGBToLinear = args.Any(s => s.Equals("/ConvertSRGB", StringComparison.InvariantCultureIgnoreCase));
-                exporter.SwapWinding = args.Any(s => s.Equals("/SwapWinding", StringComparison.InvariantCultureIgnoreCase));
-                exporter.BakeVertexColours = args.Any(s => s.Equals("/BakeColours", StringComparison.InvariantCultureIgnoreCase));
-            }
-
-            if (args[2].EndsWith(".HRC", StringComparison.InvariantCultureIgnoreCase)) {
-                var exporter = new Ficedula.FF7.Exporters.FieldModel(lgp);
-                Configure(exporter);
-
-                Console.WriteLine($"Exporting model {args[2]}...");
-                var model = exporter.BuildScene(args[2], args.Skip(3).Where(s => !s.StartsWith("/")));
-                Console.WriteLine($"Saving output to {args[0]}...");
-                model.SaveGLB(args[0]);
-            } else if (args[2].Length == 2) {
-                var exporter = new Ficedula.FF7.Exporters.BattleModel(lgp);
-                Configure(exporter);
-                exporter.Scale = float.Parse(
-                    args
-                    .Where(s => s.StartsWith("/Scale:", StringComparison.InvariantCultureIgnoreCase))
-                    .Select(s => s.Substring("/Scale:".Length))
-                    .FirstOrDefault()
-                    ?? exporter.Scale.ToString()
-                );
-                Console.WriteLine($"Exporting model {args[2]}...");
-                var bmodel = exporter.BuildSceneAuto(args[2]);
-                Console.WriteLine($"Saving output to {args[0]}...");
-                bmodel.SaveGLB(args[0]);
-            } else
-                throw new Exception("Unrecognised export type");
-
-            Console.WriteLine("Done");
+        if (ExportKind.Exporters.TryGetValue(args[0], out var exporter)) {
+            Console.WriteLine(exporter.Help);
+        } else {
+            Console.WriteLine("USAGE: CrossSlash [ExportType] [SourceLGPOrFolder] [OutputFile] [parameters...]");
+            Console.WriteLine("ExportTypes: " + string.Join(", ", ExportKind.Exporters.Keys));
+            Console.WriteLine("Use CrossSlash [ExportType] for help on a specific exporter");
         }
+        break;
+
+    default:
+        exporter = ExportKind.Exporters[args[0]];
+        Console.WriteLine($"Opening source {args[1]}...");
+        var source = DataSource.Create(args[1]);
+        string dest = args[2];
+        var options = args.Skip(2)
+            .Where(s => s.StartsWith('/'))
+            .Select(s => s.Substring(1).Split(':'))
+            .ToDictionary(
+                sa => sa[0],
+                sa => sa.ElementAtOrDefault(1) ?? "true",
+                StringComparer.InvariantCultureIgnoreCase
+            );
+        var parameters = args.Skip(3).Where(s => !s.StartsWith('/'));
+        Serialisation.SetProperties(exporter.Config, options);
+        exporter.Execute(source, dest, parameters);
+        Console.WriteLine("Done");
+
         break;
 }

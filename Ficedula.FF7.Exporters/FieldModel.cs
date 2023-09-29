@@ -17,18 +17,19 @@ using System.Numerics;
 
 namespace Ficedula.FF7.Exporters {
     public class FieldModel : ModelBase {
-        private LGPFile _lgp;
+        private DataSource _data;
 
-        public FieldModel(LGPFile lgp) {
-            _lgp = lgp;
+        public FieldModel(DataSource data, ModelBaseOptions options) {
+            _data = data;
+            _options = options;
         }
 
         public SharpGLTF.Schema2.ModelRoot BuildScene(string modelHRC, IEnumerable<string> animFiles) {
             var scene = new SceneBuilder();
 
-            var model = new Field.HRCModel(_lgp, modelHRC);
+            var model = new Field.HRCModel(_data.Open, modelHRC);
             var animations = animFiles
-                .Select(file => new { Anim = new Field.FieldAnim(_lgp.Open(file)), Name = Path.GetFileNameWithoutExtension(file) })
+                .Select(file => new { Anim = new Field.FieldAnim(_data.Open(file)), Name = Path.GetFileNameWithoutExtension(file) })
                 .ToList();
 
             var materials = ConvertTextures(

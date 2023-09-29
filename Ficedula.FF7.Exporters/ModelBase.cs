@@ -16,10 +16,16 @@ using SharpGLTF.Schema2;
 using System.Security.Cryptography;
 
 namespace Ficedula.FF7.Exporters {
-    public class ModelBase {
+
+    public class ModelBaseOptions {
         public bool ConvertSRGBToLinear { get; set; }
         public bool SwapWinding { get; set; }
         public bool BakeVertexColours { get; set; }
+    }
+
+    public class ModelBase {
+
+        protected ModelBaseOptions _options;
 
         private Dictionary<(uint c0, uint c1, uint c2), (int x, int y)> _bakedColours = new();
         private SKBitmap _bakedTexture;
@@ -84,7 +90,7 @@ namespace Ficedula.FF7.Exporters {
                 ((colour >> 16) & 0xff) / 255f,
                 ((colour >> 24) & 0xff) / 255f
             );
-            if (ConvertSRGBToLinear) {
+            if (_options.ConvertSRGBToLinear) {
                 c = new Vector4(
                     (float)SRGBToLinear(c.X),
                     (float)SRGBToLinear(c.Y),
@@ -96,7 +102,7 @@ namespace Ficedula.FF7.Exporters {
         }
 
         private void SetupBaking() {
-            if (BakeVertexColours) {
+            if (_options.BakeVertexColours) {
                 _bakedTexture ??= new SKBitmap(256, 256);
                 _bakedMaterial ??= new MaterialBuilder("BakedVertexColours")
                     .WithDoubleSide(false)
@@ -106,7 +112,7 @@ namespace Ficedula.FF7.Exporters {
         }
 
         protected void FinishBaking() {
-            if (BakeVertexColours) {
+            if (_options.BakeVertexColours) {
                 byte[] data = _bakedTexture
                     .Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)
                     .ToArray();
@@ -124,8 +130,8 @@ namespace Ficedula.FF7.Exporters {
                     var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>();
                     for (int i = 0; i < group.Indices.Count; i += 3) {
                         var v0 = group.Verts[group.Indices[i]];
-                        var v1 = group.Verts[group.Indices[i + (SwapWinding ? 2 : 1)]];
-                        var v2 = group.Verts[group.Indices[i + (SwapWinding ? 1 : 2)]];
+                        var v1 = group.Verts[group.Indices[i + (_options.SwapWinding ? 2 : 1)]];
+                        var v2 = group.Verts[group.Indices[i + (_options.SwapWinding ? 1 : 2)]];
 
                         var vb0 = new VertexBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(
                             new VertexPositionNormal(v0.Position, v0.Normal),
@@ -147,12 +153,12 @@ namespace Ficedula.FF7.Exporters {
                             .AddTriangle(vb0, vb1, vb2);
                     }
                     yield return mesh;
-                } else if (BakeVertexColours) {
+                } else if (_options.BakeVertexColours) {
                     var mesh = new MeshBuilder<VertexPositionNormal, VertexTexture1, VertexJoints4>();
                     for (int i = 0; i < group.Indices.Count; i += 3) {
                         var v0 = group.Verts[group.Indices[i]];
-                        var v1 = group.Verts[group.Indices[i + (SwapWinding ? 2 : 1)]];
-                        var v2 = group.Verts[group.Indices[i + (SwapWinding ? 1 : 2)]];
+                        var v1 = group.Verts[group.Indices[i + (_options.SwapWinding ? 2 : 1)]];
+                        var v2 = group.Verts[group.Indices[i + (_options.SwapWinding ? 1 : 2)]];
 
                         (var tc0, var tc1, var tc2) = GetBakedCoords(v0.Colour, v1.Colour, v2.Colour);
 
@@ -180,8 +186,8 @@ namespace Ficedula.FF7.Exporters {
                     var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>();
                     for (int i = 0; i < group.Indices.Count; i += 3) {
                         var v0 = group.Verts[group.Indices[i]];
-                        var v1 = group.Verts[group.Indices[i + (SwapWinding ? 2 : 1)]];
-                        var v2 = group.Verts[group.Indices[i + (SwapWinding ? 1 : 2)]];
+                        var v1 = group.Verts[group.Indices[i + (_options.SwapWinding ? 2 : 1)]];
+                        var v2 = group.Verts[group.Indices[i + (_options.SwapWinding ? 1 : 2)]];
 
                         var vb0 = new VertexBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(
                             new VertexPositionNormal(v0.Position, v0.Normal),

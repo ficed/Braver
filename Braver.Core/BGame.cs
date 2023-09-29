@@ -105,23 +105,9 @@ namespace Braver {
         public int BattleSpeed { get; set; } = 128;
 
         public GameOptions(Dictionary<string, string> settings) {
-            foreach (var prop in typeof(GameOptions).GetProperties()) {
-                if (settings.TryGetValue($"Options.{prop.Name}", out string value)) {
-                    if (prop.PropertyType == typeof(bool))
-                        prop.SetValue(this, bool.Parse(value));
-                    else if (prop.PropertyType == typeof(float))
-                        prop.SetValue(this, float.Parse(value));
-                    else if (prop.PropertyType == typeof(int))
-                        prop.SetValue(this, int.Parse(value));
-                    else if (prop.PropertyType.IsEnum)
-                        prop.SetValue(this, Enum.Parse(prop.PropertyType, value));
-                    else
-                        throw new NotImplementedException();
-                }
-            }
+            Serialisation.SetProperties(this, settings, "Options.");
         }
     }
-
 
     public abstract class BGame {
 

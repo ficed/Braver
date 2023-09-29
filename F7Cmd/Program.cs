@@ -9,7 +9,39 @@ using Ficedula.FF7.Exporters;
 
 Console.WriteLine("F7Cmd");
 
+using (var lgp = new Ficedula.FF7.LGPFile(@"C:\games\FF7\data\battle\magic.lgp")) {
 
+    foreach(string s in lgp.Filenames.Where(s => s.Contains("bio")))
+        Console.WriteLine(s);
+
+    foreach (string file in new[] { "fire_1.s", "fire_2.s", "fi_a01.s", "ff7/data/battle/magic/bio/bio_a.s", "bubble_a.s", "bubble_b.s", "bubble_c.s" }) {
+        Console.WriteLine(file);
+        var spt = new Ficedula.FF7.Battle.Sprite(lgp.Open(file));
+
+        foreach (var entry in spt.Frames) {
+            Console.WriteLine($"Entry with {entry.Draws.Count} frames, {entry.Unknown}");
+            foreach (var frame in entry.Draws) {
+                Console.WriteLine($"  X: {frame.X} Y: {frame.Y} WH1: {frame.Width1}/{frame.Height1} WH2: {frame.Width2}/{frame.Height2} Flags: {frame.Flags:x} Tex {frame.TexturePage} Src {frame.SrcX}/{frame.SrcY} Unk {frame.Unknown:x}");
+            }
+        }
+    }
+
+    var tex = new Ficedula.FF7.TexFile(lgp.Open("fire00.tex"));
+    foreach (int pal in Enumerable.Range(0, tex.Palettes.Count))
+        using (var s = File.OpenWrite(@$"C:\temp\fire00#{pal}.png"))
+            Ficedula.FF7.Exporters.TexFileUtil.ToBitmap(tex, pal).Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)
+                .SaveTo(s);
+
+
+    /*
+        foreach (string fn in new[] { "fire_1.s", "fire00.tex", "fire01.tex", "fire_2.s" }) {
+            using (var s = lgp.Open(fn)) {
+                using (var fs = File.OpenWrite(@"C:\temp\" + fn))
+                    s.CopyTo(fs);
+            }
+        }
+    */
+}
 
 
 /*

@@ -251,31 +251,39 @@ namespace Ficedula.FF7 {
 
         public int EntryCount => _entries.Count;
 
+		public Audio(Stream datFile, Stream fmtFile) {
+            _dat = datFile;
+			Init(fmtFile);
+        }
+
+        private void Init(Stream fmtFile) { 
+            //int count = s.ReadI32();
+            //s.Position = 40;
+            while (fmtFile.Position < fmtFile.Length) {
+                int size = fmtFile.ReadI32();
+                if (size == 0) {
+                    _entries.Add(new SoundEntry());
+                    fmtFile.Seek(38, SeekOrigin.Current);
+                    continue;
+                } else {
+                    var entry = new SoundEntry {
+                        Size = size,
+                        Offset = fmtFile.ReadI32(),
+                        ExtraData = fmtFile.ReadBytes(16),
+                        WAVFORMATEX = fmtFile.ReadBytes(18),
+                        SamplesPerBlock = fmtFile.ReadU16(),
+                        NumCoef = fmtFile.ReadU16(),
+
+                    };
+                    entry.ADPCMCoefSets = fmtFile.ReadBytes(entry.NumCoef * 4);
+                    _entries.Add(entry);
+                }
+            }
+        }
         public Audio(string datFile, string fmtFile) {
             _dat = new FileStream(datFile, FileMode.Open, FileAccess.Read);
             using (var s = new FileStream(fmtFile, FileMode.Open, FileAccess.Read)) {
-                //int count = s.ReadI32();
-                //s.Position = 40;
-                while(s.Position < s.Length) { 
-                    int size = s.ReadI32();
-                    if (size == 0) {
-                        _entries.Add(new SoundEntry());
-                        s.Seek(38, SeekOrigin.Current);
-                        continue;
-                    } else {
-                        var entry = new SoundEntry {
-                            Size = size,
-                            Offset = s.ReadI32(),
-                            ExtraData = s.ReadBytes(16),
-                            WAVFORMATEX = s.ReadBytes(18),
-                            SamplesPerBlock = s.ReadU16(),
-                            NumCoef = s.ReadU16(),
-                            
-                        };
-                        entry.ADPCMCoefSets = s.ReadBytes(entry.NumCoef * 4);
-                        _entries.Add(entry);
-                    }
-                }
+				Init(s);
             }
         }
 
@@ -297,6 +305,7 @@ namespace Ficedula.FF7 {
             dest.Write(buffer, 0, buffer.Length);
         }
 
+		public bool IsValid(int soundID) => _entries[soundID].WAVFORMATEX != null;
 		public byte[] GetExtraData(int soundID) => _entries[soundID].ExtraData;
 		public byte[] ExportPCM(int soundID, out int frequency, out int channels) {
 			var entry = _entries[soundID];

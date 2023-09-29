@@ -70,3 +70,19 @@ Battle
 	Hit effects...
 	Run away!
 	Actions that shouldn't do anything still register a miss or 1pt of damage - see Guard Scorpion in battle 324
+
+
+FieldModel C:\games\FF7\data\field\char.lgp C:\temp\f_cloud.glb AAAA.HRC /ConvertSRGBToLinear /BakeVertexColours ACFE.a AAFF.a AAGA.a BYAD.a APJF.a
+
+bio/BIO_A.S
+Flags 0 Unk 7848 - Blend?, no hold?
+
+bubble_a.s
+Flags 100 Unk 7808 - Blend?, no hold?, alt palette
+
+fi_a01.s
+Flags 100 Unk 7888 - Additive, hold?
+Flags 104 Unk 78c8 - Blend?, hold?, alt palette?
+
+Upper byte of flags is palette?
+Unk 0x80 is hold?

@@ -15,28 +15,35 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Ficedula.FF7.Exporters {
-    public class BattleModel : ModelBase {
-        private LGPFile _lgp;
 
+    public class BattleModelOptions : ModelBaseOptions {
         public float Scale { get; set; } = 1f;
+    }
 
-        public BattleModel(LGPFile lgp) {
-            _lgp = lgp;
+    public class BattleModel : ModelBase {
+        private DataSource _source;
+
+        private BattleModelOptions Options => _options as BattleModelOptions;
+
+
+        public BattleModel(DataSource source, BattleModelOptions options) {
+            _source = source;
+            _options = options;
         }
 
         private SharpGLTF.Schema2.ModelRoot BuildScene(string skeleton, string anims, IEnumerable<string> texs, Func<string?> nextFile) {
             var scene = new SceneBuilder();
 
             Animations animations;
-            using (var s = _lgp.Open(anims))
+            using (var s = _source.Open(anims))
                 animations = new Animations(s);
             BBone rootBone;
-            using(var s = _lgp.Open(skeleton))
+            using(var s = _source.Open(skeleton))
                 rootBone = BBone.Decode(s);
 
             var textures = texs
                 .Select(t => {
-                    using (var s = _lgp.TryOpen(t))
+                    using (var s = _source.TryOpen(t))
                         return s == null ? null : new Ficedula.FF7.TexFile(s);
                 })
                 .Where(tex => tex != null)
@@ -50,7 +57,7 @@ namespace Ficedula.FF7.Exporters {
             foreach (var bone in rootBone.ThisAndDescendants().Where(b => b.PFileIndex != null).OrderBy(b => b.PFileIndex.Value)) {
                 while (pFiles.Count <= bone.PFileIndex.Value)
                     pFiles.Add(null);
-                using (var s = _lgp.Open(nextFile()))
+                using (var s = _source.Open(nextFile()))
                     pFiles[bone.PFileIndex.Value] = new PFile(s);
             }
 
@@ -96,7 +103,7 @@ namespace Ficedula.FF7.Exporters {
             root.LocalTransform = new SharpGLTF.Transforms.AffineTransform(
                 Quaternion.CreateFromAxisAngle(Vector3.UnitX, (float)Math.PI)
             );
-            Descend(scene, rootBone, root, Vector3.Zero, new Vector3(Scale, Scale, Scale));
+            Descend(scene, rootBone, root, Vector3.Zero, new Vector3(Options.Scale));
             DescendMesh(
                 scene, rootBone, root, root.LocalMatrix,
                 allNodes.Where(kv => kv.Key >= 0).OrderBy(kv => kv.Key).Select(kv => kv.Value).ToArray()
@@ -129,7 +136,7 @@ namespace Ficedula.FF7.Exporters {
                     foreach (var frame in anim.Frames) {
                         float additionalX = 0;
                         if (node.VisualRoot == node) {
-                            trans[c / 15f] = new Vector3(frame.X, -frame.Y, frame.Z) * Scale;
+                            trans[c / 15f] = new Vector3(frame.X, -frame.Y, frame.Z) * Options.Scale;
                             additionalX = 180;
                         }
 
@@ -154,9 +161,9 @@ namespace Ficedula.FF7.Exporters {
         }
 
         public SharpGLTF.Schema2.ModelRoot BuildSceneAuto(string name) {
-            if (_lgp.Exists(name + ".a00"))
+            if (_source.Exists(name + ".a00"))
                 return BuildSceneFromSummon(name);
-            else if (_lgp.Exists(name + "DA"))
+            else if (_source.Exists(name + "DA"))
                 return BuildSceneFromModel(name);
             else
                 throw new Exception($"Can't detect battle model type");
@@ -173,7 +180,7 @@ namespace Ficedula.FF7.Exporters {
                         return null;
                     data = $"{summonName}.p{part:00}";
                     part++;
-                } while (!_lgp.Exists(data));
+                } while (!_source.Exists(data));
                 return data;
             };
             return BuildScene(summonName + ".d", summonName + ".a00", texs, NextData);
@@ -193,7 +200,7 @@ namespace Ficedula.FF7.Exporters {
                     c2 = (char)('a' + (codecounter % 26));
                     codecounter++;
                     data = modelCode + c1.ToString() + c2.ToString();
-                } while (!_lgp.Exists(data));
+                } while (!_source.Exists(data));
                 return data;
             };
             return BuildScene(modelCode + "aa", modelCode + "da", texs, NextData);

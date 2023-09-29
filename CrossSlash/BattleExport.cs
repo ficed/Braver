@@ -4,36 +4,55 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula.FF7.Exporters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Terminal.Gui;
 
 namespace CrossSlash {
-    public class BattleExportGuiWindow : Window {
-        private Label _lblLGP, _lblGLB;
-        private string _lgpFile, _glbFile;
+
+    public class BattleExport : ExportKind {
+        private BattleModelOptions _options = new BattleModelOptions();
+
+        public override string Help =>
+@"Usage: CrossSlash BattleExport [SourceLGPOrFolder] [OutputFile] [ModelCode] [options]
+        ModelCode can be a two letter battle model code (e.g. RV), or a summon model code (e.g. cyvadat)
+    Valid options:
+        /ConvertSRGBToLinear - convert colours to linear RGB
+        /SwapWinding - reverse triangle winding order
+        /BakeVertexColours - export vertex colours as a texture
+        /Scale:value - scale model up/down from default size
+    For example:
+        CrossSlash BattleModel C:\games\FF7\data\battle\magic.lgp C:\temp\shiva.glb cyvadat /Scale:0.1
+";
+
+        public override object Config => _options;
+        public override bool HasGui => true;
+        public override string Name => "Battle Model Export";
+
+        public override void Execute(DataSource source, string dest, IEnumerable<string> parameters) {
+            var exporter = new BattleModel(source, _options);
+            var model = exporter.BuildSceneAuto(parameters.First());
+            model.SaveGLB(dest);
+        }
+
+        public override Window ExecuteGui(DataSource source) => new BattleExportWindow(source);
+    }
+
+    public class BattleExportWindow : Window {
+        private Label _lblGLB;
+        private string _glbFile;
+        private DataSource _source;
         private CheckBox _chkSRGB, _chkSwapWinding, _chkBakeColours;
         private TextField _txtModel, _txtScale;
 
-        public BattleExportGuiWindow() {
+        public BattleExportWindow(DataSource source) {
+            _source = source;
             Title = "CrossSlash Exporter (Ctrl-Q to Quit)";
 
-            var btnLGP = new Button {
-                Text = "Select battle LGP file",
-                Width = Dim.Percent(25),
-            };
-            btnLGP.Clicked += BtnLGP_Clicked;
-
-            _lblLGP = new Label {
-                Text = "(No LGP selected)",
-                X = Pos.Right(btnLGP) + 1,
-            };
-
             Label lblModel = new Label {
-                Y = Pos.Bottom(btnLGP) + 1,
                 Width = Dim.Percent(25),
                 Text = "Model Code",
             };
@@ -91,7 +110,7 @@ namespace CrossSlash {
             };
             btnExport.Clicked += BtnExport_Clicked;
 
-            Add(btnLGP, _lblLGP, lblModel, _txtModel, lblScale, _txtScale, 
+            Add(lblModel, _txtModel, lblScale, _txtScale, 
                 _chkSRGB, _chkSwapWinding, _chkBakeColours,
                 btnGLB, _lblGLB, btnExport);
         }
@@ -107,21 +126,10 @@ namespace CrossSlash {
             }
         }
 
-        private void BtnLGP_Clicked() {
-            var d = new OpenDialog(
-                "Open LGP", "Choose the battle.lgp file to read models from",
-                new List<string> { ".lgp" }
-            );
-            Application.Run(d);
-            if (!d.Canceled && d.FilePaths.Any()) {
-                _lblLGP.Text = _lgpFile = d.FilePaths[0];
-            }
-        }
-
         private void BtnExport_Clicked() {
             try {
-                if (!File.Exists(_lgpFile))
-                    throw new Exception("No LGP file selected");
+                if (_source == null)
+                    throw new Exception("No data source selected");
                 if (string.IsNullOrEmpty(_glbFile))
                     throw new Exception("No GLB save as filename selected");
                 if (string.IsNullOrWhiteSpace(_txtModel.Text.ToString()))
@@ -129,15 +137,16 @@ namespace CrossSlash {
                 if (!float.TryParse(_txtScale.Text.ToString(), out float scale))
                     throw new Exception("No scale specified");
 
-                using (var lgp = new Ficedula.FF7.LGPFile(_lgpFile)) {
-                    var exporter = new Ficedula.FF7.Exporters.BattleModel(lgp) {
-                        ConvertSRGBToLinear = _chkSRGB.Checked,
-                        SwapWinding = _chkSwapWinding.Checked,
-                        Scale = scale,
-                    };
-                    var model = exporter.BuildSceneAuto(_txtModel.Text.ToString());
-                    model.SaveGLB(_glbFile);
-                }
+                var options = new BattleModelOptions {
+                    ConvertSRGBToLinear = _chkSRGB.Checked,
+                    SwapWinding = _chkSwapWinding.Checked,
+                    BakeVertexColours = _chkBakeColours.Checked,
+                    Scale = scale,
+                };
+                var exporter = new BattleModel(_source, options);
+                var model = exporter.BuildSceneAuto(_txtModel.Text.ToString());
+                model.SaveGLB(_glbFile);
+
                 MessageBox.Query("Success", "Export Succeeded", "OK");
             } catch (Exception ex) {
                 MessageBox.ErrorQuery("Error", ex.Message, "OK");

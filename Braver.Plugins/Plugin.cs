@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Xml.Serialization;
@@ -63,41 +64,6 @@ namespace Braver.Plugins {
                 _types[type] = new List<Plugin>();
         }
 
-        private void Configure(Plugin p, PluginConfig config) {
-
-            void DoConfigure(object o, string prefix) {
-                if (o == null)
-                    return;
-
-                foreach (var prop in o.GetType().GetProperties()) {
-
-                    if (prop.PropertyType.IsClass && prop.PropertyType != typeof(string)) {
-                        DoConfigure(prop.GetValue(o), prefix + prop.Name + ".");
-                    } else {
-                        var cvar = config.Vars.Find(v => v.Name == prefix + prop.Name);
-                        if (cvar != null) {
-                            if (prop.PropertyType == typeof(string))
-                                prop.SetValue(o, cvar.Value);
-                            else if (prop.PropertyType == typeof(bool))
-                                prop.SetValue(o, bool.Parse(cvar.Value));
-                            else if (prop.PropertyType == typeof(int))
-                                prop.SetValue(o, int.Parse(cvar.Value));
-                            else if (prop.PropertyType == typeof(float))
-                                prop.SetValue(o, float.Parse(cvar.Value));
-                            else if (prop.PropertyType == typeof(double))
-                                prop.SetValue(o, double.Parse(cvar.Value));
-                            else if (prop.PropertyType.IsEnum)
-                                prop.SetValue(o, Enum.Parse(prop.PropertyType, cvar.Value));
-                            else
-                                throw new NotImplementedException();
-                        }
-                    }
-                }
-            }
-
-            DoConfigure(p.ConfigObject, "");
-        }
-
         public void Init(BGame game, IEnumerable<Plugin> plugins, PluginConfigs configs) {
 
             var configuredPlugins = plugins
@@ -110,7 +76,10 @@ namespace Braver.Plugins {
 
             foreach(var p in configuredPlugins) {
                 System.Diagnostics.Trace.WriteLine($"Loading plugin {p.Plugin.Name} v{p.Plugin.Version}");
-                Configure(p.Plugin, p.Config);
+                Serialisation.SetProperties(
+                    p.Plugin.ConfigObject,
+                    p.Config.Vars.ToDictionary(cv => cv.Name, cv => cv.Value, StringComparer.InvariantCultureIgnoreCase)
+                );
                 p.Plugin.Init(game);
                 foreach(var type in p.Plugin.GetPluginInstances()) {
                     _types[type].Add(p.Plugin);

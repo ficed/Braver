@@ -4,40 +4,58 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Ficedula.FF7.Exporters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Terminal.Gui;
 
 namespace CrossSlash {
-    public class FieldExportGuiWindow : Window {
 
-        private Label _lblLGP, _lblGLB;
+    public class FieldExport : ExportKind {
+        private ModelBaseOptions _config = new ModelBaseOptions();
+        public override string Help =>
+@"Usage: CrossSlash FieldExport [SourceLGPOrFolder] [OutputFile] [HRCFile] [anim1] [anim2] [anim3...] [options]
+    Valid options:
+        /ConvertSRGBToLinear - convert colours to linear RGB
+        /SwapWinding - reverse triangle winding order
+        /BakeVertexColours - export vertex colours as a texture
+    For example:
+        CrossSlash FieldModel C:\games\FF7\data\field\char.lgp C:\temp\cloud.glb AAAA.HRC ACFE.a AAFF.a /SwapWinding
+";
+
+        public override object Config => _config;
+        public override bool HasGui => true;
+        public override string Name => "Field Model Export";
+
+        public override void Execute(DataSource source, string dest, IEnumerable<string> parameters) {
+            var exporter = new FieldModel(source, _config);
+            Console.WriteLine($"Exporting model {parameters.First()}...");
+            var model = exporter.BuildScene(parameters.First(), parameters.Skip(1));
+            Console.WriteLine($"Saving output to {dest}...");
+            model.SaveGLB(dest);
+        }
+
+        public override Window ExecuteGui(DataSource source) => new FieldExportWindow(source);
+    }
+
+    public class FieldExportWindow : Window {
+
+        private Label _lblGLB;
         private ListView _lvHRCs;
         private TextView _txtAnims;
         private List<string> _hrcFiles;
         private CheckBox _chkSRGB, _chkSwapWinding, _chkBakeColours;
 
-        private string _lgpFile, _glbFile;
+        private string _glbFile;
+        private DataSource _source;
 
-        public FieldExportGuiWindow() {
+        public FieldExportWindow(DataSource source) {
+            _source = source;
             Title = "CrossSlash Exporter (Ctrl-Q to Quit)";
 
-            var btnLGP = new Button {
-                Text = "Select char LGP file",
-                Width = Dim.Percent(25),
-            };
-            btnLGP.Clicked += BtnLGP_Clicked;
-
-            _lblLGP = new Label {
-                Text = "(No LGP selected)",
-                X = Pos.Right(btnLGP) + 1,
-            };
-
             Label lblHRC = new Label {
-                Y = Pos.Bottom(btnLGP) + 1,
                 Width = Dim.Percent(25),
                 Text = "HRC/Model",
             };
@@ -98,7 +116,13 @@ namespace CrossSlash {
             };
             btnExport.Clicked += BtnExport_Clicked;
 
-            Add(btnLGP, _lblLGP, lblHRC, _lvHRCs, lblAnims, _txtAnims, 
+            _hrcFiles = _source.AllFiles
+                .Where(s => Path.GetExtension(s).Equals(".hrc", StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
+            _lvHRCs.SetSource(_hrcFiles);
+
+
+            Add(lblHRC, _lvHRCs, lblAnims, _txtAnims, 
                 _chkSRGB, _chkSwapWinding, _chkBakeColours,
                 btnGLB, _lblGLB, btnExport);
         }
@@ -110,8 +134,8 @@ namespace CrossSlash {
                     .Split('\r', '\n')
                     .Where(s => !string.IsNullOrWhiteSpace(s));
 
-                if (!File.Exists(_lgpFile))
-                    throw new Exception("No LGP file selected");
+                if (_source == null)
+                    throw new Exception("No data source selected");
                 if (string.IsNullOrEmpty(_glbFile))
                     throw new Exception("No GLB save as filename selected");
                 if (_lvHRCs.SelectedItem < 0)
@@ -119,15 +143,15 @@ namespace CrossSlash {
                 if (!anims.Any())
                     throw new Exception("No animations specified");
 
-                using (var lgp = new Ficedula.FF7.LGPFile(_lgpFile)) {
-                    var exporter = new Ficedula.FF7.Exporters.FieldModel(lgp) {
-                        ConvertSRGBToLinear = _chkSRGB.Checked,
-                        SwapWinding = _chkSwapWinding.Checked,
-                        BakeVertexColours = _chkBakeColours.Checked,
-                    };
-                    var model = exporter.BuildScene(_hrcFiles[_lvHRCs.SelectedItem], anims);
-                    model.SaveGLB(_glbFile);
-                }
+                var options = new ModelBaseOptions {
+                    ConvertSRGBToLinear = _chkSRGB.Checked,
+                    SwapWinding = _chkSwapWinding.Checked,
+                    BakeVertexColours = _chkBakeColours.Checked,
+                };
+                var exporter = new FieldModel(_source, options);
+                var model = exporter.BuildScene(_hrcFiles[_lvHRCs.SelectedItem], anims);
+                model.SaveGLB(_glbFile);
+
                 MessageBox.Query("Success", "Export Succeeded", "OK");
             } catch (Exception ex) {
                 MessageBox.ErrorQuery("Error", ex.Message, "OK");
@@ -145,25 +169,5 @@ namespace CrossSlash {
             }
         }
 
-        private void BtnLGP_Clicked() {
-            var d = new OpenDialog(
-                "Open LGP", "Choose the char.lgp file to read models from",
-                new List<string> { ".lgp" }
-            );
-            Application.Run(d);
-            if (!d.Canceled && d.FilePaths.Any()) {
-                try {
-                    using (var lgp = new Ficedula.FF7.LGPFile(d.FilePaths[0])) {
-                        _hrcFiles = lgp.Filenames
-                            .Where(s => Path.GetExtension(s).Equals(".hrc", StringComparison.InvariantCultureIgnoreCase))
-                            .ToList();
-                        _lvHRCs.SetSource(_hrcFiles);
-                    }
-                } catch (Exception ex) {
-                    MessageBox.ErrorQuery("Error", ex.Message, "OK");
-                }
-                _lblLGP.Text = _lgpFile = d.FilePaths[0];
-            }
-        }
     }
 }
