@@ -1,0 +1,24 @@
+PreloadSprite fire fi_a01.s fire00.tex fire01.tex 
+PreloadSfx 8
+
+@foreach(var text in Model.Action.QueuedText) {
+	@:!txt Text @Model.Expand(text)
+	@:Wait !txt
+}
+
+!cast Anim source 17
+Wait !cast
+#Camera
+
+Sfx 8
+@foreach(var result in Model.Results) {
+	@:!flames Sprite fire @result.Target.ID
+	@:Result @result.Target.ID
+	if (result.Hit) {
+	}
+}
+
+Wait !flames
+Resume source
+Wait !cast
+ApplyResults

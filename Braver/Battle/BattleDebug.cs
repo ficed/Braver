@@ -8,6 +8,7 @@ using Braver.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using NAudio.CoreAudioApi.Interfaces;
+using NAudio.MediaFoundation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace Braver.Battle {
         private RealBattleScreen _screen;
         private AnimScriptExecutor _exec;
         private SpriteRenderer _sprites;
+        private BattleEffectManager _effect;
         private FGame _game;
         private GraphicsDevice _graphics;
 
@@ -55,6 +57,11 @@ namespace Braver.Battle {
             }
 
             _sprites.FrameStep();
+            if (_effect != null) {
+                _effect.Step();
+                if (_effect.IsComplete)
+                    _effect = null;
+            }
         }
 
         public void ProcessInput(InputState input) {
@@ -75,25 +82,40 @@ namespace Braver.Battle {
             if (input.IsJustDown(InputKey.Cancel)) {
                 _exec = new AnimScriptExecutor(
                     _engine.ActiveCombatants.ElementAt(_cMenu),
-                    _engine.ActiveCombatants.OfType<EnemyCombatant>().ToArray(),
-                    _screen, _engine,
+                    _screen,
                     new Ficedula.FF7.Battle.AnimationScriptDecoder(new byte[] { (byte)_anim, 0 })
                 );
             }
             if (input.IsJustDown(InputKey.OK)) {
                 var source = _engine.ActiveCombatants.ElementAt(_cMenu);
-                var model = _screen.Models[source];
+                var model = _screen.Renderer.Models[source];
                 _exec = new AnimScriptExecutor(
                     source,
-                    _engine.ActiveCombatants.OfType<EnemyCombatant>().ToArray(),
-                    _screen, _engine,
+                    _screen,
                     new Ficedula.FF7.Battle.AnimationScriptDecoder(model.AnimationScript.Scripts[_script])
                 );
             }
 
             if (input.IsJustDown(InputKey.Start)) {
+                /*
                 var sprite = new LoadedSprite(_game, _graphics, "fi_a01.s", new[] { "fire00.tex", "fire01.tex" });
                 _sprites.Add(sprite, () => _screen.GetModelScreenPos(_engine.ActiveCombatants.ElementAt(_cMenu)));
+                */
+                var source = _engine.ActiveCombatants.ElementAt(_cMenu);
+                var action = new QueuedAction(
+                    source, 
+                    (source as CharacterCombatant).Actions.Select(a => a.Ability).First(a => a.HasValue).Value,
+                    _engine.ActiveCombatants.Where(c => !c.IsPlayer).ToArray(),
+                    ActionPriority.Normal,
+                    "Fire1"
+                );
+                _engine.QueueAction(action);
+                if (_engine.ExecuteNextAction(out var nextAction, out var results)) {
+                    _effect = new BattleEffectManager(
+                        _game, _screen,
+                        nextAction, results, "magic/fire1"
+                    );
+                };
             }
 
         }
@@ -102,6 +124,7 @@ namespace Braver.Battle {
             _ui.Render();
             _exec?.Render();
             _sprites.Render();
+            _effect?.Render();
         }
     }
 }

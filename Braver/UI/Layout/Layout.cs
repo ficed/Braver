@@ -377,7 +377,7 @@ namespace Braver.UI.Layout {
         public string Description { get; set; }
     }
 
-    public abstract class LayoutModel {
+    public abstract class LayoutModel : IBraverTemplateModel {
 
         protected Dictionary<string, Component> _components = new Dictionary<string, Component>(StringComparer.InvariantCultureIgnoreCase);
         protected FGame _game;
@@ -401,6 +401,9 @@ namespace Braver.UI.Layout {
         public virtual string Description => null;
 
         public virtual bool IsRazorModel => false;
+
+        string IBraverTemplateModel.SourceCategory => "layout";
+        string IBraverTemplateModel.SourceExtension => "xml";
 
         private class FocusEntry {
             public string ContainerID { get; set; }
@@ -509,66 +512,14 @@ namespace Braver.UI.Layout {
         }
     }
 
-
-    public class BraverTemplate : RazorEngineTemplateBase {
-        //public new FGame Model { get; set; }
-
-        public FGame GameModel {
-            get {
-                switch (Model) {
-                    case FGame game: 
-                        return game;
-                    case LayoutModel model:
-                        return model.Game;
-                    default:
-                        throw new NotSupportedException();
-                }
-            }
-        }
-
-        public string Bool(bool b) {
-            return b.ToString().ToLower();
-        }
-
-        public string Include(string templateName, object model) {
-            var cache = GameModel.Singleton(() => new RazorLayoutCache(GameModel));
-            return cache.ApplyPartial(templateName, false, model);
-        }
-    }
-
-    internal class RazorLayoutCache {
-        private Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>> _templates = new Dictionary<string, IRazorEngineCompiledTemplate<BraverTemplate>>(StringComparer.InvariantCultureIgnoreCase);
-        private IRazorEngine _razorEngine = new RazorEngine();
-        private FGame _game;
-
-        public RazorLayoutCache(FGame game) {
-            _game = game;
-        }
-
-        public IRazorEngineCompiledTemplate<BraverTemplate> Compile(string layout, bool forceReload) {
-            if (forceReload || !_templates.TryGetValue(layout, out var razor)) {
-                string template = _game.OpenString("layout", layout + ".xml");
-                _templates[layout] = razor = _razorEngine.Compile<BraverTemplate>(template, builder => {
-                    builder.AddAssemblyReference(typeof(RazorLayoutCache));
-                    builder.AddAssemblyReference(typeof(SaveData));
-                    builder.AddAssemblyReference(typeof(Ficedula.FF7.Item));
-                    builder.AddAssemblyReference(typeof(Enumerable));
-                });
-            }
-            return razor;
-        }
-
-        public Layout Apply(string layout, bool forceReload, object model = null) {
-            string xml = Compile(layout, forceReload).Run(template => {
-                template.Model = model ?? _game;
+    internal static class LayoutRazor {
+        public static Layout ApplyLayout(this RazorLayoutCache cache, string layout, bool forceReload, object model = null) {
+            string xml = cache.Compile("layout", layout + ".xml", forceReload).Run(template => {
+                template.Model = model ?? cache.Game;
             });
             return Serialisation.Deserialise<Layout>(xml);
         }
-        public string ApplyPartial(string layout, bool forceReload, object model) {
-            return Compile(layout, forceReload).Run(template => {
-                template.Model = model;
-            });
-        }
+
     }
 
     public class LayoutScreen : Screen, ILayoutScreen {
@@ -580,7 +531,7 @@ namespace Braver.UI.Layout {
         private static Task _backgroundLoad;
         public static void BeginBackgroundLoad(FGame g, string layout) {
             var cache = g.Singleton(() => new RazorLayoutCache(g));
-            _backgroundLoad = Task.Run(() => cache.Compile(layout, true));
+            _backgroundLoad = Task.Run(() => cache.Compile("layout", layout + ".xml", true));
         }
 
         public override Color ClearColor => Color.Black;
@@ -613,7 +564,7 @@ namespace Braver.UI.Layout {
                 _backgroundLoad.Wait();
                 _backgroundLoad = null;
             }
-            _layout = g.Singleton(() => new RazorLayoutCache(g)).Apply(_layoutFile, false, _model.IsRazorModel ? _model : null);
+            _layout = g.Singleton(() => new RazorLayoutCache(g)).ApplyLayout(_layoutFile, false, _model.IsRazorModel ? _model : null);
             _model.Init(_layout);
             _ui = new UIBatch(graphics, g);
             if (!_isEmbedded) g.Net.Send(new Net.ScreenReadyMessage());
@@ -622,7 +573,7 @@ namespace Braver.UI.Layout {
 
         public void Reload(bool forceReload = false) {
             _model.Created(Game, this);
-            _layout = Game.Singleton(() => new RazorLayoutCache(Game)).Apply(_layoutFile, forceReload, _model.IsRazorModel ? _model : null);
+            _layout = Game.Singleton(() => new RazorLayoutCache(Game)).ApplyLayout(_layoutFile, forceReload, _model.IsRazorModel ? _model : null);
             _model.Init(_layout);
             Plugins.Call(ui => ui.Reloaded());
         }
@@ -750,7 +701,7 @@ namespace Braver.UI.Layout {
 
         IComponent ILayoutScreen.Load(string templateName, object? model) {
             var cache = Game.Singleton(() => new RazorLayoutCache(Game));
-            string xml = cache.ApplyPartial(templateName, false, model ?? _model);
+            string xml = cache.ApplyPartial("layout", templateName + ".xml", false, model ?? _model);
             return Serialisation.Deserialise<Component>(xml);
         }
 

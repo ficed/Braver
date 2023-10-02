@@ -67,8 +67,8 @@ namespace Braver.Field {
             private UI.Layout.Image iPointer;
 
             public void Reset(FGame game) {
-                var cache = game.Singleton(() => new UI.Layout.RazorLayoutCache(game));
-                string xml = cache.ApplyPartial("dialog", false, this);
+                var cache = game.Singleton(() => new RazorLayoutCache(game));
+                string xml = cache.ApplyPartial("layout", "dialog.xml", false, this);
                 Visual = Serialisation.Deserialise<UI.Layout.Component>(xml) as UI.Layout.Container;
                 lText = Visual.Children.Single(c => c.ID == nameof(lText)) as UI.Layout.Label;
                 lVariable = Visual.Children.SingleOrDefault(c => c.ID == nameof(lVariable)) as UI.Layout.Label;

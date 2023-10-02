@@ -119,15 +119,11 @@ namespace Braver.Battle {
 
         private bool _toggleMultiSingleTarget;
 
-        private ActionInProgress _actionInProgress;
-        private Action _actionComplete;
+        private BattleEffectManager _effect;
 
-        private SpriteRenderer _sprites;
         private Engine _engine;
         private BattleDebug _debug;
         private PluginInstances<IBattleUI> _plugins;
-
-        private BattleRenderer<ICombatant> _renderer;
         private UIHandler _uiHandler;
 
         private bool _debugCamera = false;
@@ -143,8 +139,9 @@ namespace Braver.Battle {
             _plugins.Call(ui => ui.BattleTargetHighlighted(current));
         }
 
-        public IReadOnlyDictionary<ICombatant, Model> Models => _renderer.Models;
-        public PerspView3D View3D => _renderer.View3D;
+        public BattleRenderer<ICombatant> Renderer { get; private set; }
+        public SpriteManager Sprites { get; private set; }
+        public UI.UIBatch MenuUI => _menuUI;
 
         public override string Description {
             get {
@@ -167,7 +164,7 @@ namespace Braver.Battle {
             if (position.Z < 0)
                 model.Rotation = new Vector3(0, 180, 0);
             //Defaults to animation 0 so no PlayAnimation required
-            _renderer.Models.Add(combatant, model);
+            Renderer.Models.Add(combatant, model);
             Game.Net.Send(new AddBattleModelMessage {
                 Code = code,
                 Position = position,
@@ -176,7 +173,7 @@ namespace Braver.Battle {
         }
 
         public void UpdateVisualState(ICombatant combatant) {
-            var model = _renderer.Models[combatant];
+            var model = Renderer.Models[combatant];
             switch(combatant) {
                 case CharacterCombatant chr:
                     if (chr.HP <= 0)
@@ -261,13 +258,11 @@ namespace Braver.Battle {
             var ui = new UI.Layout.LayoutScreen("battle", _uiHandler, isEmbedded: true);
             ui.Init(Game, Graphics);
 
-            _renderer = new BattleRenderer<ICombatant>(g, graphics, ui);
-            _renderer.LoadBackground(_scene.LocationID);
+            Renderer = new BattleRenderer<ICombatant>(g, graphics, ui);
+            Renderer.LoadBackground(_scene.LocationID);
             var cam = _scene.Cameras[0];
-            _renderer.SetCamera(cam);
-
-            _sprites = new SpriteRenderer(graphics);
-
+            Renderer.SetCamera(cam);
+            
             foreach (var enemy in _scene.Enemies) {
                 AddModel(
                     SceneDecoder.ModelIDToFileName(enemy.Enemy.ID),
@@ -286,6 +281,7 @@ namespace Braver.Battle {
 
             _menuUI = new UI.UIBatch(Graphics, Game);
             _plugins = GetPlugins<IBattleUI>(_formationID.ToString());
+            Sprites = new SpriteManager(g, graphics);
 
             g.Net.Send(new Net.ScreenReadyMessage());
             g.Audio.PlayMusic("bat", true); //TODO!
@@ -391,10 +387,12 @@ namespace Braver.Battle {
             }
         }
 
-        public Vector3 GetModelScreenPos(ICombatant combatant) {
-            var model = _renderer.Models[combatant];
+        public Vector3 GetModelScreenPos(ICombatant combatant, Vector3? offset = null) {
+            var model = Renderer.Models[combatant];
             var middle = (model.MaxBounds + model.MinBounds) * 0.5f;
-            var screenPos = _renderer.View3D.ProjectTo2D(model.Translation + middle);
+            if (offset != null)
+                middle += offset.Value;
+            var screenPos = Renderer.View3D.ProjectTo2D(model.Translation + middle);
             return screenPos;
         }
 
@@ -437,8 +435,6 @@ namespace Braver.Battle {
 
             _uiHandler.Update(_activeMenu?.Combatant);
 
-            _menuUI.Reset();
-
             _activeMenu?.Step();
 
             var action = _activeMenu?.SelectedAction;
@@ -465,13 +461,11 @@ namespace Braver.Battle {
                 }
             }
 
-            if (_actionInProgress != null) {
-                _actionInProgress.Step();
-                if (_actionInProgress.IsComplete) {
-                    System.Diagnostics.Trace.WriteLine($"Action {_actionInProgress} now complete");
-                    _actionInProgress = null;
-                    _actionComplete?.Invoke();
-                    _actionComplete = null;
+            if (_effect != null) {
+                _effect.Step();
+                if (_effect.IsComplete) {
+                    System.Diagnostics.Trace.WriteLine($"Action {_effect} now complete");
+                    _effect = null;
                 }
             } else {
                 /*
@@ -481,18 +475,18 @@ namespace Braver.Battle {
  * -Or, Check for battle end, and if not, execute any other queued action
                   */
 
-                var pendingDeadEnemies = _renderer.Models
+                var pendingDeadEnemies = Renderer.Models
                     .Where(kv => !kv.Key.IsPlayer && !kv.Key.IsAlive())
                     .Where(kv => kv.Value.Visible);
 
                 if (_engine.AnyQueuedCounters)
                     DoExecuteNextQueuedAction();
                 else if (pendingDeadEnemies.Any()) {
-                    _actionInProgress = new ActionInProgress("FadeDeadEnemies", _plugins);
-                    foreach (var enemy in pendingDeadEnemies) {
-                        _actionInProgress.Add(1, new EnemyDeath(60, enemy.Key, enemy.Value));
-                        Game.Audio.PlaySfx(Sfx.EnemyDeath, 1f, 0f); //TODO 3d position?!
-                    }
+                    _effect = new BattleEffectManager(
+                        Game, this, null,
+                        pendingDeadEnemies.Select(e => new AbilityResult { Target = e.Key }).ToArray(),
+                        "FadeDeadEnemies"
+                    );
                 } else if (CheckForBattleEnd()) {
                     //
                 } else
@@ -501,78 +495,24 @@ namespace Braver.Battle {
         }
 
         protected override void DoStep(GameTime elapsed) {
+            _menuUI.Reset();
 
             if (_debug != null) {
                 _debug.Step();
             } else {
                 EngineTick(elapsed);
             }
-            _renderer.Step(elapsed);
+            Renderer.Step(elapsed);
         }
 
         private void DoExecuteNextQueuedAction() {
             if (_engine.ExecuteNextAction(out var nextAction, out var results)) {
-                _actionInProgress = new ActionInProgress($"Action {nextAction.Name} by {nextAction.Source.Name}", _plugins);
-                _actionComplete += () => {
-                    foreach (var result in results) {
-                        result.Apply(nextAction);
-                        UpdateVisualState(result.Target);
-                    }
-                };
-
-                int phase = 0;
-
-                if (nextAction.QueuedText.Any()) {
-                    var chars = Game.SaveData.Characters.Select(c => c?.Name).ToArray();
-                    var party = Game.SaveData.Party.Select(c => c?.Name).ToArray();
-
-                    foreach (var text in nextAction.QueuedText) {
-                        _actionInProgress.Add(phase++, new BattleTitle(
-                            Ficedula.FF7.Text.Expand(Ficedula.FF7.Text.Convert(text, 0), chars, party),
-                            60, _menuUI, 1f, true
-                        ));
-                    }
-                }
-
-                //TODO this isn't always needed
-                _actionInProgress.Add(phase, new BattleTitle(
-                    nextAction.Name ?? "(Unknown)", 60, _menuUI, 0.75f, false
-                ));
-
-                //TODO all the animations!!
-                foreach (var result in results) {
-                    if (result.Hit) {
-                        if (result.HPDamage != 0) {
-                            _actionInProgress.Add(phase, new BattleResultText(
-                                _menuUI, Math.Abs(result.HPDamage).ToString(), result.HPDamage < 0 ? Color.White : Color.Green,
-                                () => GetModelScreenPos(result.Target).XY(), new Vector2(0, -1),
-                                60,
-                                $"{result.Target.Name} {Math.Abs(result.HPDamage)} {(result.HPDamage >= 0 ? "healing" : "damage")}"
-                            ));
-                        }
-                        if (result.MPDamage != 0) {
-                            _actionInProgress.Add(phase, new BattleResultText(
-                                _menuUI, $"{Math.Abs(result.MPDamage)} {Font.BATTLE_MP}", result.MPDamage < 0 ? Color.White : Color.Green,
-                                () => GetModelScreenPos(result.Target).XY(), new Vector2(0, -1),
-                                60,
-                                $"{result.Target.Name} {Math.Abs(result.HPDamage)} MP {(result.HPDamage >= 0 ? "healing" : "damage")}"
-                            ));
-                        }
-                        //TODO anything else?!?!
-                    } else {
-                        _actionInProgress.Add(phase, new BattleResultText(
-                            _menuUI, Font.BATTLE_MISS.ToString(), Color.White,
-                            () => GetModelScreenPos(result.Target).XY(), new Vector2(0, -1),
-                            60,
-                            $"{result.Target.Name} missed"
-                        ));
-                    }
-                }
+                _effect = new BattleEffectManager(Game, this, nextAction, results, nextAction.Name /*VERY TODO*/);
             }
         }
 
         protected override void DoRender() {
-            _renderer.Render();
+            Renderer.Render();
             _menuUI.Render();
             _debug?.Render();
         }
@@ -600,13 +540,13 @@ namespace Braver.Battle {
 
             if (_debugCamera) {
                 if (input.IsDown(InputKey.Up))
-                    _renderer.View3D.CameraPosition += new Vector3(0, 0, -100);
+                    Renderer.View3D.CameraPosition += new Vector3(0, 0, -100);
                 if (input.IsDown(InputKey.Down))
-                    _renderer.View3D.CameraPosition += new Vector3(0, 0, 100);
+                    Renderer.View3D.CameraPosition += new Vector3(0, 0, 100);
                 if (input.IsDown(InputKey.Left))
-                    _renderer.View3D.CameraPosition += new Vector3(100, 0, 0);
+                    Renderer.View3D.CameraPosition += new Vector3(100, 0, 0);
                 if (input.IsDown(InputKey.Right))
-                    _renderer.View3D.CameraPosition += new Vector3(-100, 0, 0);
+                    Renderer.View3D.CameraPosition += new Vector3(-100, 0, 0);
             } else if (input.IsJustDown(InputKey.Menu)) {
                 NextMenu();
             } else if (Targets != null) {

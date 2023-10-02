@@ -75,6 +75,6 @@ namespace Braver.Plugins.UI {
         void BattleCharacterReady(ICombatant character);
         void BattleTargetHighlighted(IEnumerable<ICombatant> targets);
         void BattleActionStarted(string action);
-        void BattleActionResult(IInProgress result);
+        //void BattleActionResult(IInProgress result);
     }
 }

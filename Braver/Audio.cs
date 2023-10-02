@@ -295,12 +295,14 @@ namespace Braver {
             };
         }
 
-        public void Precache(Sfx which, bool pin) {
-            var effect = GetEffect((int)which);
-            _sfx[(int)which] = new WeakReference<LoadedEffect>(effect);
+        public void Precache(int which, bool pin) {
+            var effect = GetEffect(which);
+            _sfx[which] = new WeakReference<LoadedEffect>(effect);
 
             if (pin)
                 _pinned.Add(effect);
+            else
+                _recent0.Add(effect);
         }
 
         public void StopChannel(int channel) {
@@ -339,7 +341,6 @@ namespace Braver {
         }
 
 
-        public void PlaySfx(Sfx which, float volume, float pan, int? channel = null) => PlaySfx((int)which, volume, pan, channel);
         public void PlaySfx(int which, float volume, float pan, int? channel = null) {
             LoadedEffect effect;
 

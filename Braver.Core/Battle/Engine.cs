@@ -27,12 +27,6 @@ namespace Braver.Battle {
         Counter,
     }
 
-    public interface IInProgress {
-        string Description { get; }
-        bool Step(int frames); //return true if done
-        bool IsIndefinite { get; }
-    }
-
     public class QueuedAction {
         public ICombatant Source { get; private set; }
         public Ability Ability { get; private set; }
@@ -104,6 +98,7 @@ namespace Braver.Battle {
 
 
             foreach(var comb in ActiveCombatants) {
+                comb.ID = _combatants.IndexOf(comb);
                 comb.VTimer = new Timer(_speedValue * 2, 8192, 0);
                 comb.CTimer = new Timer(136, 8192, 0);
 

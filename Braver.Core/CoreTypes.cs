@@ -37,17 +37,26 @@ namespace Braver {
         void SetMusicVolume(byte? volumeFrom, byte volumeTo, float duration);
         void PlayMusic(string name, bool pushContext = false);
         void StopMusic(bool popContext = false);
-        void Precache(Sfx which, bool pin);
+        void Precache(int which, bool pin);
         void ChannelProperty(int channel, float? pan, float? volume);
         void GetChannelProperty(int channel, out float? pan, out float? volume);
         void StopChannel(int channel);
         void StopLoopingSfx(bool includeChannels);
         void PlaySfx(int which, float volume, float pan, int? channel = null);
-        void PlaySfx(Sfx which, float volume, float pan, int? channel = null);
 
         IAudioItem LoadStream(string path, string file);
         IAudioItem TryLoadStream(string path, string file);
         void DecodeStream(Stream s, out byte[] rawData, out int channels, out int frequency);
+    }
+
+    public static class AudioExtensions {
+        public static void PlaySfx(this IAudio audio, Sfx which, float volume, float pan, int? channel = null) {
+            audio.PlaySfx((int)which, volume, pan, channel);
+        }
+
+        public static void Precache(this IAudio audio, Sfx which, bool pin) {
+            audio.Precache((int)which, pin);
+        }
     }
 
 

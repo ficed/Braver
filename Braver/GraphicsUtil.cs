@@ -148,6 +148,15 @@ namespace Braver {
             return new Vector2(v.X, v.Y);
         }
 
+        public static Vector3 Parse3(string s) {
+            string[] parts = s.Split('/');
+            return new Vector3(
+                float.Parse(parts[0]),
+                float.Parse(parts[1]),
+                float.Parse(parts[2])
+            );
+        }
+
         public static bool LineCircleIntersect(Vector2 line0, Vector2 line1, Vector2 center, float radius) {
             Vector2 ac = center - line0;
             Vector2 ab = line1 - line0;

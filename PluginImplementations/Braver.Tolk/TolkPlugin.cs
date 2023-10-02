@@ -151,11 +151,13 @@ namespace Braver.Tolk {
             DavyKager.Tolk.Speak(action, false);
         }
 
+        /*
         public void BattleActionResult(IInProgress result) {
             string s = result.Description;
             if (!string.IsNullOrEmpty(s))
                 DavyKager.Tolk.Speak(s, false);
         }
+        */
 
         public void Showing(int window, int tag, IEnumerable<string> text) {
             //

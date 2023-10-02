@@ -16,10 +16,13 @@ using System.Threading.Tasks;
 namespace Braver.Battle {
     public class AnimScriptExecutor {
 
+        public enum WaitingForKind {
+            Animation,
+            Action,
+        }
+
         private ICombatant _source;
-        private ICombatant[] _targets;
         private RealBattleScreen _screen;
-        private Engine _engine;
         private AnimationScriptDecoder _script;
 
         private Func<bool> _shouldContinue = null;
@@ -27,14 +30,25 @@ namespace Braver.Battle {
 
         private List<Action> _renderers = new();
 
+        public WaitingForKind? WaitingFor { get; private set; }
         public bool IsComplete => !_paused && _complete;
 
-        public AnimScriptExecutor(ICombatant source, ICombatant[] targets, RealBattleScreen screen, Engine engine, AnimationScriptDecoder script) {
+        public AnimScriptExecutor(ICombatant source, RealBattleScreen screen, AnimationScriptDecoder script) {
             _source = source;
-            _targets = targets;
             _screen = screen;
-            _engine = engine;
             _script = script;
+        }
+
+        public void Resume() {
+            switch (WaitingFor) {
+                case WaitingForKind.Action:
+                    _paused = false;
+                    _shouldContinue = null;
+                    WaitingFor = null;
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         public void Step() {
@@ -49,11 +63,12 @@ namespace Braver.Battle {
                 if (op == null)
                     _complete = true;
                 else {
-                    var model = _screen.Models[_source];
+                    var model = _screen.Renderer.Models[_source];
                     if ((byte)op.Value.Op < 0x8E) {
                         model.PlayAnimation((byte)op.Value.Op, false, 1f, onlyIfDifferent: false);
                         _paused = true;
                         _shouldContinue = () => model.AnimationState.CompletionCount > 0;
+                        WaitingFor = WaitingForKind.Animation;
                     } else {
 
                         switch(op.Value.Op) {
@@ -66,7 +81,7 @@ namespace Braver.Battle {
                                 Action effRender = null;
                                 var pos = model.Translation + model.Translation2;
                                 effRender = () => {
-                                    if (effect.Render(pos, _screen.View3D, frame++))
+                                    if (effect.Render(pos, _screen.Renderer.View3D, frame++))
                                         _renderers.Remove(effRender);
                                 };
                                 _renderers.Add(effRender);
@@ -82,10 +97,9 @@ namespace Braver.Battle {
                                 break;
 
                             case AnimScriptOp.WaitForEffectLoad:
-                                //TODO!!!
                                 _paused = true;
-                                int timeout = 120;
-                                _shouldContinue = () => --timeout == 0;
+                                _shouldContinue = () => false;
+                                WaitingFor = WaitingForKind.Action;
                                 break;
 
                             default:

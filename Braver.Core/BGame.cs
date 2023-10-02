@@ -126,6 +126,7 @@ namespace Braver {
             SaveMap = new SaveMap(Memory);
         }
 
+        public int GameTimeFrames => GameTimeSeconds * 30 + SaveMap.GameTimeFrames;
         public int GameTimeSeconds {
             get => SaveMap.GameTimeSeconds + 60 * SaveMap.GameTimeMinutes + 60 * 60 * SaveMap.GameTimeHours;
             set {

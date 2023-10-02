@@ -98,6 +98,25 @@ namespace Braver.Battle {
 
     }
 
+    public class SpriteManager {
+        private Dictionary<string, LoadedSprite> _sprites = new(StringComparer.InvariantCultureIgnoreCase);
+
+        private FGame _game;
+        private GraphicsDevice _graphics;
+        
+        public SpriteManager(FGame game, GraphicsDevice graphics) {
+            _game = game;
+            _graphics = graphics;
+        }
+
+        public LoadedSprite Get(string spriteFile, IEnumerable<string> textures) {
+            string key = spriteFile + "," + string.Join(",", textures);
+            if (!_sprites.TryGetValue(key, out var sprite))
+                _sprites[key] = sprite = new LoadedSprite(_game, _graphics, spriteFile, textures);
+            return sprite;
+        }
+    }
+
     public class SpriteRenderer {
 
         private List<(LoadedSprite.Instance sprite, Func<Vector3> pos)> _sprites = new();
@@ -109,8 +128,10 @@ namespace Braver.Battle {
             _graphics = graphics;
         }
 
-        public void Add(LoadedSprite sprite,  Func<Vector3> getPos) {
-            _sprites.Add((new LoadedSprite.Instance(sprite), getPos));  
+        public LoadedSprite.Instance Add(LoadedSprite sprite,  Func<Vector3> getPos) {
+            var instance = new LoadedSprite.Instance(sprite);
+            _sprites.Add((instance, getPos));
+            return instance;
         }
 
         public void FrameStep() {

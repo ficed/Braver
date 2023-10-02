@@ -33,12 +33,14 @@ namespace Braver.Battle {
         public FGame Game { get; private set; }
         public GraphicsDevice Graphics { get; private set; }
         public Dictionary<T, Model> Models { get; } = new();
+        public SpriteRenderer Sprites { get; }
         public PerspView3D View3D => _view;
 
         public BattleRenderer(FGame game, GraphicsDevice graphics, Screen uiScreen) {
             Game = game;
             Graphics = graphics;
             _ui = uiScreen;
+            Sprites = new SpriteRenderer(graphics);
         }
 
         public void SetCamera(BattleCamera cam) {
@@ -125,6 +127,7 @@ namespace Braver.Battle {
             foreach (var model in Models.Values) {
                 model.FrameStep();
             }
+            Sprites.FrameStep();
             _ui.Step(elapsed);
         }
 
@@ -150,6 +153,8 @@ namespace Braver.Battle {
             foreach (var model in Models.Values)
                 if (model.Visible)
                     model.Render(_view);
+
+            Sprites.Render();
 
             _ui.Render();
         }

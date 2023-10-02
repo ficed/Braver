@@ -31,6 +31,7 @@ namespace Braver.Battle {
         public CombatStats BaseStats { get; }
 
         public string Name { get; }
+        public int ID { get; set; }
 
         public int HP { get; set; }
         public int MaxHP { get; }
@@ -109,6 +110,7 @@ namespace Braver.Battle {
         private CombatStats _stats;
 
         public string Name => _char.Name;
+        public int ID { get; set; }
         public Character Character => _char;
 
         public List<CharacterAction> Actions { get; } = new();
@@ -263,6 +265,7 @@ namespace Braver.Battle {
         private CombatStats _stats;
 
         public string Name { get; private set; }
+        public int ID { get; set; }
 
         public EnemyInstance Enemy => _enemy;
         public AI AI { get; set; }
