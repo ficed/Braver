@@ -96,6 +96,15 @@ namespace Braver.Battle {
                 );
             }
 
+            if (input.IsJustDown(InputKey.Select)) {
+                _screen.CameraController.Execute(
+                    36,
+                    _screen.Renderer.Models[_engine.ActiveCombatants.ElementAt(_cMenu)],
+                    _engine.ActiveCombatants.Where(c => !c.IsPlayer).Select(c => _screen.Renderer.Models[c]),
+                    () => _screen.CameraController.ResetToIdleCamera()
+                );
+            }
+
             if (input.IsJustDown(InputKey.Start)) {
                 /*
                 var sprite = new LoadedSprite(_game, _graphics, "fi_a01.s", new[] { "fire00.tex", "fire01.tex" });

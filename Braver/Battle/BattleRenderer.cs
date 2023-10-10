@@ -11,8 +11,27 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace Braver.Battle {
+
+    public interface ICameraView {
+        PerspView3D View { get; }
+    }
+
+    public static class CameraUtil {
+        public static PerspView3D ToView3D(this BattleCamera cam) {
+            return new PerspView3D {
+                CameraPosition = new Vector3(cam.X, cam.Y, cam.Z),
+                CameraForwards = new Vector3(cam.LookAtX - cam.X, cam.LookAtY - cam.Y, cam.LookAtZ - cam.Z),
+                CameraUp = -Vector3.UnitY, //TODO!!
+                ZNear = 100,
+                ZFar = 100000,
+                FOV = 25f,
+            };
+        }
+    }
+
     public class BattleRenderer<T> {
         private BackgroundKind _backgroundKind;
 
@@ -27,32 +46,20 @@ namespace Braver.Battle {
         private VertexBuffer _vertexBuffer;
         private IndexBuffer _indexBuffer;
 
-        private PerspView3D _view;
         private Screen _ui;
+        private ICameraView _view;
 
         public FGame Game { get; private set; }
         public GraphicsDevice Graphics { get; private set; }
         public Dictionary<T, Model> Models { get; } = new();
         public SpriteRenderer Sprites { get; }
-        public PerspView3D View3D => _view;
 
-        public BattleRenderer(FGame game, GraphicsDevice graphics, Screen uiScreen) {
+        public BattleRenderer(FGame game, GraphicsDevice graphics, Screen uiScreen, ICameraView view) {
             Game = game;
             Graphics = graphics;
             _ui = uiScreen;
+            _view = view;
             Sprites = new SpriteRenderer(graphics);
-        }
-
-        public void SetCamera(BattleCamera cam) {
-            _view = new PerspView3D {
-                CameraPosition = new Vector3(cam.X, cam.Y, cam.Z),
-                CameraForwards = new Vector3(cam.LookAtX - cam.X, cam.LookAtY - cam.Y, cam.LookAtZ - cam.Z),
-                CameraUp = -Vector3.UnitY, //TODO!!
-                ZNear = 100,
-                ZFar = 100000,
-                FOV = 51f, //Seems maybe vaguely correct, more or less what Proud Clod uses for its preview...
-            };
-            Game.Net.Send(new SetBattleCameraMessage { Camera = cam });
         }
 
         public void LoadBackground(int locationID) {
@@ -140,8 +147,8 @@ namespace Braver.Battle {
             Graphics.SetVertexBuffer(_vertexBuffer);
 
             foreach (var chunk in _backgroundChunks) {
-                chunk.Effect.View = _view.View;
-                chunk.Effect.Projection = _view.Projection;
+                chunk.Effect.View = _view.View.View;
+                chunk.Effect.Projection = _view.View.Projection;
                 foreach (var pass in chunk.Effect.CurrentTechnique.Passes) {
                     pass.Apply();
                     Graphics.DrawIndexedPrimitives(
@@ -152,7 +159,7 @@ namespace Braver.Battle {
 
             foreach (var model in Models.Values)
                 if (model.Visible)
-                    model.Render(_view);
+                    model.Render(_view.View);
 
             Sprites.Render();
 

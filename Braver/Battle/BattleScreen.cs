@@ -102,7 +102,14 @@ namespace Braver.Battle {
             }
         }
 
+        private enum BattleState {
+            Intro,
+            Normal,
+            Victory,
+        }
+
         private BattleScene _scene;
+        private BattleState _state;
 
         private UI.UIBatch _menuUI;
         private Menu<CharacterCombatant> _activeMenu;
@@ -141,6 +148,7 @@ namespace Braver.Battle {
 
         public BattleRenderer<ICombatant> Renderer { get; private set; }
         public SpriteManager Sprites { get; private set; }
+        public CameraController CameraController { get; private set; }
         public UI.UIBatch MenuUI => _menuUI;
 
         public override string Description {
@@ -258,11 +266,12 @@ namespace Braver.Battle {
             var ui = new UI.Layout.LayoutScreen("battle", _uiHandler, isEmbedded: true);
             ui.Init(Game, Graphics);
 
-            Renderer = new BattleRenderer<ICombatant>(g, graphics, ui);
+            CameraController = new CameraController(g, _scene.CamDatNumber, _scene.Cameras);
+            CameraController.ResetToIdleCamera();
+
+            Renderer = new BattleRenderer<ICombatant>(g, graphics, ui, CameraController);
             Renderer.LoadBackground(_scene.LocationID);
-            var cam = _scene.Cameras[0];
-            Renderer.SetCamera(cam);
-            
+
             foreach (var enemy in _scene.Enemies) {
                 AddModel(
                     SceneDecoder.ModelIDToFileName(enemy.Enemy.ID),
@@ -285,6 +294,14 @@ namespace Braver.Battle {
 
             g.Net.Send(new Net.ScreenReadyMessage());
             g.Audio.PlayMusic("bat", true); //TODO!
+
+            _state = BattleState.Intro;
+            CameraController.ExecuteIntro(
+                _scene.InitialCamera,
+                Renderer.Models[_engine.ActiveCombatants.First(c => !c.IsPlayer)],
+                _engine.ActiveCombatants.Where(c => c.IsPlayer).Select(c => Renderer.Models[c]),
+                () => _state = BattleState.Normal
+            );
         }
 
         private void InitEngine() {
@@ -392,7 +409,7 @@ namespace Braver.Battle {
             var middle = (model.MaxBounds + model.MinBounds) * 0.5f;
             if (offset != null)
                 middle += offset.Value;
-            var screenPos = Renderer.View3D.ProjectTo2D(model.Translation + middle);
+            var screenPos = CameraController.View.ProjectTo2D(model.Translation + middle);
             return screenPos;
         }
 
@@ -500,8 +517,10 @@ namespace Braver.Battle {
             if (_debug != null) {
                 _debug.Step();
             } else {
-                EngineTick(elapsed);
+                if (_state == BattleState.Normal)
+                    EngineTick(elapsed);
             }
+            CameraController.Step();
             Renderer.Step(elapsed);
         }
 
@@ -535,18 +554,21 @@ namespace Braver.Battle {
 
             _debug?.ProcessInput(input);
 
+            if (_state != BattleState.Normal)
+                return;
+
             if (input.IsJustDown(InputKey.Debug1))
                 _debugCamera = !_debugCamera;
 
             if (_debugCamera) {
                 if (input.IsDown(InputKey.Up))
-                    Renderer.View3D.CameraPosition += new Vector3(0, 0, -100);
+                    CameraController.View.CameraPosition += new Vector3(0, 0, -100);
                 if (input.IsDown(InputKey.Down))
-                    Renderer.View3D.CameraPosition += new Vector3(0, 0, 100);
+                    CameraController.View.CameraPosition += new Vector3(0, 0, 100);
                 if (input.IsDown(InputKey.Left))
-                    Renderer.View3D.CameraPosition += new Vector3(100, 0, 0);
+                    CameraController.View.CameraPosition += new Vector3(100, 0, 0);
                 if (input.IsDown(InputKey.Right))
-                    Renderer.View3D.CameraPosition += new Vector3(-100, 0, 0);
+                    CameraController.View.CameraPosition += new Vector3(-100, 0, 0);
             } else if (input.IsJustDown(InputKey.Menu)) {
                 NextMenu();
             } else if (Targets != null) {

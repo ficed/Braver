@@ -211,6 +211,9 @@ namespace Braver.Battle {
                 case 0x190:
                     getValue = (c, index) => (ushort)(c.MaxHP >> 16); break;
 
+                case 0x270:
+                    getValue = (c, index) => (ushort)c.Row; break;
+
                 default:
                     throw new NotImplementedException();
             }

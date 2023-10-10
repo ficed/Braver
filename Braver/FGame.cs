@@ -100,6 +100,8 @@ namespace Braver {
                         list.Add(new LGPDataSource(new Ficedula.FF7.LGPFile(path)));
                     else if (kind == "FILE")
                         list.Add(new FileDataSource(path));
+                    else if (kind == "EXE")
+                        list.Add(new ExeData(path, Expand(parts[4]), this));
                     else if (kind == "PACK") {
                         if (!packs.TryGetValue(path, out var pack))
                             packs[path] = pack = new Pack(new FileStream(path, FileMode.Open, FileAccess.Read));

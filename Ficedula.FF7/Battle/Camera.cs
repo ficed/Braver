@@ -13,12 +13,82 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ficedula.FF7.Battle {
-    public class CameraData : IDisposable {
 
-        private Stream _source;
+    public abstract class BaseCameraData : IDisposable {
+        protected Stream _source;
+        protected List<int[]> _offsets;
 
-        private List<int[]> _offsets;
-        public int CameraCount { get; private set; }
+        public int CameraCount { get; protected set; }
+
+        protected byte[] Read(int group, int camera) {
+            int[] offsets = _offsets[group];
+            int offset = offsets[camera],
+                next = offsets[camera + 1];
+            byte[] data = new byte[next - offset];
+            _source.Position = offset;
+            _source.Read(data, 0, data.Length);
+            return data;
+        }
+
+        public void Dispose() {
+            _source.Dispose();
+        }
+    }
+
+    public class EmbeddedCameraData : BaseCameraData {
+
+        public EmbeddedCameraData(Stream source, int baseAddress, int positionTableOffset, int focusTableOffset) {
+            _source = source;
+
+            List<int> GetOffsets(int start) {
+                var offsets = new List<int>();
+                source.Position = start;
+                while (true) {
+                    int offset = source.ReadI32();
+                    if (offset < baseAddress) break;
+                    offsets.Add(offset - baseAddress);
+                }
+                return offsets;
+            }
+
+            var posOffset = GetOffsets(positionTableOffset);
+            var focusOffset = GetOffsets(focusTableOffset);
+
+            CameraCount = posOffset.Count;
+
+            if (posOffset.Last() > focusOffset.Last()) {
+                focusOffset.Add(posOffset.Last());
+                posOffset.Add(Math.Min(positionTableOffset, focusTableOffset));
+            } else {
+                posOffset.Add(focusOffset.Last());
+                focusOffset.Add(Math.Min(positionTableOffset, focusTableOffset));
+            }
+
+            _offsets = new List<int[]> {
+                posOffset.ToArray(), focusOffset.ToArray()
+            };
+        }
+
+        public CameraPositionScript ReadPosition(int camera) {
+            return new CameraPositionScript(Read(0, camera));
+        }
+        public CameraFocusScript ReadFocus(int camera) {
+            return new CameraFocusScript(Read(1, camera));
+        }
+    }
+
+    public class CameraData : BaseCameraData {
+
+        private byte[] Read(int camera, int index, bool focus, bool victoryCamera) {
+            return Read((focus ? 1 : 0) + (victoryCamera ? 2 : 0), camera * 3 + index);
+        }
+
+        public CameraPositionScript ReadPosition(int camera, int index, bool isVictory) {
+            return new CameraPositionScript(Read(camera, index, false, isVictory));
+        }
+        public CameraFocusScript ReadFocus(int camera, int index, bool isVictory) {
+            return new CameraFocusScript(Read(camera, index, true, isVictory));
+        }
 
         public CameraData(Stream source) {
             _source = source;
@@ -39,37 +109,15 @@ namespace Ficedula.FF7.Battle {
                 })
                 .ToList();
         }
-
-        private byte[] Read(int camera, int index, bool focus, bool victoryCamera) {
-            int[] offsets = _offsets[(focus ? 1 : 0) + (victoryCamera ? 2 : 0)];
-            int offset = offsets[camera * 3 + index],
-                next = offsets[camera * 3 + index + 1];
-            byte[] data = new byte[next - offset];
-            _source.Position = offset;
-            _source.Read(data, 0, data.Length);
-            return data;
-        }
-
-        public CameraPositionScript ReadPosition(int camera, int index, bool isVictory) {
-            return new CameraPositionScript(Read(camera, index, false, isVictory));
-        }
-        public CameraFocusScript ReadFocus(int camera, int index, bool isVictory) {
-            return new CameraFocusScript(Read(camera, index, true, isVictory));
-        }
-
-
-        public void Dispose() {
-            _source.Dispose();
-        }
     }
 
     public abstract class CameraScript<T> where T : struct {
 
         protected static Dictionary<T, int[]> _opParams;
-        protected static T _conditionalRestartOp;
 
         private byte[] _bytecode;
         private int _ip;
+        private int? _previousIP;
 
         protected CameraScript(byte[] bytecode) {
             _bytecode = bytecode;
@@ -77,10 +125,26 @@ namespace Ficedula.FF7.Battle {
 
         protected abstract T FromByte(byte b);
 
+        public void Rewind() {
+            if (_previousIP != null) {
+                _ip = _previousIP.Value;
+                _previousIP = null;
+            } else
+                throw new NotSupportedException();
+        }
+
+        public void ConditionalRestart(int waitCounter) {
+            if ((waitCounter == 0) && _bytecode[_ip] == 0xc0) {
+                _ip = 0;
+            }
+        }
+
         public DecodedCameraOp<T> NextOp() {
+            _previousIP = _ip;
             var op = new DecodedCameraOp<T> {
                 Opcode = FromByte(_bytecode[_ip++]),
             };
+
             if (_opParams.TryGetValue(op.Opcode, out int[] parms)) {
                 op.Operands = parms
                     .Select(i => {
@@ -111,7 +175,7 @@ namespace Ficedula.FF7.Battle {
                 [CameraPositionOpcode.SetActiveIdleCamera] = new[] { 1 },
                 [CameraPositionOpcode.UnknownDE] = new[] { 1 },
                 [CameraPositionOpcode.UnknownE0] = new[] { 1, 1 },
-                [CameraPositionOpcode.UnknownE2] = new[] { 1 },
+                [CameraPositionOpcode.TransitionToIdle] = new[] { 1 },
                 [CameraPositionOpcode.UnknownE3] = new[] { 1, 1, 2, 2, 2, 1 },
                 [CameraPositionOpcode.TransitionToAttackerJoint] = new[] { 1, 2, 2, 2, 1 },
                 [CameraPositionOpcode.TransitionToTargetJoint] = new[] { 1, 2, 2, 2, 1 },
@@ -120,16 +184,14 @@ namespace Ficedula.FF7.Battle {
                 [CameraPositionOpcode.UnknownE9] = new[] { 1, 2, 2, 2, 1 },
                 [CameraPositionOpcode.UnknownEB] = new[] { 1, 1, 2, 2, 2, 1 },
                 [CameraPositionOpcode.UnknownEF] = new[] { 1, 1, 2, 2, 2 },
-                [CameraPositionOpcode.UnknownF0] = new[] { 1, 2, 2, 2 },
+                [CameraPositionOpcode.JumpToAttackerJoint] = new[] { 1, 2, 2, 2 },
                 [CameraPositionOpcode.UnknownF2] = new[] { 1, 2, 2 },
                 [CameraPositionOpcode.UnknownF3] = new[] { 1, 2, 2 },
                 [CameraPositionOpcode.SetWait] = new[] { 1 },
                 [CameraPositionOpcode.UnknownF7] = new[] { 1, 2, 2, 2 },
                 [CameraPositionOpcode.UnknownF8] = new[] { 2, 2, 2, 2, 2, 2 },
-                [CameraPositionOpcode.UnknownF9] = new[] { 2, 2, 2 },
-                //ConditionalRestart is special
+                [CameraPositionOpcode.LoadPoint] = new[] { 2, 2, 2 },
             };
-            _conditionalRestartOp = CameraPositionOpcode.ConditionalRestart;
         }
 
         public CameraPositionScript(byte[] bytecode) : base(bytecode) {
@@ -153,7 +215,7 @@ namespace Ficedula.FF7.Battle {
                 [CameraFocusOpcode.TransitionToAttackerJoint] = new[] { 1, 1, 2, 2, 2, 1 },
                 [CameraFocusOpcode.TransitionToTargetJoint] = new[] { 1, 2, 2, 2, 1 },
                 [CameraFocusOpcode.UnknownE6] = new[] { 2, 2, 2, 1 },
-                [CameraFocusOpcode.TransitionToAttackerView] = new[] { 1, 2, 2, 2, 1 },
+                [CameraFocusOpcode.JumpToAttackerJoint] = new[] { 1, 2, 2, 2, 1 },
                 [CameraFocusOpcode.UnknownEA] = new[] { 1, 2, 2, 2, 1 },
                 [CameraFocusOpcode.UnknownEC] = new[] { 1, 1, 2, 2, 2, 1 },
                 [CameraFocusOpcode.UnknownF0] = new[] { 1, 1, 2, 2, 2 },
@@ -161,9 +223,7 @@ namespace Ficedula.FF7.Battle {
                 [CameraFocusOpcode.UnknownF8] = new[] { 1, 2, 2, 2 },
                 [CameraFocusOpcode.UnknownF9] = new[] { 1, 2, 2, 2 },
                 [CameraFocusOpcode.LoadPoint] = new[] { 2, 2, 2 },
-                //ConditionalRestart is special
             };
-            _conditionalRestartOp = CameraFocusOpcode.ConditionalRestart;
         }
 
         public CameraFocusScript(byte[] bytecode) : base(bytecode) {
@@ -193,7 +253,7 @@ namespace Ficedula.FF7.Battle {
         UnknownDF = 0xDF,
         UnknownE0 = 0xE0,
         LoadIdleCameraPos = 0xE1,
-        UnknownE2 = 0xE2,
+        TransitionToIdle = 0xE2,
         UnknownE3 = 0xE3,
         TransitionToAttackerJoint = 0xE4,
         TransitionToTargetJoint = 0xE5,
@@ -202,7 +262,7 @@ namespace Ficedula.FF7.Battle {
         UnknownE9 = 0xE9,
         UnknownEB = 0xEB,
         UnknownEF = 0xEF,
-        UnknownF0 = 0xF0,
+        JumpToAttackerJoint = 0xF0,
         UnknownF1 = 0xF1,
         UnknownF2 = 0xF2,
         UnknownF3 = 0xF3,
@@ -210,7 +270,7 @@ namespace Ficedula.FF7.Battle {
         SetWait = 0xF5,
         UnknownF7 = 0xF7,
         UnknownF8 = 0xF8,
-        UnknownF9 = 0xF9,
+        LoadPoint = 0xF9,
         ConditionalRestart = 0xFE,
         ScriptEnd = 0xFF,
     }
@@ -230,7 +290,7 @@ namespace Ficedula.FF7.Battle {
         TransitionToAttackerJoint = 0xE4,
         TransitionToTargetJoint = 0xE5,
         UnknownE6 = 0xE6,
-        TransitionToAttackerView = 0xE8,
+        JumpToAttackerJoint = 0xE8,
         UnknownEA = 0xEA,
         UnknownEC = 0xEC,
         UnknownF0 = 0xF0,

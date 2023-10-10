@@ -1,0 +1,2 @@
+#FF7.exe EN offsets
+IntroCamera.bin		900000	2000

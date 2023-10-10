@@ -20,8 +20,18 @@ using Ficedula.FF7;
 
 namespace Braver.Battle {
     public class ClientBattleScreen : Screen, Net.IListen<AddBattleModelMessage>, 
-        Net.IListen<SetBattleCameraMessage>, Net.IListen<CharacterReadyMessage>,
+        Net.IListen<CharacterReadyMessage>,
         Net.IListen<TargetOptionsMessage> {
+
+        private class ClientCameraController : ICameraView, Net.IListen<SetBattleCameraMessage> {
+            public PerspView3D View { get; private set; }
+
+            public void Received(SetBattleCameraMessage message) {
+                View = message.Camera.ToView3D();
+            }
+        }
+
+
         public override Color ClearColor => Color.Black;
         public override string Description => "";
 
@@ -35,6 +45,7 @@ namespace Braver.Battle {
         private TargetOptionsMessage _targets;
         private TargetOption _currentTargets;
         private ICharacterAction _targetsFor;
+        private ClientCameraController _camera;
 
         public ClientBattleScreen(int formationID) {
             _formationID = formationID;
@@ -49,10 +60,14 @@ namespace Braver.Battle {
                 UpdateInBackground = true,
             };
             ui.Init(g, graphics);
-            _renderer = new BattleRenderer<int>(g, graphics, ui);
+
+            _camera = new ClientCameraController();
+            g.Net.Listen<Net.SetBattleCameraMessage>(_camera);
+
+
+            _renderer = new BattleRenderer<int>(g, graphics, ui, _camera);
             _renderer.LoadBackground(scene.LocationID);
             g.Net.Listen<Net.AddBattleModelMessage>(this);
-            g.Net.Listen<Net.SetBattleCameraMessage>(this);
             g.Net.Listen<Net.CharacterReadyMessage>(this);
             g.Net.Listen<Net.TargetOptionsMessage>(this);
 
@@ -111,7 +126,7 @@ namespace Braver.Battle {
         private Vector2 GetModelScreenPos(int modelID) {
             var model = _renderer.Models[modelID];
             var middle = (model.MaxBounds + model.MinBounds) * 0.5f;
-            var screenPos = _renderer.View3D.ProjectTo2D(model.Translation + middle);
+            var screenPos = _camera.View.ProjectTo2D(model.Translation + middle);
             return screenPos.XY();
         }
 
@@ -122,10 +137,6 @@ namespace Braver.Battle {
             if (message.Position.Z < 0)
                 model.Rotation = new Vector3(0, 180, 0);
             _renderer.Models.Add(message.ID, model);
-        }
-
-        public void Received(SetBattleCameraMessage message) {
-            _renderer.SetCamera(message.Camera);
         }
 
         public void Received(CharacterReadyMessage message) {

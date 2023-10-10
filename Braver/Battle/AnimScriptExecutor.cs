@@ -81,7 +81,7 @@ namespace Braver.Battle {
                                 Action effRender = null;
                                 var pos = model.Translation + model.Translation2;
                                 effRender = () => {
-                                    if (effect.Render(pos, _screen.Renderer.View3D, frame++))
+                                    if (effect.Render(pos, _screen.CameraController.View, frame++))
                                         _renderers.Remove(effRender);
                                 };
                                 _renderers.Add(effRender);

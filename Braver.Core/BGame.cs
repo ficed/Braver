@@ -121,9 +121,11 @@ namespace Braver {
         protected Dictionary<string, List<DataSource>> _data = new Dictionary<string, List<DataSource>>(StringComparer.InvariantCultureIgnoreCase);
         private Dictionary<Type, object> _singletons = new();
         protected Dictionary<string, string> _paths = new(StringComparer.InvariantCultureIgnoreCase);
+        private Random _random;
 
         public BGame() {
             SaveMap = new SaveMap(Memory);
+            _random = new Random();
         }
 
         public int GameTimeFrames => GameTimeSeconds * 30 + SaveMap.GameTimeFrames;
@@ -214,6 +216,11 @@ namespace Braver {
                 }
             }
             SaveData.CleanUp();
+        }
+
+        public int NextRandom(int max) {
+            lock (_random)
+                return _random.Next(max);
         }
 
         public T Singleton<T>() where T : Cacheable, new() {

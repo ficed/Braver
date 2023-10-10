@@ -143,14 +143,15 @@ namespace Braver.Battle {
                         Math.Max(maxBounds.Y, transformed.Max(v => v.Y)),
                         Math.Max(maxBounds.Z, transformed.Max(v => v.Z))
                     );
-                }
+                },
+                null
             );
             MinBounds = minBounds;
             MaxBounds = maxBounds;
             System.Diagnostics.Trace.WriteLine($"Model {skeleton} with min bounds {minBounds}, max {maxBounds}");
         }
 
-        private void Descend(BBone bone, Matrix m, Action<PFileChunk, Matrix> onChunk) {
+        private void Descend(BBone bone, Matrix m, Action<PFileChunk, Matrix> onChunk, Action<BBone, Matrix> onBone) {
             var frame = _animations.Anims[AnimationState.Animation].Frames[AnimationState.Frame];
             Matrix child = m;
             var rotation = frame.Rotations[bone.Index + 1];
@@ -181,16 +182,37 @@ namespace Braver.Battle {
                 ;
             }
 
-            if (bone.PFileIndex != null) {
+            if ((bone.PFileIndex != null) && (onChunk != null)) {
                 foreach (var chunk in _pfiles[bone.PFileIndex.Value].Chunks) {
                     onChunk(chunk, child);
                 }
             }
+            if (onBone != null)
+                onBone(bone, child);
 
             child = Matrix.CreateTranslation(0, 0, bone.Length) * child;
 
             foreach (var cb in bone.Children)
-                Descend(cb, child, onChunk);
+                Descend(cb, child, onChunk, onBone);
+        }
+
+        private Matrix GetBaseTransform() {
+            return Matrix.CreateRotationX(0 * (float)Math.PI / 180)
+              * Matrix.CreateRotationZ((-Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
+              * Matrix.CreateRotationX((-Rotation.X + Rotation2.X) * (float)Math.PI / 180)
+              * Matrix.CreateRotationY((-Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
+              * Matrix.CreateScale(Scale, Scale, Scale)
+              * Matrix.CreateTranslation(Translation + Translation2);
+        }
+
+        public Vector3 GetBonePosition(int boneIndex) {
+            Vector3 pos = Vector3.Zero;
+            Descend(_root, GetBaseTransform(), null, (bone, matrix) => {
+                if (bone.Index == boneIndex)
+                    pos = Vector3.Transform(Vector3.Zero, matrix);
+            });
+            //TODO - could optimise to not need to walk the whole skeleton
+            return pos;
         }
 
         public void Render(Viewer viewer) {
@@ -211,13 +233,7 @@ namespace Braver.Battle {
             using (graphicsState) {
                 Descend(
                     _root,
-                      Matrix.CreateRotationX(0 * (float)Math.PI / 180)
-                    * Matrix.CreateRotationZ((-Rotation.Z + Rotation2.Z) * (float)Math.PI / 180)
-                    * Matrix.CreateRotationX((-Rotation.X + Rotation2.X) * (float)Math.PI / 180)
-                    * Matrix.CreateRotationY((-Rotation.Y + Rotation2.Y) * (float)Math.PI / 180)
-                    * Matrix.CreateScale(Scale, Scale, Scale)
-                    * Matrix.CreateTranslation(Translation + Translation2)
-                    ,
+                    GetBaseTransform(),
                       (chunk, m) => {
                           var rn = _nodes[chunk];
                           BasicEffect effect;
@@ -237,7 +253,8 @@ namespace Braver.Battle {
                                   PrimitiveType.TriangleList, rn.VertOffset, rn.IndexOffset, rn.TriCount
                               );
                           }
-                      }
+                      },
+                      null
                 );
             }
         }

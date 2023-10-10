@@ -23,6 +23,7 @@ DATA    FILE?    kernel  %ff7%\data\lang-en\kernel
 DATA    FILE    root    %ff7%
 
 DATA	FILE?	battle	%braver%\battle
+DATA	FILE?	braver	%braver%\braver
 DATA	FILE?	field	%braver%\field
 DATA	FILE?	layout	%braver%\layout
 DATA	FILE?	movies	%braver%\movies
@@ -30,6 +31,8 @@ DATA	FILE?	save	%braver%\save
 DATA	FILE?	ui		%braver%\ui
 DATA	FILE?	wm		%braver%\wm
 
+DATA	PACK?	battle	%bdata%
+DATA	PACK?	braver	%bdata%
 DATA	PACK?	field	%bdata%
 DATA	PACK?	layout	%bdata%
 DATA	PACK?	movies	%bdata%
@@ -38,11 +41,13 @@ DATA	PACK?	ui		%bdata%
 DATA	PACK?	wm		%bdata%
 
 DATA	FILE?	vgmstream	%music%
+
+DATA	EXE		exe		%ff7exe%	exe_en.txt
+
 PATH	SFX		%ff7%\data\sound
 PATH	FFMPEG	%braver%\ffmpeg.exe
 PATH	MOVIES	%movies%
 PATH	DEBUG	%braver%
 PATH	SAVE	%save%
-PATH	FF7EXE	%ff7exe%
 
 PATH	PLUGINS	%plugins%

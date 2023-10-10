@@ -333,7 +333,7 @@ namespace Braver.Battle {
  * 
  * SPRITE <alias> <combatantID> <xyzOffset>
  * SFX <numberOrName> <positionAtCombatantID>
- * CAMERA ...
+ * CAMERA <id>|auto
  * ANIM <combatantID> <animNumber>
  * RESUME <combatantID>
  * WAIT <id> <id> <id>...

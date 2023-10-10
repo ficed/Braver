@@ -29,6 +29,19 @@ namespace Ficedula.FF7.Battle {
     }
 
     public class BattleScene {
+        private static Dictionary<BattleLayout, int> _layoutToCamDatNumber = new() {
+            [BattleLayout.Normal] = 0,
+            [BattleLayout.Preemptive] = 0,
+            [BattleLayout.BackAttack] = 1,
+            [BattleLayout.SideAttack2] = 2,
+            [BattleLayout.PincerAttack] = 2,
+            [BattleLayout.PincerAttack2] = 2,
+            [BattleLayout.SideAttack2] = 2,
+            [BattleLayout.SideAttack3] = 2,
+            [BattleLayout.NormalLockFront] = 0,
+        };
+
+
         //Computed
         public int FormationID { get; set; }
 
@@ -38,6 +51,7 @@ namespace Ficedula.FF7.Battle {
         public List<ushort> NextBattleArenaFormations { get; } = new();
         public ushort EscapableFlag { get; set; } //TODO flags?
         public BattleLayout Layout { get; set; }
+        public int CamDatNumber => _layoutToCamDatNumber[Layout];
         public byte InitialCamera { get; set; }
         public List<BattleCamera> Cameras { get; } = new();
 
