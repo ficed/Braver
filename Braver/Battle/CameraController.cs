@@ -17,6 +17,12 @@ using System.Threading.Tasks;
 namespace Braver.Battle {
 
     public class CameraController : ICameraView {
+
+        private enum TransitionKind {
+            Smooth,
+            Linear,
+        }
+
         private CameraData _data;
         private EmbeddedCameraData _introData;
         private FGame _game;
@@ -30,6 +36,7 @@ namespace Braver.Battle {
         private int _idleCamera;
         private List<BattleCamera> _cameras;
         private PerspView3D _view;
+        private TransitionKind _transitionPos, _transitionFocus;
 
         private Func<Vector3> _getPosition, _getFocus;
 
@@ -83,16 +90,26 @@ namespace Braver.Battle {
             }
         }
 
-        private Func<Vector3> GetTransition(Vector3 start, Vector3 end, int frames) {
+        private Func<Vector3> GetTransition(Vector3 start, Vector3 end, int frames, TransitionKind transitionKind) {
             int frame = 0;
             return () => {
                 float progress;
-                if (frame < frames)
-                    progress = 1f * frame / frames;
-                else
+                if (frame < frames) {
+                    switch (transitionKind) {
+                        case TransitionKind.Smooth:
+                            progress = (float)(Math.Cos(Math.PI + (1f * frame / frames) * Math.PI) + 1) * 0.5f;
+                            break;
+                        case TransitionKind.Linear:
+                            progress = 1f * frame / frames;
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                } else
                     progress = 1f;
+                var result = Vector3.Lerp(start, end, progress);
                 frame++;
-                return Vector3.Lerp(start, end, progress);
+                return result;
             };
         }
 
@@ -107,6 +124,13 @@ namespace Braver.Battle {
 
         private bool Execute(DecodedCameraOp<CameraPositionOpcode> op) {
             switch (op.Opcode) {
+                case CameraPositionOpcode.InterpolateModeSmooth:
+                    _transitionPos = TransitionKind.Smooth;
+                    return true;
+                case CameraPositionOpcode.InterpolateModeLinear:
+                    _transitionPos = TransitionKind.Linear;
+                    return true;
+
                 case CameraPositionOpcode.JumpToAttackerJoint:
                     int bone = op.Operands[0];
                     Vector3 offset = new Vector3(op.Operands[1], op.Operands[2], op.Operands[3]);
@@ -116,7 +140,11 @@ namespace Braver.Battle {
                     bone = op.Operands[0];
                     offset = new Vector3(op.Operands[1], op.Operands[2], op.Operands[3]);
                     var start = _view.CameraPosition;
-                    _getPosition = GetTransition(start, _source.GetBonePosition(bone) + offset, op.Operands[4] * FRAME_MULTIPLIER);
+                    _getPosition = GetTransition(
+                        start, _source.GetBonePosition(bone) + offset, 
+                        op.Operands[4] * FRAME_MULTIPLIER,
+                        _transitionPos
+                    );
                     return true;
                 case CameraPositionOpcode.TransitionToTargetJoint:
                     bone = op.Operands[0];
@@ -125,16 +153,18 @@ namespace Braver.Battle {
                     _getPosition = GetTransition(
                         start, 
                         AggregatePositions(_targets.Select(t => t.GetBonePosition(bone) + offset)),
-                        op.Operands[4] * FRAME_MULTIPLIER
+                        op.Operands[4] * FRAME_MULTIPLIER,
+                        _transitionPos
                     );
                     return true;
                 case CameraPositionOpcode.TransitionToIdle:
                     var idleCam = _cameras[_idleCamera];
-                    start = _getFocus?.Invoke() ?? Vector3.Zero;
+                    start = _getPosition?.Invoke() ?? Vector3.Zero;
                     _getPosition = GetTransition(
                         start,
                         new Vector3(idleCam.X, idleCam.Y, idleCam.Z),
-                        op.Operands[0]
+                        op.Operands[0] * FRAME_MULTIPLIER,
+                        _transitionPos
                     );
                     return true;
                 case CameraPositionOpcode.LoadPoint:
@@ -171,6 +201,13 @@ namespace Braver.Battle {
         }
         private bool Execute(DecodedCameraOp<CameraFocusOpcode> op) {
             switch (op.Opcode) {
+                case CameraFocusOpcode.InterpolateModeSmooth:
+                    _transitionFocus = TransitionKind.Smooth;
+                    return true;
+                case CameraFocusOpcode.InterpolateModeLinear:
+                    _transitionFocus = TransitionKind.Linear;
+                    return true;
+
                 case CameraFocusOpcode.JumpToAttackerJoint:
                     int bone = op.Operands[0];
                     var offset = new Vector3(op.Operands[1], op.Operands[2], op.Operands[3]);
@@ -182,7 +219,11 @@ namespace Braver.Battle {
                     bone = op.Operands[0];
                     offset = new Vector3(op.Operands[1], op.Operands[2], op.Operands[3]);
                     var start = _getFocus?.Invoke() ?? Vector3.Zero;
-                    _getFocus = GetTransition(start, _source.GetBonePosition(bone) + offset, op.Operands[4] * FRAME_MULTIPLIER);
+                    _getFocus = GetTransition(
+                        start, _source.GetBonePosition(bone) + offset, 
+                        op.Operands[4] * FRAME_MULTIPLIER,
+                        _transitionFocus
+                    );
                     return true;
                 case CameraFocusOpcode.TransitionToTargetJoint:
                     bone = op.Operands[0];
@@ -191,7 +232,8 @@ namespace Braver.Battle {
                     _getFocus = GetTransition(
                         start,
                         AggregatePositions(_targets.Select(t => t.GetBonePosition(bone) + offset)),
-                        op.Operands[4] * FRAME_MULTIPLIER
+                        op.Operands[4] * FRAME_MULTIPLIER,
+                        _transitionFocus
                     );
                     return true;
 
@@ -201,7 +243,8 @@ namespace Braver.Battle {
                     _getFocus = GetTransition(
                         start,
                         new Vector3(idleCam.LookAtX, idleCam.LookAtY, idleCam.LookAtZ),
-                        op.Operands[0]
+                        op.Operands[0] * FRAME_MULTIPLIER,
+                        _transitionFocus
                     );
                     return true;
 

@@ -298,8 +298,8 @@ namespace Braver.Battle {
             _state = BattleState.Intro;
             CameraController.ExecuteIntro(
                 _scene.InitialCamera,
-                Renderer.Models[_engine.ActiveCombatants.First(c => !c.IsPlayer)],
-                _engine.ActiveCombatants.Where(c => c.IsPlayer).Select(c => Renderer.Models[c]),
+                Renderer.Models[_engine.ActiveCombatants.First(c => c.IsPlayer)],
+                _engine.ActiveCombatants.Where(c => !c.IsPlayer).Select(c => Renderer.Models[c]),
                 () => _state = BattleState.Normal
             );
         }
