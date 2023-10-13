@@ -157,9 +157,11 @@ namespace Braver.Battle {
                 }
             }
 
-            foreach (var model in Models.Values)
-                if (model.Visible)
-                    model.Render(_view.View);
+            foreach (int pass in Enumerable.Range(0, 2)) {
+                foreach (var model in Models.Values)
+                    if (model.Visible)
+                        model.Render(_view.View, pass == 1);
+            }
 
             Sprites.Render();
 

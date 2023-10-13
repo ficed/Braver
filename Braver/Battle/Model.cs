@@ -7,18 +7,11 @@
 using Braver.Field;
 using Ficedula.FF7;
 using Ficedula.FF7.Battle;
-using Ficedula.FF7.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using SharpDX.Direct2D1.Effects;
-using SharpDX.X3DAudio;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
 
 namespace Braver.Battle {
     public class Model {
@@ -91,6 +84,8 @@ namespace Braver.Battle {
 
             foreach(var pfile in _pfiles) {
                 foreach (var chunk in pfile.Chunks) {
+                    byte alpha = chunk.RenderState.BlendMode == BlendType.Blend ? (byte)chunk.RenderState.VertexAlpha : (byte)0xff;
+
                     _nodes[chunk] = new RenderNode {
                         IndexOffset = indices.Count,
                         Texture = chunk.Texture == null ? null : textures[chunk.Texture.Value],
@@ -103,7 +98,7 @@ namespace Braver.Battle {
                         .Select(v => new VertexPositionNormalColorTexture {
                             Position = v.Position.ToX(),
                             Normal = v.Normal.ToX(),
-                            Color = new Color(v.Colour),
+                            Color = new Color(v.Colour).WithAlpha(alpha),
                             TexCoord = v.TexCoord.ToX(),
                         })
                     );
@@ -151,6 +146,8 @@ namespace Braver.Battle {
             System.Diagnostics.Trace.WriteLine($"Model {skeleton} with min bounds {minBounds}, max {maxBounds}");
         }
 
+        private static int MIN_BONE = 0, MAX_BONE = 9999;
+
         private void Descend(BBone bone, Matrix m, Action<PFileChunk, Matrix> onChunk, Action<BBone, Matrix> onBone) {
             var frame = _animations.Anims[AnimationState.Animation].Frames[AnimationState.Frame];
             Matrix child = m;
@@ -183,9 +180,10 @@ namespace Braver.Battle {
             }
 
             if ((bone.PFileIndex != null) && (onChunk != null)) {
-                foreach (var chunk in _pfiles[bone.PFileIndex.Value].Chunks) {
-                    onChunk(chunk, child);
-                }
+                if ((bone.Index >= MIN_BONE) && (bone.Index <= MAX_BONE))
+                    foreach (var chunk in _pfiles[bone.PFileIndex.Value].Chunks) {
+                        onChunk(chunk, child);
+                    }
             }
             if (onBone != null)
                 onBone(bone, child);
@@ -215,7 +213,7 @@ namespace Braver.Battle {
             return pos;
         }
 
-        public void Render(Viewer viewer) {
+        public void Render(Viewer viewer, bool transparentPass) {
             _texEffect.View = viewer.View;
             _texEffect.Projection = viewer.Projection;
             _colEffect.View = viewer.View;
@@ -228,6 +226,9 @@ namespace Braver.Battle {
             if (DeathFade.HasValue) {
                 _fadeTexture.SetData(Enumerable.Repeat(new Color(1f, 0f, 0f, DeathFade.Value), 4).ToArray());
                 graphicsState = new GraphicsState(_graphics, BlendState.Additive, DepthStencilState.DepthRead);
+            } else if (transparentPass) {
+                graphicsState = new GraphicsState(_graphics, BlendState.AlphaBlend, DepthStencilState.DepthRead);
+                //TODO - is this correct?!
             }
 
             using (graphicsState) {
@@ -235,6 +236,10 @@ namespace Braver.Battle {
                     _root,
                     GetBaseTransform(),
                       (chunk, m) => {
+                          bool transparentChunk = chunk.RenderState.BlendMode == BlendType.Blend;
+                          if (transparentPass != transparentChunk)
+                              return;
+
                           var rn = _nodes[chunk];
                           BasicEffect effect;
                           if (DeathFade.HasValue) {
