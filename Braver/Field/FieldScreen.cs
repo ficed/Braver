@@ -576,6 +576,7 @@ namespace Braver.Field {
                 var posOnBG = ModelToBGPosition(Player.Model.Translation);
                 float playerHeight = (Player.Model.MaxBounds.Y - Player.Model.MinBounds.Y) * Player.Model.Scale;
                 var highPosOnBG = ModelToBGPosition(Player.Model.Translation + new Vector3(0, 0, playerHeight));
+                float midPosOnBGY = (posOnBG.Y + highPosOnBG.Y) / 2;
                 var scroll = GetBGScroll();
                 var newScroll = scroll;
                 if (posOnBG.X > (scroll.x + 50))
@@ -583,10 +584,10 @@ namespace Braver.Field {
                 else if (posOnBG.X < (scroll.x - 50))
                     newScroll.x = (int)posOnBG.X + 50;
 
-                if (highPosOnBG.Y > (scroll.y + 45))
-                    newScroll.y = (int)highPosOnBG.Y - 45;
-                else if (posOnBG.Y < (scroll.y - 45))
-                    newScroll.y = (int)posOnBG.Y + 45;
+                if (midPosOnBGY > (scroll.y + 45))
+                    newScroll.y = (int)midPosOnBGY - 45;
+                else if (midPosOnBGY < (scroll.y - 45))
+                    newScroll.y = (int)midPosOnBGY + 45;
 
                 newScroll = ClampBGScrollToViewport(newScroll.x, newScroll.y);
 

@@ -12,6 +12,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime;
 
 namespace Braver.Field {
 
@@ -79,7 +80,7 @@ namespace Braver.Field {
             public void Render(FGame game, UI.UIBatch ui, Func<float> nextZ) {
 
                 void DrawText(ref int count) {
-                    int y = Y + 10 - LineScroll;
+                    int y = 10 - LineScroll;
                     float tz = nextZ();
                     int lineCount = 0;
 
@@ -106,12 +107,12 @@ namespace Braver.Field {
                         string s = count < line.Length ? line.Substring(0, count) : line;
 
                         //TODO - smooth scrolling, maybe scissor clip out the text within the box...
-                        if (y > (Y + Height - 25)) {
+                        if (y > (Height - 25)) {
                             LineScroll += 25;
                             count = 0;
                             break;
                         }
-                        if (y > Y)
+                        if (y > 0)
                             toRender.Add(s);
 
                         if (ReadyForChoice) {
@@ -153,6 +154,7 @@ namespace Braver.Field {
                         Visual.W = (int)rW;
                         Visual.H = (int)rH;
                         lText.Text = string.Empty;
+                        iPointer.Visible = false;
                         break;
                     case WindowState.Displaying:
                         Visual.W = Width;
@@ -175,7 +177,8 @@ namespace Braver.Field {
                 Visual.Draw(null, ui, 0, 0, nextZ);
             }
 
-            public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1));
+            public bool ReadyForChoice => (ChoiceLines != null) && (ScreenProgress == (Text.Length - 1))
+                && (State != WindowState.Hiding);
 
             public void StateChanged(PluginInstances<IDialog> plugins) {
                 plugins.Call(ui => ui.Dialog(Tag, ScreenProgress, Text[ScreenProgress]));
