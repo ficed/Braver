@@ -41,7 +41,7 @@ namespace Braver.Battle {
         NormalAgain = 5,
     }
 
-    public class RealBattleScreen : BattleScreen, Net.IClientListen<GetTargetOptionsMessage>,
+    public class RealBattleScreen : BattleScreen, IAutoDispose, Net.IClientListen<GetTargetOptionsMessage>,
         Net.IClientListen<QueueActionMessage> {
 
         private class Callbacks : AICallbacks {

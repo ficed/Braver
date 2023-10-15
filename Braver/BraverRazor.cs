@@ -34,12 +34,14 @@ namespace Braver {
             }
         }
 
+        public IBraverTemplateModel Template { get; set; }
+
         public string Bool(bool b) {
             return b.ToString().ToLower();
         }
 
         public string Include(string templateName, object model) {
-            var btemplate = Model as IBraverTemplateModel;
+            var btemplate = Template ?? Model as IBraverTemplateModel;
             var cache = GameModel.Singleton(() => new RazorLayoutCache(GameModel));
             return cache.ApplyPartial(btemplate.SourceCategory, templateName + "." + btemplate.SourceExtension, false, model);
         }

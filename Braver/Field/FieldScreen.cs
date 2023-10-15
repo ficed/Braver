@@ -43,7 +43,7 @@ namespace Braver.Field {
 
     public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
         Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage>,
-        IField {
+        IField, IAutoDispose {
 
         private PerspView3D _view3D;
         private View2D _view2D;

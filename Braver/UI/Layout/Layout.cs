@@ -513,9 +513,11 @@ namespace Braver.UI.Layout {
     }
 
     internal static class LayoutRazor {
-        public static Layout ApplyLayout(this RazorLayoutCache cache, string layout, bool forceReload, object model = null) {
+
+        public static Layout ApplyLayout(this RazorLayoutCache cache, string layout, bool forceReload, object model, IBraverTemplateModel templateModel) {
             string xml = cache.Compile("layout", layout + ".xml", forceReload).Run(template => {
                 template.Model = model ?? cache.Game;
+                template.Template = templateModel;
             });
             return Serialisation.Deserialise<Layout>(xml);
         }
@@ -564,7 +566,7 @@ namespace Braver.UI.Layout {
                 _backgroundLoad.Wait();
                 _backgroundLoad = null;
             }
-            _layout = g.Singleton(() => new RazorLayoutCache(g)).ApplyLayout(_layoutFile, false, _model.IsRazorModel ? _model : null);
+            _layout = g.Singleton(() => new RazorLayoutCache(g)).ApplyLayout(_layoutFile, false, _model.IsRazorModel ? _model : null, _model);
             _model.Init(_layout);
             _ui = new UIBatch(graphics, g);
             if (!_isEmbedded) g.Net.Send(new Net.ScreenReadyMessage());
@@ -573,7 +575,7 @@ namespace Braver.UI.Layout {
 
         public void Reload(bool forceReload = false) {
             _model.Created(Game, this);
-            _layout = Game.Singleton(() => new RazorLayoutCache(Game)).ApplyLayout(_layoutFile, forceReload, _model.IsRazorModel ? _model : null);
+            _layout = Game.Singleton(() => new RazorLayoutCache(Game)).ApplyLayout(_layoutFile, forceReload, _model.IsRazorModel ? _model : null, _model);
             _model.Init(_layout);
             Plugins.Call(ui => ui.Reloaded());
         }
