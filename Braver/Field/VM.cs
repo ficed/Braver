@@ -2114,7 +2114,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                             progress = 1f;
                             break;
                     }
-                    var scroll = Vector2.Lerp(new Vector2(start.x, start.y), pos, progress);
+                    var scroll = Vector2.Lerp(start, pos, progress);
                     s.BGScroll(scroll.X, scroll.Y);
                     return false;
                 }
@@ -2159,9 +2159,8 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
 
             ScrollState state;
             if (f.ResumeState == null) {
-                var scroll = s.GetBGScroll();
                 state = new ScrollState {
-                    Start = new Vector2(scroll.x, scroll.y),
+                    Start = s.GetBGScroll(),
                 };
                 f.ResumeState = state;
                 s.Options |= FieldOptions.CameraIsAsyncScrolling;
@@ -2203,7 +2202,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             }
 
             if (easing != null) {
-                (int curX, int curY) = s.GetBGScroll();
+                var currentScroll = s.GetBGScroll();
                 s.Options &= ~FieldOptions.CameraTracksPlayer;
                 s.Options |= FieldOptions.CameraIsAsyncScrolling;
                 s.StartProcess(frame => {
@@ -2216,8 +2215,8 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                         return true;
                     } else {
                         s.BGScroll(
-                            curX + (target.X - curX) * progress,
-                            curY + (target.Y - curY) * progress
+                            currentScroll.X + (target.X - currentScroll.X) * progress,
+                            currentScroll.Y + (target.Y - currentScroll.Y) * progress
                         );
                         return false;
                     }
@@ -2235,7 +2234,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
                 y = s.Game.Memory.Read(banks1 >> 4, sy),
                 speed = s.Game.Memory.Read(banks2 >> 4, sspeed);
 
-            (int curX, int curY) = s.GetBGScroll();
+            var curScroll = s.GetBGScroll();
 
             int numFrames = sspeed * 60 / 32;
 
@@ -2243,7 +2242,7 @@ if (y + h + MIN_WINDOW_DISTANCE > GAME_HEIGHT) { y = GAME_HEIGHT - h - MIN_WINDO
             f.Pause("Waiting for BG scroll");
             s.StartProcess(frame => {
                 float progress = 1f * frame / numFrames;
-                s.BGScroll(curX + (x - curX) * progress, curY + (y - curY) * progress);
+                s.BGScroll(curScroll.X + (x - curScroll.X) * progress, curScroll.Y + (y - curScroll.Y) * progress);
 
                 if (progress >= 1) {
                     s.Options &= ~FieldOptions.CameraIsAsyncScrolling;

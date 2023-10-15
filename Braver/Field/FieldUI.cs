@@ -41,7 +41,7 @@ namespace Braver.Field {
                 var bg = field.ModelToBGPosition(field.Player.Model.Translation + new Vector3(0, 0, playerHeight) * 1.25f);
                 _ui.DrawImage(
                     $"pointer_above",
-                    (int)(bg.X - bgOffset.x) * -3 + 640, 360 - (int)(bg.Y - bgOffset.y) * 3, 0.9f,
+                    (int)(bg.X - bgOffset.X) * -3 + 640, 360 - (int)(bg.Y - bgOffset.Y) * 3, 0.9f,
                     alignment: UI.Alignment.Center
                 );
             }
@@ -51,7 +51,7 @@ namespace Braver.Field {
                     var bg = field.ModelToBGPosition((arrow.V0.ToX() + arrow.V1.ToX()) * 0.5f + new Vector3(0, 0, playerHeight));
                     _ui.DrawImage(
                         $"anim_arrow_{(_frame / 12) % 5}",
-                        (int)(bg.X - bgOffset.x) * -3 + 640, 360 - (int)(bg.Y - bgOffset.y) * 3, 0.9f,
+                        (int)(bg.X - bgOffset.X) * -3 + 640, 360 - (int)(bg.Y - bgOffset.Y) * 3, 0.9f,
                         alignment: UI.Alignment.Center, color: Color.Red
                     );
                 }
@@ -61,7 +61,7 @@ namespace Braver.Field {
                 var bg = field.ModelToBGPosition(arrow.Position.ToX());
                 _ui.DrawImage(
                     $"anim_arrow_{(_frame / 12) % 5}",
-                    (int)(bg.X - bgOffset.x) * -3 + 640, 360 - (int)(bg.Y - bgOffset.y) * 3, 0.9f,
+                    (int)(bg.X - bgOffset.X) * -3 + 640, 360 - (int)(bg.Y - bgOffset.Y) * 3, 0.9f,
                     alignment: UI.Alignment.Center, 
                     color: arrow.Type == ArrowType.Red ? Color.Red : Color.Green
                 );

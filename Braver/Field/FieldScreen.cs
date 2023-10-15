@@ -372,8 +372,7 @@ namespace Braver.Field {
                 }
                 SetPlayerIfNecessary(); //TODO - is it OK to delay doing this? But until the entity scripts run we don't know which entity corresponds to which party member...
 
-                var scroll = GetBGScroll();
-                if ((scroll.x == 0) && (scroll.y == 0)) //don't bring player into view if script appears to have scrolled away
+                if (GetBGScroll() == Vector2.Zero) //don't bring player into view if script appears to have scrolled away
                     BringPlayerIntoView();
 
                 if (!Overlay.HasTriggered)
@@ -513,10 +512,10 @@ namespace Braver.Field {
             _frame++;
         }
 
-        public (int x, int y) GetBGScroll() {
-            return (
-                (int)(-_view2D.CenterX / 3),
-                (int)(_view2D.CenterY / 3)
+        public Vector2 GetBGScroll() {
+            return new Vector2(
+                -_view2D.CenterX / 3,
+                _view2D.CenterY / 3
             );
         }
         public void BGScroll(float x, float y) {
@@ -528,7 +527,7 @@ namespace Braver.Field {
             _view2D.CenterY += 3 * oy;
 
             var newScroll = GetBGScroll();
-            _view3D.ScreenOffset = new Vector2(newScroll.x * 3f * 2 / 1280, newScroll.y * -3f * 2 / 720);
+            _view3D.ScreenOffset = new Vector2(newScroll.X * 3f * 2 / 1280, newScroll.Y * -3f * 2 / 720);
 
             Game.Net.Send(new Net.FieldBGScrollMessage {
                 X = _view2D.CenterX / 3,
@@ -542,9 +541,9 @@ namespace Braver.Field {
             }
         }
 
-        public (int x, int y) ClampBGScrollToViewport(int x, int y) {
+        public Vector2 ClampBGScrollToViewport(float x, float y) {
             var result = ClampBGScrollToViewport(new Vector2(x, y));
-            return ((int)result.X, (int)result.Y);
+            return new Vector2(result.X, result.Y);
         }
         public Vector2 ClampBGScrollToViewport(Vector2 bgScroll) {
             int minX, maxX, minY, maxY;
@@ -579,21 +578,21 @@ namespace Braver.Field {
                 float midPosOnBGY = (posOnBG.Y + highPosOnBG.Y) / 2;
                 var scroll = GetBGScroll();
                 var newScroll = scroll;
-                if (posOnBG.X > (scroll.x + 50))
-                    newScroll.x = (int)posOnBG.X - 50;
-                else if (posOnBG.X < (scroll.x - 50))
-                    newScroll.x = (int)posOnBG.X + 50;
+                if (posOnBG.X > (scroll.X + 50))
+                    newScroll.X = (int)posOnBG.X - 50;
+                else if (posOnBG.X < (scroll.X - 50))
+                    newScroll.X = (int)posOnBG.X + 50;
 
-                if (midPosOnBGY > (scroll.y + 45))
-                    newScroll.y = (int)midPosOnBGY - 45;
-                else if (midPosOnBGY < (scroll.y - 45))
-                    newScroll.y = (int)midPosOnBGY + 45;
+                if (midPosOnBGY > (scroll.Y + 45))
+                    newScroll.Y = (int)midPosOnBGY - 45;
+                else if (midPosOnBGY < (scroll.Y - 45))
+                    newScroll.Y = (int)midPosOnBGY + 45;
 
-                newScroll = ClampBGScrollToViewport(newScroll.x, newScroll.y);
+                newScroll = ClampBGScrollToViewport(newScroll.X, newScroll.Y);
 
                 if (newScroll != scroll) {
                     System.Diagnostics.Trace.WriteLine($"BringPlayerIntoView: Player at BG pos {posOnBG}, BG scroll is {scroll}, needs to be {newScroll}");
-                    BGScroll(newScroll.x, newScroll.y);
+                    BGScroll(newScroll.X, newScroll.Y);
                 }
             }
         }
