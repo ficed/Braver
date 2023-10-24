@@ -9,7 +9,11 @@ using System.Threading.Tasks;
 namespace Ficedula.FF7.Exporters {
     public static class TexFileUtil {
         public unsafe static SKBitmap ToBitmap(this TexFile tex, int palette) {
-            var data = tex.ApplyPalette(palette);
+            List<uint[]> data;
+            if (tex.BytesPerPixel == 4)
+                data = tex.As32Bit();
+            else
+                data = tex.ApplyPalette(palette);
             var bmp = new SKBitmap(tex.Width, tex.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
             foreach(int y in Enumerable.Range(0, tex.Height)) {
                 var row = data[y];

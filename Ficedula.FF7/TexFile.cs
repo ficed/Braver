@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,8 +17,9 @@ namespace Ficedula.FF7 {
         public List<uint[]> Palettes { get; } = new();
         public List<byte[]> Pixels { get; }
 
-        public int Width => Pixels[0].Length;
+        public int Width => Pixels[0].Length / BytesPerPixel;
         public int Height => Pixels.Count;
+        public int BytesPerPixel { get; private set; }
 
         public TexFile(Stream source) {
             source.Position = 0x30;
@@ -31,6 +33,9 @@ namespace Ficedula.FF7 {
             source.Position = 0x58;
             int paletteSize = source.ReadI32() * 4;
 
+            source.Position = 0x68;
+            BytesPerPixel = source.ReadI32();
+
             foreach(int p in Enumerable.Range(0, numPalettes)) {
                 source.Position = 0xEC + colours * 4 * p;
                 Palettes.Add(
@@ -43,7 +48,7 @@ namespace Ficedula.FF7 {
             source.Position = 0xEC + paletteSize;
             Pixels = Enumerable.Range(0, height)
                 .Select(_ =>
-                    Enumerable.Range(0, width)
+                    Enumerable.Range(0, width * BytesPerPixel)
                     .Select(__ => source.ReadU8())
                     .ToArray()
                 )
@@ -54,6 +59,15 @@ namespace Ficedula.FF7 {
             var palette = Palettes[which];
             return Pixels
                 .Select(row => row.Select(b => palette[b]).ToArray())
+                .ToList();
+        }
+
+        public List<uint[]> As32Bit() {
+            Trace.Assert(BytesPerPixel == 4);
+            return Pixels
+                .Select(row => Enumerable.Range(0, Width)
+                        .Select(x => BitConverter.ToUInt32(row, x * BytesPerPixel))
+                        .ToArray())
                 .ToList();
         }
     }

@@ -126,7 +126,7 @@ namespace Ficedula.FF7.Exporters {
             SetupBaking();
 
             foreach (var group in poly.Chunks) {
-                if (group.Texture != null) {
+                if ((group.Texture != null) && (group.Texture.Value < materials.Count())) {
                     var mesh = new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>();
                     for (int i = 0; i < group.Indices.Count; i += 3) {
                         var v0 = group.Verts[group.Indices[i]];
