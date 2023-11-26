@@ -1,7 +1,7 @@
  # Braver
 
  Braver is an open source reimplementation of the original FF7 game engine.
- More information is [available at the main website](https://braver.ficedula.co.uk/).
+ More information is [available at the main website](https://braver.ficedula.co.uk/), or there is a Braver channel on the Qhimm Discord for discussion and questions. You can join the Qhimm Discord by following the link [from the forums](https://forums.qhimm.com/)
 
 # Getting Started
 
