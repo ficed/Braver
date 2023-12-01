@@ -28,10 +28,15 @@ namespace Braver {
 
         protected override void Initialize() {
             int scale;
-            if (_graphics.GraphicsDevice.Adapter.CurrentDisplayMode.Width > 2600)
-                scale = 2;
-            else
-                scale = 1;
+
+            if (Settings.Values.TryGetValue("Scale", out string sScale) && int.TryParse(sScale, out scale)) {
+                //
+            } else {
+                if (_graphics.GraphicsDevice.Adapter.CurrentDisplayMode.Width > 2600)
+                    scale = 2;
+                else
+                    scale = 1;
+            }
             _graphics.PreferredBackBufferWidth = 1280 * scale;
             _graphics.PreferredBackBufferHeight = 720 * scale;
             _graphics.ApplyChanges();
@@ -41,9 +46,10 @@ namespace Braver {
 
         private FGame _g;
 
-        private void Relaunch(Dictionary<string, string> currentParms, string excludeParm, string[] addParm) {
-            if (!string.IsNullOrEmpty(excludeParm))
-                currentParms.Remove(excludeParm);
+        private void Relaunch(Dictionary<string, string> currentParms, string[] excludeParms, string[] addParm) {
+            if (excludeParms != null)
+                foreach (string parm in excludeParms)
+                    currentParms.Remove(parm);
             if (addParm != null)
                 currentParms[addParm[0]] = addParm[1];
 
@@ -67,13 +73,13 @@ namespace Braver {
                 _g.ChangeScreen(null, new UI.Splash(parms["host"], int.Parse(parms["port"]), parms["key"]));
 
                 if (parms.ContainsKey("debughost"))
-                    Relaunch(parms, "host", null);
+                    Relaunch(parms, new[] { "host", "debughost" }, null);
 
             } else {
                 _g.ChangeScreen(null, new UI.Splash());
 
                 if (parms.ContainsKey("debughost"))
-                    Relaunch(parms, "debughost", new[] { "host", parms["debughost"] });
+                    Relaunch(parms, new[] { "debughost" }, new[] { "host", parms["debughost"] });
             }
         }
 

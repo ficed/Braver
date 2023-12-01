@@ -33,32 +33,14 @@ namespace Braver {
         public FGame(GraphicsDevice graphics) {
             _graphics = graphics;
 
-            Dictionary<string, string> settings = new(StringComparer.InvariantCultureIgnoreCase);
-            List<string> settingValues = new();
-            string root = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]);
-            string configFile = Path.Combine(root, "braver.cfg");
-            if (File.Exists(configFile))
-                settingValues.AddRange(File.ReadAllLines(configFile));
-
-            settingValues.AddRange(Environment.GetCommandLineArgs());
-
-            foreach(var setting in settingValues
-                .Select(s => s.Split(new[] { '=' }, 2))
-                .Where(sa => sa.Length == 2)) {
-                if (setting[1] == ".")
-                    settings[setting[0]] = root;
-                else
-                    settings[setting[0]] = setting[1];
-            }
-
-            if (!settings.ContainsKey("braver")) 
+            if (!Settings.Values.ContainsKey("braver")) 
                 throw new F7Exception($"Not configured - please run BraverLauncher first to configure the game");
 
-            GameOptions = new GameOptions(settings);
+            GameOptions = new GameOptions(Settings.Values);
 
             string dataFile = Path.Combine(Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]), "data.txt");
-            if (settings.ContainsKey("Data"))
-                dataFile = settings["Data"];
+            if (Settings.Values.ContainsKey("Data"))
+                dataFile = Settings.Values["Data"];
 
             string[] data;
 
@@ -75,8 +57,8 @@ namespace Braver {
             }
 
             string Expand(string s) {
-                foreach (string setting in settings.Keys)
-                    s = s.Replace($"%{setting}%", settings[setting], StringComparison.InvariantCultureIgnoreCase);
+                foreach (string setting in Settings.Values.Keys)
+                    s = s.Replace($"%{setting}%", Settings.Values[setting], StringComparison.InvariantCultureIgnoreCase);
                 return s;
             }
 
@@ -128,7 +110,7 @@ namespace Braver {
             }
 
             Trace.WriteLine("Braver: Data initialised");
-            foreach (var setting in settings)
+            foreach (var setting in Settings.Values)
                 Trace.WriteLine($"  Config: {setting.Key} = {setting.Value}");
 
             PluginManager = new PluginManager();
@@ -251,6 +233,8 @@ namespace Braver {
         }
 
         public void AutoSave(string location) {
+            if (Net is Net.Client) return;
+
             string path = GetPath("save");
 
             switch (GameOptions.AutoSaveOnFieldEntry) {
