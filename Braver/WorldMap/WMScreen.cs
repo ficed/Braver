@@ -187,7 +187,7 @@ namespace Braver.WorldMap {
         private MapBlockState[,] _blockState;
         private Texture2D[][] _textures;
 
-        private Ficedula.FF7.WorldMap _source;
+        private Ficedula.FF7.WorldMap.WorldMapMesh _source;
 
         private Field.FieldModel _avatarModel;
         private Avatar _avatar;
@@ -346,7 +346,7 @@ namespace Braver.WorldMap {
             _blocks = new MapBlock[BLOCKS_X, BLOCKS_Y];
             _blockState = new MapBlockState[BLOCKS_X, BLOCKS_Y];
 
-            _source = new Ficedula.FF7.WorldMap(g.Open("wm", "wm0.map"));
+            _source = new Ficedula.FF7.WorldMap.WorldMapMesh(g.Open("wm", "wm0.map"));
 
             Task.Run(Loader);
 

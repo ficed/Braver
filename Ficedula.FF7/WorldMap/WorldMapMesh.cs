@@ -8,60 +8,58 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Ficedula.FF7 {
+namespace Ficedula.FF7.WorldMap {
 
-    public class WorldMap : IDisposable {
+    public struct MapTri {
+        public byte Vert0, Vert1, Vert2;
+        public byte Walkmap;
+        public byte U0, V0, U1, V1, U2, V2;
+        public int Texture;
+        public byte Location;
+        public bool IsChocoboEncounter;
 
-        public struct MapTri {
-            public byte Vert0, Vert1, Vert2;
-            public byte Walkmap;
-            public byte U0, V0, U1, V1, U2, V2;
-            public int Texture;
-            public byte Location;
+        public MapTri(Stream s) {
+            Vert0 = (byte)s.ReadByte();
+            Vert1 = (byte)s.ReadByte();
+            Vert2 = (byte)s.ReadByte();
+            Walkmap = (byte)(s.ReadByte() & 0x1f);
+            U0 = (byte)s.ReadByte();
+            V0 = (byte)s.ReadByte();
+            U1 = (byte)s.ReadByte();
+            V1 = (byte)s.ReadByte();
+            U2 = (byte)s.ReadByte();
+            V2 = (byte)s.ReadByte();
+            ushort tl = s.ReadU16();
+            Texture = tl & 0x1ff;
+            Location = (byte)((tl >> 9) & 0x3F);
+            IsChocoboEncounter = (tl & 0x8000) != 0;
+        }
 
-            public MapTri(Stream s) {
-                Vert0 = (byte)s.ReadByte();
-                Vert1 = (byte)s.ReadByte();
-                Vert2 = (byte)s.ReadByte();
-                Walkmap = (byte)(s.ReadByte() & 0x1f);
-                U0 = (byte)s.ReadByte();
-                V0 = (byte)s.ReadByte();
-                U1 = (byte)s.ReadByte();
-                V1 = (byte)s.ReadByte();
-                U2 = (byte)s.ReadByte();
-                V2 = (byte)s.ReadByte();
-                ushort tl = s.ReadU16();
-                Texture = tl & 0x1ff;
-                Location = (byte)(tl >> 9);
+        public void GetCorrectedTextureInfo(out string texFile, out Vector2 uv0, out Vector2 uv1, out Vector2 uv2) {
+            var tex = _texMap[Texture];
+            texFile = tex.Filename;
+            uv0 = new Vector2((U0 - tex.UOffset) * 1f / tex.Width, (V0 - tex.VOffset) * 1f / tex.Height);
+            uv1 = new Vector2((U1 - tex.UOffset) * 1f / tex.Width, (V1 - tex.VOffset) * 1f / tex.Height);
+            uv2 = new Vector2((U2 - tex.UOffset) * 1f / tex.Width, (V2 - tex.VOffset) * 1f / tex.Height);
+        }
+
+        public static IEnumerable<string> TexFiles => _texMap.Select(t => t.Filename);
+
+        private class TexMap {
+            public string Filename;
+            public int Width, Height, UOffset, VOffset;
+
+            public TexMap(string filename, int w, int h, int uo, int vo) {
+                Filename = filename;
+                Width = w;
+                Height = h;
+                UOffset = uo;
+                VOffset = vo;
             }
+        }
 
-            public void GetCorrectedTextureInfo(out string texFile, out Vector2 uv0, out Vector2 uv1, out Vector2 uv2) {
-                var tex = _texMap[Texture];
-                texFile = tex.Filename;
-                uv0 = new Vector2((U0 - tex.UOffset) * 1f / tex.Width, (V0 - tex.VOffset) * 1f / tex.Height);
-                uv1 = new Vector2((U1 - tex.UOffset) * 1f / tex.Width, (V1 - tex.VOffset) * 1f / tex.Height);
-                uv2 = new Vector2((U2 - tex.UOffset) * 1f / tex.Width, (V2 - tex.VOffset) * 1f / tex.Height);
-            }
-
-            public static IEnumerable<string> TexFiles => _texMap.Select(t => t.Filename);
-
-            private class TexMap {
-                public string Filename;
-                public int Width, Height, UOffset, VOffset;
-
-                public TexMap(string filename, int w, int h, int uo, int vo) {
-                    Filename = filename;
-                    Width = w;
-                    Height = h;
-                    UOffset = uo;
-                    VOffset = vo;
-                }
-            }
-
-            private static TexMap[] _texMap = new[] {
+        private static TexMap[] _texMap = new[] {
                  new TexMap("pond",  32,     32,     0,  352),
                  new TexMap("riv_m2",    32,     32,     128,    64),
                  new TexMap("was_gs",    64,     64,     64,     192),
@@ -346,48 +344,50 @@ namespace Ficedula.FF7 {
                  new TexMap("wtrk",  32,     64,     64,     96)
             };
 
+    }
+
+    public struct MapVert {
+        public short X, Y, Z, W;
+
+        public MapVert(Stream s) {
+            X = s.ReadI16();
+            Y = s.ReadI16();
+            Z = s.ReadI16();
+            W = s.ReadI16();
         }
+    }
 
-        public struct MapVert {
-            public short X, Y, Z, W;
+    public class MapSector {
+        public List<MapVert> Vertices { get; }
+        public List<MapVert> Normals { get; }
+        public List<MapTri> Triangles { get; }
+        public int OffsetX { get; }
+        public int OffsetY { get; }
 
-            public MapVert(Stream s) {
-                X = s.ReadI16();
-                Y = s.ReadI16();
-                Z = s.ReadI16();
-                W = s.ReadI16();
-            }
+        public MapSector(Stream s, int number) {
+            int numTris = s.ReadI16(), numVerts = s.ReadI16();
+            Triangles = Enumerable.Range(0, numTris)
+                .Select(_ => new MapTri(s))
+                .ToList();
+
+            Vertices = Enumerable.Range(0, numVerts)
+                .Select(_ => new MapVert(s))
+                .ToList();
+
+            Normals = Enumerable.Range(0, numVerts)
+                .Select(_ => new MapVert(s))
+                .ToList();
+
+            OffsetX = 8192 * (number % 4);
+            OffsetY = 8192 * (number / 4);
         }
+    }
 
-        public class MapSector {
-            public List<MapVert> Vertices { get; }
-            public List<MapVert> Normals { get; }
-            public List<MapTri> Triangles { get; }
-            public int OffsetX { get; }
-            public int OffsetY { get; }
-
-            public MapSector(Stream s, int number) {
-                int numTris = s.ReadI16(), numVerts = s.ReadI16();
-                Triangles = Enumerable.Range(0, numTris)
-                    .Select(_ => new MapTri(s))
-                    .ToList();
-
-                Vertices = Enumerable.Range(0, numVerts)
-                    .Select(_ => new MapVert(s))
-                    .ToList();
-
-                Normals = Enumerable.Range(0, numVerts)
-                    .Select(_ => new MapVert(s))
-                    .ToList();
-
-                OffsetX = 8192 * (number % 4);
-                OffsetY = 8192 * (number / 4);
-            }
-        }
+    public class WorldMapMesh : IDisposable {
 
         private Stream _source;
 
-        public WorldMap(Stream source) {
+        public WorldMapMesh(Stream source) {
             _source = source;
         }
 
