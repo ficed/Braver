@@ -16,7 +16,7 @@ namespace CrossSlash {
     public class FieldExport : ExportKind {
         private ModelBaseOptions _config = new ModelBaseOptions();
         public override string Help =>
-@"Usage: CrossSlash FieldExport [SourceLGPOrFolder] [OutputFile] [HRCFile] [anim1] [anim2] [anim3...] [options]
+@"Usage: CrossSlash FieldModel [SourceLGPOrFolder] [OutputFile] [HRCFile] [anim1] [anim2] [anim3...] [options]
     Valid options:
         /ConvertSRGBToLinear - convert colours to linear RGB
         /SwapWinding - reverse triangle winding order
