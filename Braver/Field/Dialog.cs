@@ -12,7 +12,6 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime;
 
 namespace Braver.Field {
 
@@ -22,6 +21,8 @@ namespace Braver.Field {
         Transparent = 0x1,
         NoBorder = 0x2,
         IsPermanent = 0x4,
+
+        ClientRender = 0x8000,
     }
 
     public enum DialogVariable {
@@ -64,8 +65,8 @@ namespace Braver.Field {
             public int TextPause; //# of frames left to wait for an embedded text pause to complete
 
             public UI.Layout.Container Visual;
-            private UI.Layout.Label lText, lVariable;
-            private UI.Layout.Image iPointer;
+            public UI.Layout.Label lText, lVariable;
+            public UI.Layout.Image iPointer;
 
             public void Reset(FGame game) {
                 var cache = game.Singleton(() => new RazorLayoutCache(game));
@@ -139,40 +140,45 @@ namespace Braver.Field {
                     lText.Text = string.Join("\r", toRender);
                 }
 
-                switch (State) {
-                    case WindowState.Expanding:
-                        float rW = MIN_SIZE + (Width - MIN_SIZE) * 1f * FrameProgress / EXPAND_HIDE_FRAMES,
-                            rH = MIN_SIZE + (Height - MIN_SIZE) * 1f * FrameProgress / EXPAND_HIDE_FRAMES;
-
-                        Visual.W = (int)rW;
-                        Visual.H = (int)rH;
-
-                        break;
-                    case WindowState.Hiding:
-                        rW = MIN_SIZE + (Width - MIN_SIZE) * (1f - 1f * FrameProgress / EXPAND_HIDE_FRAMES);
-                        rH = MIN_SIZE + (Height - MIN_SIZE) * (1f - 1f * FrameProgress / EXPAND_HIDE_FRAMES);
-                        Visual.W = (int)rW;
-                        Visual.H = (int)rH;
-                        lText.Text = string.Empty;
-                        iPointer.Visible = false;
-                        break;
-                    case WindowState.Displaying:
-                        Visual.W = Width;
-                        Visual.H = Height;
-                        int chars = FrameProgress / 4;
-                        DrawText(ref chars);
-                        if (chars > 0)
-                            State = WindowState.Wait;
-                        break;
-                    case WindowState.Wait:
-                        Visual.W = Width;
-                        Visual.H = Height;
-                        int i = 99999;
-                        DrawText(ref i);
-                        break;
-                    
-                    case WindowState.Hidden:
+                if (Options.HasFlag(DialogOptions.ClientRender)) {
+                    if (State == WindowState.Hidden)
                         return;
+                } else { 
+                    switch (State) {
+                        case WindowState.Expanding:
+                            float rW = MIN_SIZE + (Width - MIN_SIZE) * 1f * FrameProgress / EXPAND_HIDE_FRAMES,
+                                rH = MIN_SIZE + (Height - MIN_SIZE) * 1f * FrameProgress / EXPAND_HIDE_FRAMES;
+
+                            Visual.W = (int)rW;
+                            Visual.H = (int)rH;
+
+                            break;
+                        case WindowState.Hiding:
+                            rW = MIN_SIZE + (Width - MIN_SIZE) * (1f - 1f * FrameProgress / EXPAND_HIDE_FRAMES);
+                            rH = MIN_SIZE + (Height - MIN_SIZE) * (1f - 1f * FrameProgress / EXPAND_HIDE_FRAMES);
+                            Visual.W = (int)rW;
+                            Visual.H = (int)rH;
+                            lText.Text = string.Empty;
+                            iPointer.Visible = false;
+                            break;
+                        case WindowState.Displaying:
+                            Visual.W = Width;
+                            Visual.H = Height;
+                            int chars = FrameProgress / 4;
+                            DrawText(ref chars);
+                            if (chars > 0)
+                                State = WindowState.Wait;
+                            break;
+                        case WindowState.Wait:
+                            Visual.W = Width;
+                            Visual.H = Height;
+                            int i = 99999;
+                            DrawText(ref i);
+                            break;
+
+                        case WindowState.Hidden:
+                            return;
+                    }
                 }
                 Visual.Draw(null, ui, 0, 0, nextZ);
             }
@@ -219,6 +225,7 @@ namespace Braver.Field {
             win.State = WindowState.Hidden;
             win.Options = DialogOptions.None;
             win.Variable = DialogVariable.None;
+            Sync(_windows[window]);
         }
         public void SetupWindow(int window, int x, int y, int width, int height) {
             var win = _windows[window];
@@ -231,11 +238,13 @@ namespace Braver.Field {
         }
         public void SetOptions(int window, DialogOptions options) {
             _windows[window].Options = options;
+            Sync(_windows[window]);
         }
         public void SetVariable(int window, DialogVariable variable, int x, int y) {
             _windows[window].Variable = variable;
             _windows[window].VariableX = x;
             _windows[window].VariableY = y;
+            Sync(_windows[window]);
         }
 
         private void PrepareWindow(int window, string text, int tag) {
@@ -329,6 +338,23 @@ namespace Braver.Field {
             }
         }
 
+        private void Sync(Window w) {
+            _game.Net.Send(new Net.FieldDialogMessage {
+                X = w.X,
+                Y = w.Y,
+                Width = w.Visual.W,
+                Height = w.Visual.H,
+                DialogOptions = w.Options,
+                State = w.State,
+                Index = _windows.IndexOf(w), //bleh
+                PointerY = w.iPointer.Visible ? w.iPointer.Y : -9999,
+                Text = w.lText.Text,
+                VariableText = w.lVariable?.Text ?? string.Empty,
+                VariableX = w.VariableX,
+                VariableY = w.VariableY,
+            });
+        }
+
         public void Step() {
             foreach (var window in _windows) {
                 switch (window.State) {
@@ -344,6 +370,7 @@ namespace Braver.Field {
                             window.OnClosed?.Invoke();
                             window.OnChoice?.Invoke(window.ChoiceLines[window.Choice]);
                         }
+                        Sync(window);
                         break;
 
                     case WindowState.Displaying:
@@ -351,6 +378,12 @@ namespace Braver.Field {
                             window.TextPause--;
                         else
                             window.FrameProgress++;
+                        Sync(window);
+                        break;
+
+                    case WindowState.Wait:
+                        //TODO - would be more efficient to record when window data is dirty and only sync when it is
+                        Sync(window);
                         break;
                 }
             }
@@ -370,6 +403,44 @@ namespace Braver.Field {
 
         public void Render() {
             _ui.Render();
+        }
+
+        public void StepClient() {
+            _ui.Reset();
+            float z = 0;
+            float NextZ() {
+                z += UI.UIBatch.Z_ITEM_OFFSET;
+                return z;
+            }
+
+
+            foreach (var window in _windows.Reverse<Window>()) { //lower ID windows should appear on top of higher IDs {
+                window.Render(_game, _ui, NextZ);
+            }
+        }
+
+        public void ProcessClient(Net.FieldDialogMessage msg) {
+            var window = _windows[msg.Index];
+
+            bool wasHidden = window.State == WindowState.Hidden;
+
+            window.X = msg.X;
+            window.Y = msg.Y;
+            window.State = msg.State;
+            window.VariableX = msg.VariableX;
+            window.VariableY = msg.VariableY;
+            window.Options = msg.DialogOptions | DialogOptions.ClientRender;
+
+            if (wasHidden && (msg.State != WindowState.Hidden))
+                window.Reset(_game);
+
+            window.Visual.W = msg.Width;
+            window.Visual.H = msg.Height;
+            window.iPointer.Visible = msg.PointerY >= -999;
+            window.iPointer.Y = msg.PointerY;
+            window.lText.Text = msg.Text;
+            if (window.lVariable != null)
+                window.lVariable.Text = msg.VariableText;
         }
     }
 }

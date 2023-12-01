@@ -25,6 +25,7 @@ namespace Braver.Net {
         FieldBG = 102,        
         FieldEntityModel = 103,
         FieldBGScroll = 104,
+        FieldDialog = 105,
 
         UIScreen = 200,
         UIState = 201,
@@ -79,6 +80,7 @@ namespace Braver.Net {
             Register<FieldBGMessage>(MessageType.FieldBG);
             Register<FieldEntityModelMessage>(MessageType.FieldEntityModel);
             Register<FieldBGScrollMessage>(MessageType.FieldBGScroll);
+            Register<FieldDialogMessage>(MessageType.FieldDialog);
 
             Register<UIScreenMessage>(MessageType.UIScreen);
             Register<UIStateMessage>(MessageType.UIState);

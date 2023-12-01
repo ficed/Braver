@@ -4,6 +4,7 @@
 //  
 //  SPDX-License-Identifier: EPL-2.0
 
+using Braver.Net;
 using Braver.Plugins;
 using Braver.Plugins.Field;
 using Ficedula;
@@ -43,6 +44,7 @@ namespace Braver.Field {
 
     public class FieldScreen : Screen, Net.IListen<Net.FieldModelMessage>, Net.IListen<Net.FieldBGMessage>,
         Net.IListen<Net.FieldEntityModelMessage>, Net.IListen<Net.FieldBGScrollMessage>,
+        Net.IListen<Net.FieldDialogMessage>,
         IField, IAutoDispose {
 
         private PerspView3D _view3D;
@@ -162,6 +164,7 @@ namespace Braver.Field {
             g.Net.Listen<Net.FieldBGMessage>(this);
             g.Net.Listen<Net.FieldEntityModelMessage>(this);
             g.Net.Listen<Net.FieldBGScrollMessage>(this);
+            g.Net.Listen<Net.FieldDialogMessage>(this);
 
             g.Audio.StopLoopingSfx(true);
 
@@ -507,6 +510,7 @@ namespace Braver.Field {
                     foreach (var entity in Entities)
                         entity.Model?.FrameStep();
                 }
+                Dialog.StepClient();
             }
             _fieldPlugins.Call(loc => loc.Step());
             _frame++;
@@ -1473,6 +1477,10 @@ namespace Braver.Field {
                 }
             }
             return _currentFocusState;
+        }
+
+        public void Received(FieldDialogMessage message) {
+            Dialog.ProcessClient(message);
         }
     }
 

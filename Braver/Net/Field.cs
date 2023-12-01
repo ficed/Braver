@@ -70,6 +70,52 @@ namespace Braver.Net {
         }
     }
 
+    public class FieldDialogMessage : ServerMessage {
+        public int Index { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public Field.DialogOptions DialogOptions { get; set; }
+        public Field.Dialog.WindowState State { get; set; }
+        public Field.DialogVariable Variable { get; set; }
+        public string Text { get; set; }
+        public string VariableText { get; set; }
+        public int VariableX { get; set; }
+        public int VariableY { get; set; }
+        public int PointerY { get; set; }
+
+        public override void Load(NetDataReader reader) {
+            X = reader.GetInt();
+            Y = reader.GetInt();
+            Width = reader.GetInt();
+            Height = reader.GetInt();
+            DialogOptions = (Field.DialogOptions)reader.GetInt();
+            State = (Field.Dialog.WindowState)reader.GetInt();
+            Variable = (Field.DialogVariable)reader.GetInt();
+            Text = reader.GetString();
+            VariableText = reader.GetString();
+            PointerY = reader.GetInt();
+            VariableX = reader.GetInt();
+            VariableY = reader.GetInt();
+        }
+
+        public override void Save(NetDataWriter writer) {
+            writer.Put(X);
+            writer.Put(Y);
+            writer.Put(Width);
+            writer.Put(Height);
+            writer.Put((int)DialogOptions);
+            writer.Put((int)State);
+            writer.Put((int)Variable);
+            writer.Put(Text);
+            writer.Put(VariableText);
+            writer.Put(PointerY);
+            writer.Put(VariableX);
+            writer.Put(VariableY);
+        }
+    }
+
     public class FieldEntityModelMessage : ServerMessage {
         public int EntityID { get; set; }
         public int ModelID { get; set; }
