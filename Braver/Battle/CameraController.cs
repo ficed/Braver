@@ -51,6 +51,8 @@ namespace Braver.Battle {
         }
 
         public void ResetToIdleCamera() {
+            _getPosition = null;
+            _getFocus = null;
             var cam = _cameras[_idleCamera];
             _view = cam.ToView3D();
             _game.Net.Send(new SetBattleCameraMessage { Camera = cam });
@@ -122,13 +124,37 @@ namespace Braver.Battle {
         //We want to run our camera transitions at 60fps 
         private const int FRAME_MULTIPLIER = 2;
 
+        private Func<Vector3> GetRotateTransition(Vector3 rotateAround, Vector3 offset, 
+            float initialRotation, float rotateIncrement, int frames) {
+            int frame = 0;
+            return () => {
+                float rotation = initialRotation + rotateIncrement * frame;
+
+                var transform = Matrix.CreateRotationY(rotation * (float)Math.PI / 2048);
+                var rotated = Vector3.Transform(offset, transform);
+
+                if (frame < frames) frame++;
+
+                return rotateAround - rotated;
+            };
+        }
+
         private bool Execute(DecodedCameraOp<CameraPositionOpcode> op) {
+            Trace.WriteLine($"Position {op.Opcode} {string.Join(" ", op.Operands ?? Enumerable.Empty<int>())}");
             switch (op.Opcode) {
                 case CameraPositionOpcode.InterpolateModeSmooth:
                     _transitionPos = TransitionKind.Smooth;
                     return true;
                 case CameraPositionOpcode.InterpolateModeLinear:
                     _transitionPos = TransitionKind.Linear;
+                    return true;
+
+                case CameraPositionOpcode.RotateAroundFocus:
+                    _getPosition = GetRotateTransition(
+                        _view.CameraPosition + _view.CameraForwards,
+                        new Vector3(op.Operands[0], op.Operands[1], op.Operands[2]),
+                        op.Operands[3], op.Operands[4], op.Operands[5]
+                    );
                     return true;
 
                 case CameraPositionOpcode.JumpToAttackerJoint:
@@ -200,6 +226,7 @@ namespace Braver.Battle {
             }
         }
         private bool Execute(DecodedCameraOp<CameraFocusOpcode> op) {
+            Trace.WriteLine($"Focus {op.Opcode} {string.Join(" ", op.Operands ?? Enumerable.Empty<int>())}");
             switch (op.Opcode) {
                 case CameraFocusOpcode.InterpolateModeSmooth:
                     _transitionFocus = TransitionKind.Smooth;

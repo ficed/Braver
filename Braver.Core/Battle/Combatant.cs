@@ -82,6 +82,19 @@ namespace Braver.Battle {
         IEnumerable<ICharacterAction> Actions { get; }
     }
 
+    public static class MenuSourceUtil {
+        public static IEnumerable<ICharacterAction> AllActions(this IMenuSource menu) {
+            foreach(var action in menu.Actions) {
+                if (action.Ability != null)
+                    yield return action;
+                if (action is IMenuSource subMenu) {
+                    foreach (var child in subMenu.Actions.Where(a => a.Ability != null))
+                        yield return child;
+                }
+            }
+        }
+    }
+
     public class CharacterActionItem : ICharacterAction {
         public int ID { get; set; }
         public Ability Ability { get; set; }
@@ -145,6 +158,7 @@ namespace Braver.Battle {
                     LongRange = !weapon.TargettingFlags.HasFlag(TargettingFlags.ShortRange),
                     InflictStatus = weapon.Statuses,
                     Formula = AttackFormula.Physical, //TODO                    
+                    //TODO camera?!?!?!
                 },
                 TargetFlags = weapon.TargettingFlags,
             });
@@ -193,6 +207,8 @@ namespace Braver.Battle {
                                 InflictStatus = a.Item.StatusType == AttackStatusType.Inflict ? a.Item.Statuses : Statuses.None,
                                 RemoveStatus = a.Item.StatusType == AttackStatusType.Cure ? a.Item.Statuses : Statuses.None,
                                 ToggleStatus = a.Item.StatusType == AttackStatusType.Toggle ? a.Item.Statuses : Statuses.None,                                
+                                SingleTargetCamera = a.Item.CameraMovementID,
+                                MultiTargetCamera = a.Item.CameraMovementID, //TODO - verify it's correct for both single and multi?
                             },
                             TargetFlags = a.Item.TargettingFlags,
                             Name = a.Item.Name,

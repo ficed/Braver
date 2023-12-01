@@ -92,6 +92,7 @@ namespace Braver.Battle {
             _executor[EffectCommand.DeathFade] = (effect, parms) => effect.CmdDeathFade(parms);
             _executor[EffectCommand.ApplyResults] = (effect, parms) => effect.CmdApplyResults(parms);
             _executor[EffectCommand.DisplayText] = (effect, parms) => effect.CmdDisplayText(parms);
+            _executor[EffectCommand.Camera] = (effect, parms) => effect.CmdCamera(parms);
         }
 
         private IWaitableEffect WaitableFromInProgress(IEnumerable<IInProgress> effects) {
@@ -208,6 +209,28 @@ namespace Braver.Battle {
             int completeFrames = _game.GameTimeFrames + int.Parse(parms.First());
             return new CallbackWaitEffect {
                 CheckComplete = () => _game.GameTimeFrames >= completeFrames
+            };
+        }
+
+        private IWaitableEffect CmdCamera(IEnumerable<string> parms) {
+            int id;
+            var source = _models["source"];
+            var targets = _models.Values.Where(c => c != source).Select(c => _screen.Renderer.Models[c]);
+
+            if (parms.First().Equals("auto")) {
+                id = (targets.Count() > 1 ? _action.Ability.MultiTargetCamera : _action.Ability.SingleTargetCamera) ?? 0;
+            } else
+                id = int.Parse(parms.First());
+
+            bool isDone = false;
+            _screen.CameraController.Execute(
+                id,
+                _screen.Renderer.Models[source],
+                targets,
+                () => isDone = true
+            );
+            return new CallbackWaitEffect {
+                CheckComplete = () => isDone
             };
         }
 

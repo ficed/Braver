@@ -6,9 +6,9 @@ PreloadSfx 8
 	@:Wait !txt
 }
 
+Camera 36
 !cast Anim source 17
 Wait !cast
-#Camera
 
 Sfx 8
 @foreach(var result in Model.Results) {

@@ -49,6 +49,8 @@ namespace Braver.Battle {
         public bool DamageMP { get; set; }
         public int MPTurboLevel { get; set; }
         public bool IsRestore { get; set; }
+        public int? SingleTargetCamera { get; set; }
+        public int? MultiTargetCamera { get; set; }
 
         public bool HasElement(Element e) {
             if (e == Element.None)
@@ -166,6 +168,8 @@ namespace Braver.Battle {
                 MAtPercent = attack.AttackPC,
                 PAtPercent = attack.AttackPC,
                 NoSplit = noSplit,
+                SingleTargetCamera = attack.SingleTargetCameraID,
+                MultiTargetCamera = attack.MultiTargetCameraID,
             };
         }
 

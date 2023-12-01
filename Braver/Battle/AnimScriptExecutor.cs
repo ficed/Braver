@@ -65,9 +65,11 @@ namespace Braver.Battle {
                 else {
                     var model = _screen.Renderer.Models[_source];
                     if ((byte)op.Value.Op < 0x8E) {
-                        model.PlayAnimation((byte)op.Value.Op, false, 1f, onlyIfDifferent: false);
+                        if (model.AnimationState.Animation != (byte)op.Value.Op)
+                            model.PlayAnimation((byte)op.Value.Op, false, 1f, onlyIfDifferent: false);
+                        int countNow = model.AnimationState.CompletionCount;
                         _paused = true;
-                        _shouldContinue = () => model.AnimationState.CompletionCount > 0;
+                        _shouldContinue = () => model.AnimationState.CompletionCount > countNow;
                         WaitingFor = WaitingForKind.Animation;
                     } else {
 
@@ -100,6 +102,10 @@ namespace Braver.Battle {
                                 _paused = true;
                                 _shouldContinue = () => false;
                                 WaitingFor = WaitingForKind.Action;
+                                break;
+
+                            case AnimScriptOp.RunIdleAnimScript:
+                                _screen.UpdateVisualState(_source);
                                 break;
 
                             default:

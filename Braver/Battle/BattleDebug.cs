@@ -55,8 +55,10 @@ namespace Braver.Battle {
             _sprites.FrameStep();
             if (_effect != null) {
                 _effect.Step();
-                if (_effect.IsComplete)
+                if (_effect.IsComplete) {
+                    _screen.CameraController.ResetToIdleCamera();
                     _effect = null;
+                }
             }
         }
 
@@ -107,9 +109,11 @@ namespace Braver.Battle {
                 _sprites.Add(sprite, () => _screen.GetModelScreenPos(_engine.ActiveCombatants.ElementAt(_cMenu)));
                 */
                 var source = _engine.ActiveCombatants.ElementAt(_cMenu);
+                var fire1 = (source as CharacterCombatant).AllActions()
+                    .SingleOrDefault(a => a.Name == "Fire");
                 var action = new QueuedAction(
                     source, 
-                    (source as CharacterCombatant).Actions.Select(a => a.Ability).First(a => a.HasValue).Value,
+                    fire1.Ability.Value,
                     _engine.ActiveCombatants.Where(c => !c.IsPlayer).ToArray(),
                     ActionPriority.Normal,
                     "Fire1"

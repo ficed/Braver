@@ -189,7 +189,7 @@ namespace Ficedula.FF7.Battle {
                 [CameraPositionOpcode.UnknownF3] = new[] { 1, 2, 2 },
                 [CameraPositionOpcode.SetWait] = new[] { 1 },
                 [CameraPositionOpcode.UnknownF7] = new[] { 1, 2, 2, 2 },
-                [CameraPositionOpcode.UnknownF8] = new[] { 2, 2, 2, 2, 2, 2 },
+                [CameraPositionOpcode.RotateAroundFocus] = new[] { 2, 2, 2, 2, 2, 2 },
                 [CameraPositionOpcode.LoadPoint] = new[] { 2, 2, 2 },
             };
         }
@@ -269,7 +269,7 @@ namespace Ficedula.FF7.Battle {
         Wait = 0xF4,
         SetWait = 0xF5,
         UnknownF7 = 0xF7,
-        UnknownF8 = 0xF8,
+        RotateAroundFocus = 0xF8,
         LoadPoint = 0xF9,
         ConditionalRestart = 0xFE,
         ScriptEnd = 0xFF,

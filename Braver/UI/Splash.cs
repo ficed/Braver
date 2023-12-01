@@ -126,6 +126,14 @@ namespace Braver.UI {
 
                         case 3:
                             Game.NewGame();
+                            Game.SaveData.Characters[1].WeaponMateria[0] = new OwnedMateria {
+                                AP = 0,
+                                MateriaID = 49, //grant fire for testing
+                            };
+                            Game.SaveData.Characters[2].WeaponMateria[0] = new OwnedMateria {
+                                AP = 0,
+                                MateriaID = 49, //grant fire for testing
+                            };
                             //Game.PushScreen(new TestScreen());
                             //Game.ChangeScreen(this, new TestScreen());
                             //Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
