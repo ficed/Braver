@@ -1,2 +1,3 @@
 #FF7.exe EN offsets
-IntroCamera.bin		900000	2000
+IntroCamera.bin				900000	2000
+WM_WalkMapEncounters.bin	96dea0	0040

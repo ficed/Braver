@@ -15,7 +15,6 @@ using Ficedula.FF7.Battle;
 using Ficedula.FF7.Field;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using NAudio.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,7 +78,7 @@ namespace Braver.Battle {
                 UI.Layout.Label lHP, UI.Layout.Label lMaxHP, UI.Layout.Label lMP, UI.Layout.Label lMaxMP,
                 UI.Layout.Gauge gHP, UI.Layout.Gauge gMP, UI.Layout.Gauge gLimit, UI.Layout.Gauge gTime,
                 CharacterCombatant highlight) {
-                
+
                 if (combatant == null) return;
 
                 if (combatant == highlight)
@@ -182,7 +181,7 @@ namespace Braver.Battle {
 
         public void UpdateVisualState(ICombatant combatant) {
             var model = Renderer.Models[combatant];
-            switch(combatant) {
+            switch (combatant) {
                 case CharacterCombatant chr:
                     if (chr.HP <= 0)
                         model.PlayAnimation(6, true, 1f);
@@ -280,7 +279,7 @@ namespace Braver.Battle {
                 );
             }
 
-            foreach(var player in Game.SaveData.Party.Zip(_playerPositions)) {
+            foreach (var player in Game.SaveData.Party.Zip(_playerPositions)) {
                 var comb = _engine.Combatants.OfType<CharacterCombatant>().First(cc => cc.Character == player.First);
                 AddModel(_charBattleModels[player.First.CharIndex], player.Second, comb);
             }
@@ -394,7 +393,7 @@ namespace Braver.Battle {
 
             //So, potentially some options to deal with
             bool isMultiTarget = flags.HasFlag(TargettingFlags.MultiTargets) ^ _toggleMultiSingleTarget;
-            foreach(var group in _engine.ActiveCombatants.GroupBy(c => c.Row)) {
+            foreach (var group in _engine.ActiveCombatants.GroupBy(c => c.Row)) {
                 bool isDefault;
                 if (flags.HasFlag(TargettingFlags.StartOnEnemy))
                     isDefault = (group.First() is EnemyCombatant) && (group.First().Row == firstEnemyRow);
@@ -427,7 +426,7 @@ namespace Braver.Battle {
         }
 
         private void CheckClientMenus() {
-            foreach(var combatant in _uiHandler.Combatants) {
+            foreach (var combatant in _uiHandler.Combatants) {
                 Guid playerID = ControllingPlayer(combatant);
                 if (combatant.ReadyForAction) {
                     if (!_menuDisplaying.ContainsKey(combatant) && (playerID != Guid.Empty)) {
@@ -650,7 +649,7 @@ namespace Braver.Battle {
                             DefaultSingleTarget = GetCombatantID(group.Targets.OrderBy(c => c.IsAlive() ? 0 : 1).FirstOrDefault())
                         })
                         .ToList()
-                }, playerID);                
+                }, playerID);
             }
         }
 
@@ -673,7 +672,7 @@ namespace Braver.Battle {
     }
 
     public abstract class BattleScreen : Screen {
-        
+
         protected BattleFlags _flags;
 
         protected void TriggerBattleWin(BattleResults results) {
@@ -710,13 +709,13 @@ namespace Braver.Battle {
             bool ambushAlert = false; //TODO!
 
             int specialChance = r.Next(64);
-            foreach(var enc in encounters.SpecialEncounters) {
+            foreach (var enc in encounters.SpecialEncounters) {
                 int frequency = enc.Frequency;
                 if (ambushAlert && (enc != encounters.SideAttack))
                     frequency /= 2;
                 if (specialChance < enc.Frequency) {
                     game.SaveData.LastRandomBattleID = enc.EncounterID;
-                    Launch(game, enc.EncounterID, flags); 
+                    Launch(game, enc.EncounterID, flags);
                     return;
                 }
                 specialChance -= enc.Frequency;
@@ -724,7 +723,7 @@ namespace Braver.Battle {
 
             Encounter PickEncounter() {
                 int num = r.Next(64);
-                foreach(var enc in encounters.StandardEncounters) {
+                foreach (var enc in encounters.StandardEncounters) {
                     if (num < enc.Frequency)
                         return enc;
                     num -= enc.Frequency;

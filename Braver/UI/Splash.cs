@@ -134,10 +134,11 @@ namespace Braver.UI {
                                 AP = 0,
                                 MateriaID = 49, //grant fire for testing
                             };
+                            Game.SaveData.WorldMapAvatar = "cloud";
                             //Game.PushScreen(new TestScreen());
                             //Game.ChangeScreen(this, new TestScreen());
-                            //Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
-                            Battle.BattleScreen.Launch(Game, 0x88, Battle.BattleFlags.BraverDebug);
+                            Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
+                            //Battle.BattleScreen.Launch(Game, 0x88, Battle.BattleFlags.BraverDebug);
                             /*
                             Game.ChangeScreen(this, new Field.FieldScreen(
                                 new Ficedula.FF7.Field.FieldDestination {

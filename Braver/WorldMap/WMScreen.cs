@@ -188,6 +188,9 @@ namespace Braver.WorldMap {
         private Texture2D[][] _textures;
 
         private Ficedula.FF7.WorldMap.WorldMapMesh _source;
+        private Ficedula.FF7.WorldMap.Messages _messages;
+        private Ficedula.FF7.WorldMap.WalkMapEncounterTable _walkmapEncounters;
+        private Ficedula.FF7.WorldMap.EncounterTables _encounterTables;
 
         private Field.FieldModel _avatarModel;
         private Avatar _avatar;
@@ -217,7 +220,7 @@ namespace Braver.WorldMap {
             return p0.Y * a + p1.Y * b + p2.Y * c;
         }
 
-        private bool CalculateLocation(float x, float z, out float height, out WalkmapType walkmapType) {
+        private bool CalculateLocation(float x, float z, out float height, out Ficedula.FF7.WorldMap.MapTri mapTri) {
             int bx = (int)Math.Floor(x / BLOCK_SIZE),
                 by = (int)Math.Floor(z / BLOCK_SIZE);
 
@@ -245,7 +248,7 @@ namespace Braver.WorldMap {
                         );
                         if (h != null) {
                             height = h.Value;
-                            walkmapType = (WalkmapType)(1U << tri.Walkmap);
+                            mapTri = tri;
                             return true;
                         }
                     }
@@ -256,7 +259,7 @@ namespace Braver.WorldMap {
                     break;
             }
 
-            walkmapType = WalkmapType.Unused4;
+            mapTri = default;
             height = 0;
             return false;
         }
@@ -347,6 +350,9 @@ namespace Braver.WorldMap {
             _blockState = new MapBlockState[BLOCKS_X, BLOCKS_Y];
 
             _source = new Ficedula.FF7.WorldMap.WorldMapMesh(g.Open("wm", "wm0.map"));
+            _messages = new Ficedula.FF7.WorldMap.Messages(g.Open("wm", "mes"));
+            _walkmapEncounters = new Ficedula.FF7.WorldMap.WalkMapEncounterTable(g.Open("exe", "WM_WalkMapEncounters.bin"));
+            _encounterTables = new Ficedula.FF7.WorldMap.EncounterTables(g.Open("wm", "enc_w.bin"));
 
             Task.Run(Loader);
 
@@ -380,12 +386,13 @@ namespace Braver.WorldMap {
             if (pos.Z >= MAP_HEIGHT)
                 pos.Z -= MAP_HEIGHT;
 
-            if (CalculateLocation(pos.X, pos.Z, out float height, out var walkmap)) {
-                if ((_avatar.CanWalkOn & walkmap) != 0) {
+            if (CalculateLocation(pos.X, pos.Z, out float height, out var tri)) {
+                var walkmapType = (WalkmapType)(1U << tri.Walkmap);
+                if ((_avatar.CanWalkOn & walkmapType) != 0) {
                     pos.Y = height + _avatarModel.Scale * _avatarModel.MaxBounds.Y;
-                    _walkingOn = walkmap;
+                    _walkingOn = walkmapType;
                 } else {
-                    Trace.WriteLine($"Denying move to {pos} because destination walkmap is {walkmap}");
+                    Trace.WriteLine($"Denying move to {pos} because destination walkmap is {walkmapType}");
                     return;
                 }
             }            
@@ -466,17 +473,20 @@ namespace Braver.WorldMap {
             }
 
             if (input.IsJustDown(InputKey.Menu)) {
-                InputEnabled = false;
-                FadeOut(() => {
-                    Game.SaveData.WorldMapX = _avatarModel.Translation.X;
-                    Game.SaveData.WorldMapY = _avatarModel.Translation.Z;
-                    Game.SaveData.Module = Module.WorldMap;
-                    Game.SaveMap.MenuLocked &= ~(MenuMask.Save | MenuMask.PHS);
-                    Game.SaveMap.MenuVisible |= MenuMask.Save | MenuMask.PHS;
-                    //TODO - can we skip these on the assumption script should have configured them already?!
-                    Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
-                    InputEnabled = true;
-                });
+                if (CalculateLocation(_avatarModel.Translation.X, _avatarModel.Translation.Z, out _, out var tri)) {
+                    InputEnabled = false;
+                    FadeOut(() => {
+                        Game.SaveData.WorldMapX = _avatarModel.Translation.X;
+                        Game.SaveData.WorldMapY = _avatarModel.Translation.Z;
+                        Game.SaveData.Module = Module.WorldMap;
+                        Game.SaveData.Location = _messages.Get(tri.Location);
+                        Game.SaveMap.MenuLocked &= ~(MenuMask.Save | MenuMask.PHS);
+                        Game.SaveMap.MenuVisible |= MenuMask.Save | MenuMask.PHS;
+                        //TODO - can we skip these on the assumption script should have configured them already?!
+                        Game.PushScreen(new UI.Layout.LayoutScreen("MainMenu"));
+                        InputEnabled = true;
+                    });
+                }
             }
 
             if (input.IsJustDown(InputKey.Debug1))
@@ -484,7 +494,66 @@ namespace Braver.WorldMap {
 
             if (input.IsJustDown(InputKey.Debug2))
                 Trace.WriteLine($"Position {_avatarModel.Translation}, walking on {_walkingOn}");
+
+            if (input.IsJustDown(InputKey.Debug3))
+                TriggerEncounter(EncounterKind.Auto);
         }
+
+        private enum EncounterKind {
+            Auto,
+            Normal,
+            Special,
+            Chocobo,
+        }
+
+        private void TriggerEncounter(EncounterKind kind) {
+            if (CalculateLocation(_avatarModel.Translation.X, _avatarModel.Translation.Z, out _, out var tri)) {
+                var area = _walkmapEncounters.WalkmapAreas.ElementAtOrDefault(tri.Location);
+                if (area == null) return; //We're on the sea, which is the only area with no encounters
+
+                var table = area.TableForWalkmapType(tri.Walkmap);
+                if (table == null) return; //The walkmap type we're currently on has no associated encounters [in this area]
+
+                var encounters = _encounterTables.Areas[tri.Location].Areas.ElementAt(table.Value);
+
+                if (!encounters.Enabled) return; //Even though there's an associated encounter type, it's flagged as disabled
+
+                if (kind == EncounterKind.Auto) { //This is just for debugging, really - equipped materia means real encounters need to calculate things properly
+                    if (tri.HasChocoboEncounters)
+                        kind = EncounterKind.Chocobo;
+                    else if (Game.NextRandom(2) == 0)
+                        kind = EncounterKind.Special;
+                    else
+                        kind = EncounterKind.Normal;
+                }
+
+                var encounterList = kind switch {
+                    EncounterKind.Normal => encounters.NormalEncounters,
+                    EncounterKind.Special => encounters.SpecialEncounters,
+                    EncounterKind.Chocobo => encounters.ChocoboEncounters,
+                    _ => throw new NotImplementedException()
+                };
+
+                if (!encounterList.Any())
+                    encounterList = encounters.NormalEncounters;
+                Trace.Assert(encounterList.Any());
+
+                var totalChance = encounterList.Sum(e => e.Chance);
+                int r = Game.NextRandom(totalChance);
+                int? battleID = null;
+                foreach(var encounter in encounterList) {
+                    if (r < encounter.Chance) {
+                        battleID = encounter.BattleID;
+                        break;
+                    }
+                    r -= encounter.Chance;
+                }
+                Trace.Assert(battleID != null);
+
+                Battle.BattleScreen.Launch(Game, battleID.Value, Battle.BattleFlags.None); //TODO - pre-emptive flag?
+            }
+        }
+
 
         private double _frame = 0;
 

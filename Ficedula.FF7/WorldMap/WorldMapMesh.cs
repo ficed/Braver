@@ -17,7 +17,7 @@ namespace Ficedula.FF7.WorldMap {
         public byte U0, V0, U1, V1, U2, V2;
         public int Texture;
         public byte Location;
-        public bool IsChocoboEncounter;
+        public bool HasChocoboEncounters;
 
         public MapTri(Stream s) {
             Vert0 = (byte)s.ReadByte();
@@ -33,7 +33,7 @@ namespace Ficedula.FF7.WorldMap {
             ushort tl = s.ReadU16();
             Texture = tl & 0x1ff;
             Location = (byte)((tl >> 9) & 0x3F);
-            IsChocoboEncounter = (tl & 0x8000) != 0;
+            HasChocoboEncounters = (tl & 0x8000) != 0;
         }
 
         public void GetCorrectedTextureInfo(out string texFile, out Vector2 uv0, out Vector2 uv1, out Vector2 uv2) {
