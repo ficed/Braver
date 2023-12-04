@@ -42,6 +42,9 @@ namespace Braver.Net {
 
         SwirlScreen = 390,
 
+        WMScreen = 400,
+        WMStatus = 401,
+
         ConnectedMessage = 8000,
 
         SfxMessage = 9001,
@@ -95,6 +98,9 @@ namespace Braver.Net {
             Register<CycleBattleMenuMessage>(MessageType.CycleBattleMenu);
             Register<GetTargetOptionsMessage>(MessageType.GetTargetOptions);
             Register<QueueActionMessage>(MessageType.QueueAction);
+
+            Register<WMScreenMessage>(MessageType.WMScreen);
+            Register<WMStatusMessage>(MessageType.WMStatus);
 
             Register<SfxMessage>(MessageType.SfxMessage);
             Register<MusicMessage>(MessageType.MusicMessage);

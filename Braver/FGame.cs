@@ -259,7 +259,7 @@ namespace Braver {
             base.Load(path);
             switch (SaveData.Module) {
                 case Module.WorldMap:
-                    PushScreen(new WorldMap.WMScreen(SaveData.WorldMapX, SaveData.WorldMapY));
+                    PushScreen(new WorldMap.WMScreen(SaveData.WorldMapX, SaveData.WorldMapY, SaveData.WorldMapAvatar));
                     break;
 
                 case Module.Field:

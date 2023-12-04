@@ -137,7 +137,7 @@ namespace Braver.UI {
                             Game.SaveData.WorldMapAvatar = "cloud";
                             //Game.PushScreen(new TestScreen());
                             //Game.ChangeScreen(this, new TestScreen());
-                            Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329));
+                            Game.ChangeScreen(this, new WorldMap.WMScreen(139348, 126329, Game.SaveData.WorldMapAvatar));
                             //Battle.BattleScreen.Launch(Game, 0x88, Battle.BattleFlags.BraverDebug);
                             /*
                             Game.ChangeScreen(this, new Field.FieldScreen(

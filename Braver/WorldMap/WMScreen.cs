@@ -16,10 +16,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Braver.Net;
+using Braver.UI.Layout;
 
 namespace Braver.WorldMap {
 
-    internal class WMScreen : Screen {
+    internal class WMScreen : Screen, Net.IListen<Net.WMStatusMessage> {
 
         private const int SECTOR_SIZE = 8192;
         private const int BLOCK_SIZE = SECTOR_SIZE * 4;
@@ -290,9 +292,11 @@ namespace Braver.WorldMap {
         }
 
         private float _initAvatarX, _initAvatarY;
-        public WMScreen(float avatarX, float avatarY) {
+        private string _initAvatar;
+        public WMScreen(float avatarX, float avatarY, string initAvatar) {
             _initAvatarX = avatarX;
             _initAvatarY = avatarY;
+            _initAvatar = initAvatar;
         }
 
         public override void Init(FGame g, GraphicsDevice graphics) {
@@ -309,7 +313,7 @@ namespace Braver.WorldMap {
 
             _modelPlugins = g.PluginManager.GetInstances<IModelLoader>("_wm");
 
-            using (var s = g.Open("wm", g.SaveData.WorldMapAvatar + ".xml"))
+            using (var s = g.Open("wm", _initAvatar + ".xml"))
                 _avatar = Serialisation.Deserialise<Avatar>(s);
 
             _avatarModel = new Field.FieldModel(
@@ -358,6 +362,13 @@ namespace Braver.WorldMap {
 
             TryMoveAvatarTo(new Vector3(_initAvatarX, 0, _initAvatarY));
 
+            g.Net.Send(new Net.WMScreenMessage { 
+                AvatarX = _initAvatarX, 
+                AvatarY = _initAvatarY,
+                Avatar = _initAvatar,
+            });
+            g.Net.Listen<Net.WMStatusMessage>(this);
+
             _view = new PerspView3D {
 //                CameraPosition = new Vector3(avatarX, 500, avatarY - 500),
 //                CameraForwards = new Vector3(0, -1, 1),
@@ -371,6 +382,7 @@ namespace Braver.WorldMap {
 
             _ui = new UI.UIBatch(graphics, g);
 
+            g.Net.Send(new Net.ScreenReadyMessage());
             FadeIn(null);
 
             g.Audio.PlayMusic("ta");
@@ -400,8 +412,20 @@ namespace Braver.WorldMap {
             _avatarModel.Translation = pos;
         }
 
+        private void Sync() {
+            Game.Net.Send(new Net.WMStatusMessage {
+                PanMode = _panMode,
+                CameraOffset = _cameraOffset,
+                AvatarPosition = _avatarModel.Translation,
+                AvatarRotation = _avatarModel.Rotation,
+                AvatarAnimation = _avatar.Animations[_avatarModel.AnimationState.Animation].Name,                
+            });
+        }
+
         public override void ProcessInput(InputState input) {
             base.ProcessInput(input);
+            if (!(Game.Net is Net.Server)) return;
+
             if (_isDebug) {
                 if (input.IsDown(InputKey.Up))
                     _cameraOffset += new Vector3(0, 0, 60);
@@ -431,6 +455,7 @@ namespace Braver.WorldMap {
                     if (_wasMoving) {
                         AnimateAvatar("stand");
                         _wasMoving = false;
+                        Sync();
                     }
                 } else {
                     if (!_wasMoving) {
@@ -449,6 +474,7 @@ namespace Braver.WorldMap {
                     TryMoveAvatarTo(_avatarModel.Translation + move * 15);
                     var angle = Math.Atan2(move.X, move.Z) * 180 / Math.PI;
                     _avatarModel.Rotation = new Vector3(180, (float)angle, 0);
+                    Sync();
                 }
 
                 if (input.IsJustDown(InputKey.Select)) {
@@ -459,6 +485,7 @@ namespace Braver.WorldMap {
                         _cameraOffset = new Vector3(0, 400, -750);
                     else
                         _cameraOffset = new Vector3(0, 2500, -250);
+                    Sync();
                 }
 
                 if (_panMode) {
@@ -468,7 +495,10 @@ namespace Braver.WorldMap {
                     else if (input.IsDown(InputKey.PanRight))
                         angle -= Math.PI / 180;
 
-                    _cameraOffset = Vector3.Transform(_cameraOffset, Matrix.CreateRotationY((float)angle));
+                    if (angle != 0) {
+                        _cameraOffset = Vector3.Transform(_cameraOffset, Matrix.CreateRotationY((float)angle));
+                        Sync();
+                    }
                 }
             }
 
@@ -666,5 +696,18 @@ namespace Braver.WorldMap {
                 block?.Buffer?.Dispose();
         }
 
+        public void Received(WMStatusMessage message) {
+            _avatarModel.Translation = message.AvatarPosition;
+            _avatarModel.Rotation = message.AvatarRotation;
+            _cameraOffset = message.CameraOffset;
+            if (_panMode != message.PanMode) {
+                _transitionCameraFrom = _view.Clone();
+                _transitionCameraProgress = 0f;
+                _panMode = message.PanMode;
+            }
+            if (message.AvatarAnimation != _avatar.Animations[_avatarModel.AnimationState.Animation].Name) {
+                AnimateAvatar(message.AvatarAnimation);
+            }
+        }
     }
 }
